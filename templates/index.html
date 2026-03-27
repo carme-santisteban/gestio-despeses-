@@ -823,8 +823,6 @@ function mostrarNomFitxer() {
 
 // ─── Guardar ─────────────────────────────────────────────────────────────────
 async function guardarDespesa() {
-  if (window._guardant) return;
-  window._guardant = true;
   const data       = document.getElementById('fData').value;
   const import_    = document.getElementById('fImport').value;
   const descripcio = document.getElementById('fDescripcio').value.trim();
@@ -875,7 +873,7 @@ async function guardarDespesa() {
     toast('Error guardant la despesa', 'error');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '💾 Guardar'; window._guardant = false;
+    btn.innerHTML = '💾 Guardar';
   }
 }
 
