@@ -853,7 +853,12 @@ async function guardarDespesa() {
     const method = despesaEdId ? 'PUT' : 'POST';
     const r = await fetch(url, { method, body: fd });
     if (!r.ok) throw new Error();
-    toast(despesaEdId ? 'Despesa actualitzada' : 'Despesa afegida', 'ok');
+    const result = await r.json();
+    if (result.cloudinary_error) {
+      toast('Despesa guardada però error al document: ' + result.cloudinary_error, 'error');
+    } else {
+      toast(despesaEdId ? 'Despesa actualitzada ✓' : 'Despesa afegida ✓', 'ok');
+    }
     tancarModal();
     carregarDespeses();
     if (!despesaEdId) {

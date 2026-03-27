@@ -101,6 +101,7 @@ def create_despesa():
 
     document_url = None
     document_nom = None
+    cloudinary_error = None
 
     if fitxer and fitxer.filename:
         try:
@@ -112,7 +113,7 @@ def create_despesa():
             document_url = result.get('secure_url')
             document_nom = fitxer.filename
         except Exception as e:
-            pass  # Continua sense document si falla Cloudinary
+            cloudinary_error = str(e)
 
     try:
         despesa = Despesa(
@@ -128,7 +129,10 @@ def create_despesa():
         )
         db.session.add(despesa)
         db.session.commit()
-        return jsonify(despesa.to_dict()), 201
+        result = despesa.to_dict()
+        if cloudinary_error:
+            result['cloudinary_error'] = cloudinary_error
+        return jsonify(result), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
