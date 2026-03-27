@@ -395,5 +395,10 @@ def get_anys_factures():
     return jsonify([int(r.any) for r in anys])
 
 
+@app.route('/api/backup')
+def backup():
+    from datetime import datetime
+    return jsonify({'ok': True, 'data': datetime.now().strftime('%Y%m%d-%H%M')})
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
