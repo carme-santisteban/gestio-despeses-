@@ -722,7 +722,7 @@ function renderTaula(llista) {
       <td>${d.document_url ? `<a href="${d.document_url}" target="_blank" class="doc-link">📎 ${esc(d.document_nom||'Doc')}</a>` : '<span style="color:var(--gray-2)">—</span>'}</td>
       <td class="accions">
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})" title="Editar">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="eliminarDespesa(${d.id})" title="Eliminar">🗑</button>
+        <button class="btn btn-sm btn-danger" onclick="if(confirm("Segur que vols eliminar aquesta despesa?")) eliminarDespesa(${d.id})" title="Eliminar" style="margin-left:8px">🗑</button>
       </td>
     </tr>
   `).join('');
