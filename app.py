@@ -143,13 +143,14 @@ def update_despesa(id):
     data = request.form
     fitxer = request.files.get('document')
 
+    cloudinary_error = None
     if fitxer and fitxer.filename:
         try:
             result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses')
             despesa.document_url = result.get('secure_url')
             despesa.document_nom = fitxer.filename
-        except:
-            pass
+        except Exception as e:
+            cloudinary_error = str(e)
 
     try:
         despesa.data       = datetime.strptime(data['data'], '%Y-%m-%d').date()
@@ -160,7 +161,10 @@ def update_despesa(id):
         despesa.proveidor  = data.get('proveidor', '')
         despesa.notes      = data.get('notes', '')
         db.session.commit()
-        return jsonify(despesa.to_dict())
+        result = despesa.to_dict()
+        if cloudinary_error:
+            result['cloudinary_error'] = cloudinary_error
+        return jsonify(result)
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
@@ -266,6 +270,130 @@ def export_csv():
         as_attachment=True,
         download_name=nom_fitxer
     )
+
+# ─── Model Factura ────────────────────────────────────────────────────────────
+
+class Factura(db.Model):
+    __tablename__ = 'factures'
+
+    id            = db.Column(db.Integer, primary_key=True)
+    numero        = db.Column(db.String(20), unique=True, nullable=False)
+    data          = db.Column(db.Date, nullable=False, default=date.today)
+    client_nom    = db.Column(db.String(200), nullable=False)
+    client_nif    = db.Column(db.String(20))
+    client_adreca = db.Column(db.String(300))
+    concepte      = db.Column(db.Text, nullable=False)
+    base          = db.Column(db.Numeric(10, 2), nullable=False)
+    iva_pct       = db.Column(db.Numeric(5, 2), default=21)
+    irpf_pct      = db.Column(db.Numeric(5, 2), default=0)
+    notes         = db.Column(db.Text)
+    creat_el      = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def iva(self):
+        return float(self.base) * float(self.iva_pct) / 100
+
+    @property
+    def irpf(self):
+        return float(self.base) * float(self.irpf_pct) / 100
+
+    @property
+    def total(self):
+        return float(self.base) + self.iva - self.irpf
+
+    def to_dict(self):
+        return {
+            'id':            self.id,
+            'numero':        self.numero,
+            'data':          self.data.isoformat() if self.data else None,
+            'client_nom':    self.client_nom,
+            'client_nif':    self.client_nif or '',
+            'client_adreca': self.client_adreca or '',
+            'concepte':      self.concepte,
+            'base':          float(self.base),
+            'iva_pct':       float(self.iva_pct),
+            'irpf_pct':      float(self.irpf_pct),
+            'iva':           round(self.iva, 2),
+            'irpf':          round(self.irpf, 2),
+            'total':         round(self.total, 2),
+            'notes':         self.notes or '',
+        }
+
+def generar_numero_factura(data):
+    any_ = data.year
+    mes  = data.month
+    prefix = f"{any_}{mes:02d}"
+    count = Factura.query.filter(
+        Factura.numero.like(f"{prefix}%")
+    ).count()
+    return f"{prefix}{count+1:02d}"
+
+@app.route('/api/factures', methods=['GET'])
+def get_factures():
+    any_ = request.args.get('any', type=int)
+    q = Factura.query
+    if any_:
+        q = q.filter(extract('year', Factura.data) == any_)
+    return jsonify([f.to_dict() for f in q.order_by(Factura.data.desc()).all()])
+
+@app.route('/api/factures', methods=['POST'])
+def create_factura():
+    data = request.json
+    try:
+        data_factura = datetime.strptime(data['data'], '%Y-%m-%d').date()
+        factura = Factura(
+            numero        = generar_numero_factura(data_factura),
+            data          = data_factura,
+            client_nom    = data['client_nom'],
+            client_nif    = data.get('client_nif', ''),
+            client_adreca = data.get('client_adreca', ''),
+            concepte      = data['concepte'],
+            base          = float(data['base']),
+            iva_pct       = float(data.get('iva_pct', 21)),
+            irpf_pct      = float(data.get('irpf_pct', 0)),
+            notes         = data.get('notes', ''),
+        )
+        db.session.add(factura)
+        db.session.commit()
+        return jsonify(factura.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/factures/<int:id>', methods=['PUT'])
+def update_factura(id):
+    factura = Factura.query.get_or_404(id)
+    data = request.json
+    try:
+        factura.data          = datetime.strptime(data['data'], '%Y-%m-%d').date()
+        factura.client_nom    = data['client_nom']
+        factura.client_nif    = data.get('client_nif', '')
+        factura.client_adreca = data.get('client_adreca', '')
+        factura.concepte      = data['concepte']
+        factura.base          = float(data['base'])
+        factura.iva_pct       = float(data.get('iva_pct', 21))
+        factura.irpf_pct      = float(data.get('irpf_pct', 0))
+        factura.notes         = data.get('notes', '')
+        db.session.commit()
+        return jsonify(factura.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/factures/<int:id>', methods=['DELETE'])
+def delete_factura(id):
+    factura = Factura.query.get_or_404(id)
+    db.session.delete(factura)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/factures/anys')
+def get_anys_factures():
+    anys = db.session.query(
+        extract('year', Factura.data).label('any')
+    ).distinct().order_by('any').all()
+    return jsonify([int(r.any) for r in anys])
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
