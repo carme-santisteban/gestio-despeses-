@@ -719,7 +719,7 @@ function renderTaula(llista) {
       <td><span class="badge badge-${d.tipus==='professional'?'prof':'pers'}">${d.tipus==='professional'?'Prof.':'Pers.'}</span></td>
       <td style="color:var(--gray-4);font-size:.85rem">${esc(d.proveidor)||'—'}</td>
       <td class="import-cell">${formatImport(d.import_)}</td>
-      <td>${d.document_url ? `<a href="${d.document_url}" target="_blank" class="doc-link">📎 ${esc(d.document_nom||'Doc')}</a>` : '<span style="color:var(--gray-2)">—</span>'}</td>
+      <td>${d.document_url ? `<a href="${d.document_url.replace('/image/upload/', '/raw/upload/')}" target="_blank" class="doc-link">📎 ${esc(d.document_nom||'Doc')}</a>` : '<span style="color:var(--gray-2)">—</span>'}</td>
       <td class="accions">
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})" title="Editar">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="eliminarDespesa(${d.id})" title="Eliminar">🗑</button>
