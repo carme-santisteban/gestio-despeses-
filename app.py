@@ -107,7 +107,7 @@ def create_despesa():
         try:
             result = cloudinary.uploader.upload(
                 fitxer,
-                resource_type='auto',
+                resource_type='raw',
                 folder='gestiodespeses'
             )
             document_url = result.get('secure_url')
@@ -145,7 +145,7 @@ def update_despesa(id):
 
     if fitxer and fitxer.filename:
         try:
-            result = cloudinary.uploader.upload(fitxer, resource_type='auto', folder='gestiodespeses')
+            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses')
             despesa.document_url = result.get('secure_url')
             despesa.document_nom = fitxer.filename
         except:
