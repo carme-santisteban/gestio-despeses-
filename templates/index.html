@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GestióDespeses — Carme Santisteban</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy:    #0f1f3d;
+      --gold:    #c9a84c;
+      --gold-lt: #e8c97a;
+      --cream:   #f8f5ef;
+      --white:   #ffffff;
+      --gray-1:  #f2ede6;
+      --gray-2:  #d9d0c3;
+      --gray-3:  #9a9080;
+      --gray-4:  #5a5248;
+      --red:     #c0392b;
+      --green:   #1a6b4a;
+      --blue:    #1a4a7a;
+      --shadow:  0 4px 24px rgba(15,31,61,.10);
+      --shadow-lg: 0 8px 40px rgba(15,31,61,.16);
+      --radius:  10px;
+      --font-head: 'Playfair Display', Georgia, serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--cream);
+      color: var(--navy);
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      background: var(--navy);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 16px rgba(0,0,0,.3);
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-logo {
+      width: 36px; height: 36px;
+      background: var(--gold);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .header-title {
+      font-family: var(--font-head);
+      color: var(--white);
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+    .header-sub {
+      color: var(--gold);
+      font-size: .75rem;
+      font-weight: 300;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-family: var(--font-body);
+      font-size: .875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--gold);
+      color: var(--navy);
+    }
+    .btn-primary:hover { background: var(--gold-lt); transform: translateY(-1px); box-shadow: var(--shadow); }
+    .btn-outline {
+      background: transparent;
+      color: var(--white);
+      border: 1.5px solid rgba(255,255,255,.3);
+    }
+    .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+    .btn-danger { background: #fde8e6; color: var(--red); }
+    .btn-danger:hover { background: var(--red); color: white; }
+    .btn-sm { padding: 5px 10px; font-size: .8rem; }
+    .btn-icon { padding: 6px 8px; }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .container { max-width: 1300px; margin: 0 auto; padding: 0 1.5rem; }
+
+    .page-header {
+      padding: 2rem 0 1.5rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .page-title {
+      font-family: var(--font-head);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+    .page-title span { color: var(--gold); }
+
+    /* ── Filtres ─────────────────────────────────────────── */
+    .filtres-bar {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    .filtres-bar select, .filtres-bar input {
+      font-family: var(--font-body);
+      font-size: .875rem;
+      padding: 7px 12px;
+      border: 1.5px solid var(--gray-2);
+      border-radius: 6px;
+      background: var(--cream);
+      color: var(--navy);
+      min-width: 130px;
+    }
+    .filtres-bar select:focus, .filtres-bar input:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+    .filtres-bar label { font-size: .8rem; color: var(--gray-3); font-weight: 500; white-space: nowrap; }
+    .filtre-grup { display: flex; flex-direction: column; gap: 3px; }
+
+    /* ── KPI Cards ───────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .kpi-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px;
+      height: 100%;
+    }
+    .kpi-card.total::before  { background: var(--navy); }
+    .kpi-card.prof::before   { background: var(--blue); }
+    .kpi-card.pers::before   { background: var(--green); }
+    .kpi-card.count::before  { background: var(--gold); }
+    .kpi-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--gray-3); font-weight: 500; margin-bottom: 6px; }
+    .kpi-value { font-family: var(--font-head); font-size: 1.7rem; font-weight: 700; color: var(--navy); }
+    .kpi-sub { font-size: .75rem; color: var(--gray-3); margin-top: 4px; }
+
+    /* ── Taula ───────────────────────────────────────────── */
+    .taula-wrapper {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .taula-cap {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--gray-1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .taula-cap h2 {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .cerca-input {
+      font-family: var(--font-body);
+      font-size: .875rem;
+      padding: 7px 12px 7px 32px;
+      border: 1.5px solid var(--gray-2);
+      border-radius: 6px;
+      background: var(--cream) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239a9080' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;
+      width: 200px;
+    }
+    .cerca-input:focus { outline: none; border-color: var(--gold); }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--navy);
+      color: var(--white);
+      font-size: .75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      padding: 11px 14px;
+      text-align: left;
+    }
+    thead th:last-child { text-align: center; }
+    tbody tr {
+      border-bottom: 1px solid var(--gray-1);
+      transition: background .15s;
+    }
+    tbody tr:hover { background: var(--cream); }
+    tbody td { padding: 11px 14px; font-size: .875rem; vertical-align: middle; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .badge-prof { background: #e8f0fb; color: var(--blue); }
+    .badge-pers { background: #e6f4ee; color: var(--green); }
+
+    .import-cell {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--navy);
+      white-space: nowrap;
+    }
+
+    .doc-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .8rem;
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .doc-link:hover { color: var(--gold); }
+
+    .accions { display: flex; gap: 6px; justify-content: center; }
+
+    .buit {
+      padding: 3rem;
+      text-align: center;
+      color: var(--gray-3);
+    }
+    .buit-icon { font-size: 2.5rem; margin-bottom: .75rem; }
+    .buit-text { font-size: .95rem; }
+
+    /* ── Modal ───────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15,31,61,.55);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-overlay.actiu { display: flex; }
+    .modal {
+      background: var(--white);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: modalIn .2s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(.96) translateY(-8px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-cap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--gray-1);
+    }
+    .modal-cap h3 {
+      font-family: var(--font-head);
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+    .modal-cos { padding: 1.5rem; }
+    .modal-peu {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--gray-1);
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    /* ── Formulari ───────────────────────────────────────── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-grup { display: flex; flex-direction: column; gap: 5px; }
+    .form-grup.full { grid-column: 1 / -1; }
+    .form-label {
+      font-size: .78rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--gray-4);
+    }
+    .form-label span { color: var(--red); }
+    .form-control {
+      font-family: var(--font-body);
+      font-size: .9rem;
+      padding: 9px 12px;
+      border: 1.5px solid var(--gray-2);
+      border-radius: 6px;
+      background: var(--cream);
+      color: var(--navy);
+      transition: border-color .2s;
+    }
+    .form-control:focus { outline: none; border-color: var(--gold); background: white; }
+    textarea.form-control { resize: vertical; min-height: 70px; }
+
+    .tipus-selector {
+      display: flex;
+      gap: 8px;
+    }
+    .tipus-opt {
+      flex: 1;
+      padding: 9px;
+      border: 2px solid var(--gray-2);
+      border-radius: 6px;
+      text-align: center;
+      cursor: pointer;
+      font-size: .85rem;
+      font-weight: 500;
+      transition: all .2s;
+      background: var(--cream);
+    }
+    .tipus-opt.seleccionat.prof {
+      border-color: var(--blue);
+      background: #e8f0fb;
+      color: var(--blue);
+    }
+    .tipus-opt.seleccionat.pers {
+      border-color: var(--green);
+      background: #e6f4ee;
+      color: var(--green);
+    }
+
+    .upload-zona {
+      border: 2px dashed var(--gray-2);
+      border-radius: 6px;
+      padding: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s;
+      background: var(--cream);
+    }
+    .upload-zona:hover { border-color: var(--gold); }
+    .upload-zona input { display: none; }
+    .upload-text { font-size: .85rem; color: var(--gray-3); margin-top: 4px; }
+    .upload-nom { font-size: .85rem; color: var(--green); font-weight: 500; margin-top: 4px; }
+
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      right: 1.5rem;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      background: var(--navy);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: .875rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: var(--shadow-lg);
+      animation: toastIn .3s ease;
+      max-width: 320px;
+    }
+    .toast.ok { border-left: 4px solid var(--gold); }
+    .toast.error { border-left: 4px solid var(--red); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── Spinner ─────────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .form-grid { grid-template-columns: 1fr; }
+      table { font-size: .8rem; }
+      thead th { padding: 8px 10px; }
+      tbody td { padding: 8px 10px; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .page-header { flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 480px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      .filtres-bar { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="header-brand">
+    <div class="header-logo">💼</div>
+    <div>
+      <div class="header-title">GestióDespeses</div>
+      <div class="header-sub">Carme Santisteban · ICAB 30907</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-outline btn-sm" onclick="exportarCSV()">⬇ Exportar CSV</button>
+    <button class="btn btn-primary" onclick="obrirModal()">+ Nova despesa</button>
+  </div>
+</header>
+
+<!-- Toast -->
+<div class="toast-container" id="toasts"></div>
+
+<!-- Contingut principal -->
+<div class="container">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Despeses <span id="anyActual"></span></div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filtres-bar">
+    <div class="filtre-grup">
+      <label>Any</label>
+      <select id="filtreAny" onchange="aplicarFiltres()">
+        <option value="">Tots</option>
+      </select>
+    </div>
+    <div class="filtre-grup">
+      <label>Mes</label>
+      <select id="filtreMes" onchange="aplicarFiltres()">
+        <option value="">Tots</option>
+        <option value="1">Gener</option><option value="2">Febrer</option>
+        <option value="3">Març</option><option value="4">Abril</option>
+        <option value="5">Maig</option><option value="6">Juny</option>
+        <option value="7">Juliol</option><option value="8">Agost</option>
+        <option value="9">Setembre</option><option value="10">Octubre</option>
+        <option value="11">Novembre</option><option value="12">Desembre</option>
+      </select>
+    </div>
+    <div class="filtre-grup">
+      <label>Tipus</label>
+      <select id="filtreTipus" onchange="aplicarFiltres()">
+        <option value="">Tots</option>
+        <option value="professional">Professional</option>
+        <option value="personal">Personal</option>
+      </select>
+    </div>
+    <div class="filtre-grup">
+      <label>Categoria</label>
+      <select id="filtreCat" onchange="aplicarFiltres()">
+        <option value="">Totes</option>
+      </select>
+    </div>
+    <button class="btn btn-outline" style="background:var(--navy);margin-top:18px" onclick="netejarFiltres()">✕ Netejar</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card total"><div class="kpi-label">Total any</div><div class="kpi-value" id="kpiTotal">—</div></div>
+    <div class="kpi-card prof"><div class="kpi-label">Professional</div><div class="kpi-value" id="kpiProf">—</div></div>
+    <div class="kpi-card pers"><div class="kpi-label">Personal</div><div class="kpi-value" id="kpiPers">—</div></div>
+    <div class="kpi-card count"><div class="kpi-label">Registres</div><div class="kpi-value" id="kpiCount">—</div></div>
+  </div>
+
+  <!-- Taula -->
+  <div class="taula-wrapper">
+    <div class="taula-cap">
+      <h2>Llistat de despeses</h2>
+      <input type="text" class="cerca-input" placeholder="Cercar…" id="cercaInput" oninput="filtrarTaula()">
+    </div>
+    <div style="overflow-x:auto">
+      <table id="taulaDespeses">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Descripció</th>
+            <th>Categoria</th>
+            <th>Tipus</th>
+            <th>Proveïdor</th>
+            <th>Import</th>
+            <th>Doc.</th>
+            <th style="text-align:center">Accions</th>
+          </tr>
+        </thead>
+        <tbody id="taulaCos">
+          <tr><td colspan="8" class="buit"><div class="buit-icon">📊</div><div class="buit-text">Carregant…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal nova/editar despesa -->
+<div class="modal-overlay" id="modalOverlay" onclick="tancarModalFora(event)">
+  <div class="modal" id="modal">
+    <div class="modal-cap">
+      <h3 id="modalTitol">Nova despesa</h3>
+      <button class="btn btn-icon" onclick="tancarModal()" style="color:var(--gray-3);font-size:1.2rem;background:none;border:none;cursor:pointer">✕</button>
+    </div>
+    <div class="modal-cos">
+      <div class="form-grid">
+
+        <div class="form-grup full">
+          <label class="form-label">Tipus <span>*</span></label>
+          <div class="tipus-selector">
+            <div class="tipus-opt prof seleccionat" id="optProf" onclick="selTipus('professional')">💼 Professional</div>
+            <div class="tipus-opt pers" id="optPers" onclick="selTipus('personal')">🏠 Personal</div>
+          </div>
+          <input type="hidden" id="fTipus" value="professional">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Data <span>*</span></label>
+          <input type="date" class="form-control" id="fData">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Import (€) <span>*</span></label>
+          <input type="number" class="form-control" id="fImport" step="0.01" min="0" placeholder="0,00">
+        </div>
+
+        <div class="form-grup full">
+          <label class="form-label">Descripció <span>*</span></label>
+          <input type="text" class="form-control" id="fDescripcio" placeholder="Breu descripció de la despesa">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Categoria <span>*</span></label>
+          <select class="form-control" id="fCategoria">
+            <optgroup label="Professional">
+              <option value="Honoraris advocat/a">Honoraris advocat/a</option>
+              <option value="Taxes i aranzels">Taxes i aranzels</option>
+              <option value="Material oficina">Material oficina</option>
+              <option value="Formació">Formació</option>
+              <option value="Viatges i desplaçaments">Viatges i desplaçaments</option>
+              <option value="Subscripcions jurídiques">Subscripcions jurídiques</option>
+              <option value="Assegurances professionals">Assegurances professionals</option>
+              <option value="Tecnologia i programari">Tecnologia i programari</option>
+              <option value="Serveis externs">Serveis externs</option>
+              <option value="Altres professional">Altres professional</option>
+            </optgroup>
+            <optgroup label="Personal">
+              <option value="Alimentació">Alimentació</option>
+              <option value="Habitatge">Habitatge</option>
+              <option value="Transport">Transport</option>
+              <option value="Salut">Salut</option>
+              <option value="Oci i cultura">Oci i cultura</option>
+              <option value="Roba i complements">Roba i complements</option>
+              <option value="Altres personal">Altres personal</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Proveïdor / Entitat</label>
+          <input type="text" class="form-control" id="fProveidor" placeholder="Nom del proveïdor">
+        </div>
+
+        <div class="form-grup full">
+          <label class="form-label">Notes</label>
+          <textarea class="form-control" id="fNotes" placeholder="Observacions addicionals…"></textarea>
+        </div>
+
+        <div class="form-grup full">
+          <label class="form-label">Document adjunt (PDF/imatge)</label>
+          <div class="upload-zona" onclick="document.getElementById('fDocument').click()">
+            <div>📎 Fes clic per adjuntar un document</div>
+            <div class="upload-text">PDF, JPG, PNG fins a 10 MB</div>
+            <div class="upload-nom" id="nomDocument"></div>
+          </div>
+          <input type="file" id="fDocument" accept=".pdf,.jpg,.jpeg,.png" onchange="mostrarNomFitxer()">
+          <div id="docActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModal()">Cancel·lar</button>
+      <button class="btn btn-primary" id="btnGuardar" onclick="guardarDespesa()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Estat global ────────────────────────────────────────────────────────────
+let despeses     = [];
+let despesaEdId  = null;
+const MESOS = ['','Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const avui = new Date();
+  document.getElementById('fData').value = avui.toISOString().slice(0,10);
+  document.getElementById('anyActual').textContent = avui.getFullYear();
+  document.getElementById('filtreAny').value = avui.getFullYear();
+
+  carregarAnys();
+  carregarDespeses();
+});
+
+// ─── Anys disponibles ────────────────────────────────────────────────────────
+async function carregarAnys() {
+  try {
+    const r = await fetch('/api/anys');
+    const anys = await r.json();
+    const sel = document.getElementById('filtreAny');
+    const anyActual = new Date().getFullYear();
+    const tots = new Set([...anys, anyActual]);
+    [...tots].sort((a,b)=>b-a).forEach(a => {
+      const o = document.createElement('option');
+      o.value = a; o.textContent = a;
+      sel.appendChild(o);
+    });
+    sel.value = anyActual;
+  } catch(e) {}
+}
+
+// ─── Carregar despeses ───────────────────────────────────────────────────────
+async function carregarDespeses() {
+  const params = new URLSearchParams();
+  const any_ = document.getElementById('filtreAny').value;
+  const mes  = document.getElementById('filtreMes').value;
+  const tip  = document.getElementById('filtreTipus').value;
+  const cat  = document.getElementById('filtreCat').value;
+  if (any_) params.set('any', any_);
+  if (mes)  params.set('mes', mes);
+  if (tip)  params.set('tipus', tip);
+  if (cat)  params.set('categoria', cat);
+
+  try {
+    const r = await fetch('/api/despeses?' + params);
+    despeses = await r.json();
+    renderTaula(despeses);
+    actualitzarKPIs(despeses);
+    actualitzarCategoriesFiltres();
+  } catch(e) {
+    toast('Error carregant dades', 'error');
+  }
+}
+
+// ─── Render taula ────────────────────────────────────────────────────────────
+function renderTaula(llista) {
+  const cos = document.getElementById('taulaCos');
+  if (!llista.length) {
+    cos.innerHTML = `<tr><td colspan="8" class="buit">
+      <div class="buit-icon">📭</div>
+      <div class="buit-text">Cap despesa registrada amb els filtres actuals</div>
+    </td></tr>`;
+    return;
+  }
+  cos.innerHTML = llista.map(d => `
+    <tr>
+      <td style="white-space:nowrap;color:var(--gray-3)">${formatData(d.data)}</td>
+      <td style="max-width:220px"><div style="font-weight:500">${esc(d.descripcio)}</div>${d.notes ? `<div style="font-size:.75rem;color:var(--gray-3);margin-top:2px">${esc(d.notes.substring(0,60))}${d.notes.length>60?'…':''}</div>` : ''}</td>
+      <td><span style="font-size:.8rem;color:var(--gray-4)">${esc(d.categoria)}</span></td>
+      <td><span class="badge badge-${d.tipus==='professional'?'prof':'pers'}">${d.tipus==='professional'?'Prof.':'Pers.'}</span></td>
+      <td style="color:var(--gray-4);font-size:.85rem">${esc(d.proveidor)||'—'}</td>
+      <td class="import-cell">${formatImport(d.import_)}</td>
+      <td>${d.document_url ? `<a href="${d.document_url}" target="_blank" class="doc-link">📎 ${esc(d.document_nom||'Doc')}</a>` : '<span style="color:var(--gray-2)">—</span>'}</td>
+      <td class="accions">
+        <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})" title="Editar">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminarDespesa(${d.id})" title="Eliminar">🗑</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ─── KPIs ────────────────────────────────────────────────────────────────────
+function actualitzarKPIs(llista) {
+  const total = llista.reduce((s,d) => s + d.import_, 0);
+  const prof  = llista.filter(d=>d.tipus==='professional').reduce((s,d)=>s+d.import_,0);
+  const pers  = llista.filter(d=>d.tipus==='personal').reduce((s,d)=>s+d.import_,0);
+  document.getElementById('kpiTotal').textContent = formatImport(total);
+  document.getElementById('kpiProf').textContent  = formatImport(prof);
+  document.getElementById('kpiPers').textContent  = formatImport(pers);
+  document.getElementById('kpiCount').textContent = llista.length;
+}
+
+// ─── Categories filtre ───────────────────────────────────────────────────────
+function actualitzarCategoriesFiltres() {
+  const cats = [...new Set(despeses.map(d=>d.categoria))].sort();
+  const sel = document.getElementById('filtreCat');
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">Totes</option>' + cats.map(c=>`<option value="${esc(c)}"${c===actual?' selected':''}>${esc(c)}</option>`).join('');
+}
+
+// ─── Cerca local ─────────────────────────────────────────────────────────────
+function filtrarTaula() {
+  const q = document.getElementById('cercaInput').value.toLowerCase();
+  if (!q) { renderTaula(despeses); actualitzarKPIs(despeses); return; }
+  const filtrat = despeses.filter(d =>
+    d.descripcio.toLowerCase().includes(q) ||
+    d.categoria.toLowerCase().includes(q) ||
+    (d.proveidor||'').toLowerCase().includes(q) ||
+    (d.notes||'').toLowerCase().includes(q)
+  );
+  renderTaula(filtrat);
+  actualitzarKPIs(filtrat);
+}
+
+// ─── Filtres ─────────────────────────────────────────────────────────────────
+function aplicarFiltres() {
+  const any_ = document.getElementById('filtreAny').value;
+  document.getElementById('anyActual').textContent = any_ || 'Tots';
+  carregarDespeses();
+}
+
+function netejarFiltres() {
+  document.getElementById('filtreAny').value  = new Date().getFullYear();
+  document.getElementById('filtreMes').value  = '';
+  document.getElementById('filtreTipus').value= '';
+  document.getElementById('filtreCat').value  = '';
+  document.getElementById('cercaInput').value = '';
+  document.getElementById('anyActual').textContent = new Date().getFullYear();
+  carregarDespeses();
+}
+
+// ─── Modal ───────────────────────────────────────────────────────────────────
+function obrirModal(d = null) {
+  despesaEdId = d ? d.id : null;
+  document.getElementById('modalTitol').textContent = d ? 'Editar despesa' : 'Nova despesa';
+  document.getElementById('fData').value        = d ? d.data : new Date().toISOString().slice(0,10);
+  document.getElementById('fImport').value      = d ? d.import_ : '';
+  document.getElementById('fDescripcio').value  = d ? d.descripcio : '';
+  document.getElementById('fProveidor').value   = d ? d.proveidor : '';
+  document.getElementById('fNotes').value       = d ? d.notes : '';
+  document.getElementById('fCategoria').value   = d ? d.categoria : 'Taxes i aranzels';
+  document.getElementById('nomDocument').textContent = '';
+  document.getElementById('fDocument').value    = '';
+
+  if (d && d.document_url) {
+    document.getElementById('docActual').innerHTML = `Document actual: <a href="${d.document_url}" target="_blank" style="color:var(--blue)">${esc(d.document_nom||'veure')}</a>`;
+  } else {
+    document.getElementById('docActual').textContent = '';
+  }
+
+  selTipus(d ? d.tipus : 'professional');
+  document.getElementById('modalOverlay').classList.add('actiu');
+}
+
+function tancarModal() {
+  document.getElementById('modalOverlay').classList.remove('actiu');
+  despesaEdId = null;
+}
+
+function tancarModalFora(e) {
+  if (e.target === document.getElementById('modalOverlay')) tancarModal();
+}
+
+function selTipus(t) {
+  document.getElementById('fTipus').value = t;
+  document.getElementById('optProf').className = 'tipus-opt prof' + (t==='professional'?' seleccionat':'');
+  document.getElementById('optPers').className = 'tipus-opt pers' + (t==='personal'?' seleccionat':'');
+}
+
+function mostrarNomFitxer() {
+  const f = document.getElementById('fDocument').files[0];
+  document.getElementById('nomDocument').textContent = f ? '✓ ' + f.name : '';
+}
+
+// ─── Guardar ─────────────────────────────────────────────────────────────────
+async function guardarDespesa() {
+  const data       = document.getElementById('fData').value;
+  const import_    = document.getElementById('fImport').value;
+  const descripcio = document.getElementById('fDescripcio').value.trim();
+  const categoria  = document.getElementById('fCategoria').value;
+  const tipus      = document.getElementById('fTipus').value;
+
+  if (!data || !import_ || !descripcio || !categoria) {
+    toast('Omple els camps obligatoris', 'error'); return;
+  }
+
+  const btn = document.getElementById('btnGuardar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Guardant…';
+
+  const fd = new FormData();
+  fd.append('data', data);
+  fd.append('import_', import_);
+  fd.append('descripcio', descripcio);
+  fd.append('categoria', categoria);
+  fd.append('tipus', tipus);
+  fd.append('proveidor', document.getElementById('fProveidor').value);
+  fd.append('notes', document.getElementById('fNotes').value);
+  const fitxer = document.getElementById('fDocument').files[0];
+  if (fitxer) fd.append('document', fitxer);
+
+  try {
+    const url    = despesaEdId ? `/api/despeses/${despesaEdId}` : '/api/despeses';
+    const method = despesaEdId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, body: fd });
+    if (!r.ok) throw new Error();
+    toast(despesaEdId ? 'Despesa actualitzada' : 'Despesa afegida', 'ok');
+    tancarModal();
+    carregarDespeses();
+    if (!despesaEdId) {
+      const any_ = new Date(data).getFullYear().toString();
+      const selAny = document.getElementById('filtreAny');
+      if (![...selAny.options].some(o=>o.value===any_)) {
+        const op = document.createElement('option'); op.value=any_; op.textContent=any_;
+        selAny.insertBefore(op, selAny.options[1]);
+      }
+    }
+  } catch(e) {
+    toast('Error guardant la despesa', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '💾 Guardar';
+  }
+}
+
+// ─── Editar ───────────────────────────────────────────────────────────────────
+function editarDespesa(id) {
+  const d = despeses.find(x=>x.id===id);
+  if (d) obrirModal(d);
+}
+
+// ─── Eliminar ─────────────────────────────────────────────────────────────────
+async function eliminarDespesa(id) {
+  const d = despeses.find(x=>x.id===id);
+  if (!confirm(`Eliminar "${d?.descripcio}"?`)) return;
+  try {
+    await fetch(`/api/despeses/${id}`, { method: 'DELETE' });
+    toast('Despesa eliminada', 'ok');
+    carregarDespeses();
+  } catch(e) {
+    toast('Error eliminant', 'error');
+  }
+}
+
+// ─── Export CSV ───────────────────────────────────────────────────────────────
+function exportarCSV() {
+  const params = new URLSearchParams();
+  const any_ = document.getElementById('filtreAny').value;
+  const mes  = document.getElementById('filtreMes').value;
+  const tip  = document.getElementById('filtreTipus').value;
+  if (any_) params.set('any', any_);
+  if (mes)  params.set('mes', mes);
+  if (tip)  params.set('tipus', tip);
+  window.open('/api/export/csv?' + params, '_blank');
+}
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+function formatData(s) {
+  if (!s) return '—';
+  const [y,m,d] = s.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function formatImport(v) {
+  return new Intl.NumberFormat('ca-ES', { style: 'currency', currency: 'EUR' }).format(v||0);
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg, tipus='ok') {
+  const el = document.createElement('div');
+  el.className = `toast ${tipus}`;
+  el.innerHTML = (tipus==='ok'?'✓':'✕') + ' ' + msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+</script>
+</body>
+</html>
