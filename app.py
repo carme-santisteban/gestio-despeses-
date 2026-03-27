@@ -148,7 +148,7 @@ def update_despesa(id):
             result = cloudinary.uploader.upload(fitxer, resource_type='auto', folder='gestiodespeses')
             despesa.document_url = result.get('secure_url')
             despesa.document_nom = fitxer.filename
-        except:
+        except Exception as e:
             pass
 
     try:
