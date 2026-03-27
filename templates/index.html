@@ -1061,8 +1061,8 @@ let factures = [];
 let facturaEdId = null;
 
 function canviarTab(tab) {
-  document.getElementById('seccioDespeses').classList.toggle('activa', tab === 'despeses');
-  document.getElementById('seccioFactures').classList.toggle('activa', tab === 'factures');
+  document.getElementById('seccioDespeses').style.display = tab === 'despeses' ? 'block' : 'none';
+  document.getElementById('seccioFactures').style.display = tab === 'factures' ? 'block' : 'none';
   document.getElementById('tabDespeses').classList.toggle('actiu', tab === 'despeses');
   document.getElementById('tabFactures').classList.toggle('actiu', tab === 'factures');
   if (tab === 'despeses') {
