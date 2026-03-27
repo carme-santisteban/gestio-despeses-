@@ -462,6 +462,7 @@
     </div>
   </div>
   <div class="header-actions">
+    <button class="btn btn-outline btn-sm" onclick="ferBackup()">💾 Còpia seg.</button>
     <button class="btn btn-outline btn-sm" id="btnExportCSV" onclick="exportarCSV()">⬇ Exportar CSV</button>
     <button class="btn btn-primary" id="btnNou" onclick="obrirModal()">+ Nova despesa</button>
   </div>
@@ -1056,6 +1057,17 @@ function toast(msg, tipus='ok') {
   </div>
 </div>
 <script>
+async function ferBackup() {
+  try {
+    const r = await fetch('/api/backup');
+    const d = await r.json();
+    if (d.ok) {
+      const cmd = "cd ~/Documents/gestiodespeses && git tag backup-" + d.data + " && git push --tags";
+      prompt("Copia aquesta comanda al Terminal:", cmd);
+    }
+  } catch(e) { toast("Error fent backup", "error"); }
+}
+
 // ─── FACTURES ─────────────────────────────────────────────────────────────────
 let factures = [];
 let facturaEdId = null;
