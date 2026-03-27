@@ -886,7 +886,6 @@ function editarDespesa(id) {
 // ─── Eliminar ─────────────────────────────────────────────────────────────────
 async function eliminarDespesa(id) {
   const d = despeses.find(x=>x.id===id);
-  if (!confirm(`Eliminar "${d?.descripcio}"?`)) return;
   try {
     await fetch(`/api/despeses/${id}`, { method: 'DELETE' });
     toast('Despesa eliminada', 'ok');
