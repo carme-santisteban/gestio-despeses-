@@ -68,10 +68,6 @@ with app.app_context():
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
-@app.route('/login')
-def login():
-    return render_template('login.html')
-
 @app.route('/auth', methods=['POST'])
 def auth():
     if request.json.get('pwd') == 'Css75917591':
