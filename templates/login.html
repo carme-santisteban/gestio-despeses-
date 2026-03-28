@@ -15,29 +15,21 @@
     input:focus{outline:none;border-color:#c9a84c}
     button{width:100%;padding:11px;background:#c9a84c;color:#0f1f3d;border:none;border-radius:6px;font-family:"DM Sans",sans-serif;font-size:.95rem;font-weight:600;cursor:pointer}
     button:hover{background:#e8c97a}
-    .error{color:#c0392b;font-size:.85rem;text-align:center;margin-top:.75rem;display:none}
+    .error{color:#c0392b;font-size:.85rem;text-align:center;margin-top:.75rem}
   </style>
 </head>
 <body>
   <div class="box">
     <div class="logo">💼 GestióDespeses</div>
     <div class="sub">Carme Santisteban · ICAB 30907</div>
-    <label>Contrasenya</label>
-    <input type="password" id="pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')entrar()">
-    <button onclick="entrar()">Entrar</button>
-    <div class="error" id="err">Contrasenya incorrecta</div>
+    <form method="POST" action="/login">
+      <label for="password">Contrasenya</label>
+      <input type="password" id="password" name="password" placeholder="••••••••" autofocus>
+      <button type="submit">Entrar</button>
+    </form>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
   </div>
-  <script>
-    if(localStorage.getItem('gd_auth')==='ok') window.location.href='/';
-    function entrar(){
-      const p = document.getElementById('pwd').value;
-      if(p==='2026gestio'){
-        localStorage.setItem('gd_auth','ok');
-        window.location.href='/';
-      } else {
-        document.getElementById('err').style.display='block';
-      }
-    }
-  </script>
 </body>
 </html>
