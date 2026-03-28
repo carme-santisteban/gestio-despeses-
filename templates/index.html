@@ -462,6 +462,7 @@
     </div>
   </div>
   <div class="header-actions">
+    <button class="btn btn-outline btn-sm" onclick="copiaSeguреtat()" style="background:rgba(255,255,255,0.1);color:white;border-color:rgba(255,255,255,0.3)" title="Còpia de seguretat">⬇ Còpia seguretat</button>
     <button class="btn btn-outline btn-sm" id="btnExportCSV" onclick="exportarCSV()">⬇ Exportar CSV</button>
     <button class="btn btn-primary" id="btnNou" onclick="obrirModal()">+ Nova despesa</button>
   </div>
@@ -1257,6 +1258,16 @@ async function eliminarFactura(id) {
     toast('Factura eliminada', 'ok');
     carregarFactures();
   } catch(e) { toast('Error eliminant', 'error'); }
+}
+
+function copiaSeguреtat() {
+  const ara = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const tag = `backup-${ara.getFullYear()}${pad(ara.getMonth()+1)}${pad(ara.getDate())}-${pad(ara.getHours())}${pad(ara.getMinutes())}`;
+  const cmd = `cd ~/Documents/gestiodespeses && git tag ${tag} && git push --tags`;
+  if (confirm(`Copia aquesta comanda al Terminal:\n\n${cmd}\n\nVols copiar-la al portapapers?`)) {
+    navigator.clipboard.writeText(cmd);
+  }
 }
 </script>
 </body>
