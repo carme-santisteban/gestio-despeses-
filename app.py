@@ -287,6 +287,9 @@ class Factura(db.Model):
     iva_pct       = db.Column(db.Numeric(5, 2), default=21)
     irpf_pct      = db.Column(db.Numeric(5, 2), default=0)
     notes         = db.Column(db.Text)
+    estat         = db.Column(db.String(20), default='pendent')  # pendent / pagada / proforma
+    document_url  = db.Column(db.String(500))
+    document_nom  = db.Column(db.String(200))
     creat_el      = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
@@ -317,6 +320,9 @@ class Factura(db.Model):
             'irpf':          round(self.irpf, 2),
             'total':         round(self.total, 2),
             'notes':         self.notes or '',
+            'estat':         self.estat or 'pendent',
+            'document_url':  self.document_url or '',
+            'document_nom':  self.document_nom or '',
         }
 
 def generar_numero_factura(data):
@@ -338,7 +344,17 @@ def get_factures():
 
 @app.route('/api/factures', methods=['POST'])
 def create_factura():
-    data = request.json
+    fitxer = request.files.get('document')
+    data = request.form if fitxer else request.json or request.form
+    document_url = None
+    document_nom = None
+    if fitxer and fitxer.filename:
+        try:
+            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/factures')
+            document_url = result.get('secure_url')
+            document_nom = fitxer.filename
+        except Exception as e:
+            pass
     try:
         data_factura = datetime.strptime(data['data'], '%Y-%m-%d').date()
         factura = Factura(
@@ -352,6 +368,9 @@ def create_factura():
             iva_pct       = float(data.get('iva_pct', 21)),
             irpf_pct      = float(data.get('irpf_pct', 0)),
             notes         = data.get('notes', ''),
+            estat         = data.get('estat', 'pendent'),
+            document_url  = document_url,
+            document_nom  = document_nom,
         )
         db.session.add(factura)
         db.session.commit()
@@ -363,7 +382,15 @@ def create_factura():
 @app.route('/api/factures/<int:id>', methods=['PUT'])
 def update_factura(id):
     factura = Factura.query.get_or_404(id)
-    data = request.json
+    fitxer = request.files.get('document')
+    data = request.form
+    if fitxer and fitxer.filename:
+        try:
+            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/factures')
+            factura.document_url = result.get('secure_url')
+            factura.document_nom = fitxer.filename
+        except:
+            pass
     try:
         factura.data          = datetime.strptime(data['data'], '%Y-%m-%d').date()
         factura.client_nom    = data['client_nom']
@@ -374,6 +401,7 @@ def update_factura(id):
         factura.iva_pct       = float(data.get('iva_pct', 21))
         factura.irpf_pct      = float(data.get('irpf_pct', 0))
         factura.notes         = data.get('notes', '')
+        factura.estat         = data.get('estat', factura.estat)
         db.session.commit()
         return jsonify(factura.to_dict())
     except Exception as e:
@@ -394,11 +422,6 @@ def get_anys_factures():
     ).distinct().order_by('any').all()
     return jsonify([int(r.any) for r in anys])
 
-
-@app.route('/api/backup')
-def backup():
-    from datetime import datetime
-    return jsonify({'ok': True, 'data': datetime.now().strftime('%Y%m%d-%H%M')})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

@@ -462,7 +462,6 @@
     </div>
   </div>
   <div class="header-actions">
-    <button class="btn btn-outline btn-sm" onclick="ferBackup()">💾 Còpia seg.</button>
     <button class="btn btn-outline btn-sm" id="btnExportCSV" onclick="exportarCSV()">⬇ Exportar CSV</button>
     <button class="btn btn-primary" id="btnNou" onclick="obrirModal()">+ Nova despesa</button>
   </div>
@@ -475,9 +474,9 @@
 <div class="container">
 
   <!-- Pestanyes -->
-  <div style="display:flex;gap:4px;padding:1rem 0 0;border-bottom:2px solid #d9d0c3;margin-bottom:1.5rem">
-    <button id="tabDespeses" onclick="canviarTab('despeses')" style="padding:10px 24px;border-radius:8px 8px 0 0;font-size:.9rem;font-weight:600;cursor:pointer;border:none;background:transparent;color:#0f1f3d;border-bottom:2px solid #c9a84c;margin-bottom:-2px">💼 Despeses</button>
-    <button id="tabFactures" onclick="canviarTab('factures')" style="padding:10px 24px;border-radius:8px 8px 0 0;font-size:.9rem;font-weight:500;cursor:pointer;border:none;background:transparent;color:#9a9080;border-bottom:2px solid transparent;margin-bottom:-2px">🧾 Factures emeses</button>
+  <div class="nav-tabs">
+    <button class="nav-tab actiu" id="tabDespeses" onclick="canviarTab('despeses')">💼 Despeses</button>
+    <button class="nav-tab" id="tabFactures" onclick="canviarTab('factures')">🧾 Factures emeses</button>
   </div>
 
   <!-- SECCIÓ DESPESES -->
@@ -564,7 +563,7 @@
   </div><!-- fi seccioDespeses -->
 
   <!-- SECCIÓ FACTURES -->
-  <div class="seccio" id="seccioFactures" style="display:none">
+  <div class="seccio" id="seccioFactures">
     <div class="page-header">
       <div class="page-title">Factures emeses <span id="anyFacturesActual"></span></div>
     </div>
@@ -578,12 +577,12 @@
       </div>
     </div>
 
-    <div style="background:white;border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;box-shadow:0 4px 24px rgba(15,31,61,.10);display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1.5rem">
-      <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#9a9080;font-weight:500">Total facturat</div><div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:#0f1f3d" id="factTotal">—</div></div>
-      <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#9a9080;font-weight:500">Base imponible</div><div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:#0f1f3d" id="factBase">—</div></div>
-      <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#9a9080;font-weight:500">IVA</div><div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:#0f1f3d" id="factIva">—</div></div>
-      <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#9a9080;font-weight:500">IRPF retingut</div><div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:#0f1f3d" id="factIrpf">—</div></div>
-      <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#9a9080;font-weight:500">Factures</div><div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:#0f1f3d" id="factCount">—</div></div>
+    <div class="fact-resum">
+      <div class="fact-resum-item"><div class="fact-resum-label">Total facturat</div><div class="fact-resum-val" id="factTotal">—</div></div>
+      <div class="fact-resum-item"><div class="fact-resum-label">Base imponible</div><div class="fact-resum-val" id="factBase">—</div></div>
+      <div class="fact-resum-item"><div class="fact-resum-label">IVA</div><div class="fact-resum-val" id="factIva">—</div></div>
+      <div class="fact-resum-item"><div class="fact-resum-label">IRPF retingut</div><div class="fact-resum-val" id="factIrpf">—</div></div>
+      <div class="fact-resum-item"><div class="fact-resum-label">Factures</div><div class="fact-resum-val" id="factCount">—</div></div>
     </div>
 
     <div class="taula-wrapper">
@@ -602,6 +601,8 @@
               <th>IVA</th>
               <th>IRPF</th>
               <th>Total</th>
+              <th>Estat</th>
+              <th>Doc.</th>
               <th style="text-align:center">Accions</th>
             </tr>
           </thead>
@@ -1044,6 +1045,24 @@ function toast(msg, tipus='ok') {
           <label class="form-label">Total factura</label>
           <div class="form-control" id="ffTotal" style="background:var(--navy);color:var(--gold);font-family:var(--font-head);font-size:1.1rem;font-weight:700">0,00 €</div>
         </div>
+        <div class="form-grup">
+          <label class="form-label">Estat</label>
+          <select class="form-control" id="ffEstat">
+            <option value="pendent">⏳ Pendent de cobrament</option>
+            <option value="pagada">✅ Pagada</option>
+            <option value="proforma">📋 Proforma</option>
+          </select>
+        </div>
+        <div class="form-grup full">
+          <label class="form-label">Document adjunt (PDF)</label>
+          <div class="upload-zona" onclick="document.getElementById('ffDocument').click()">
+            <div>📎 Fes clic per adjuntar la factura en PDF</div>
+            <div class="upload-text">PDF fins a 10 MB</div>
+            <div class="upload-nom" id="ffNomDocument"></div>
+          </div>
+          <input type="file" id="ffDocument" accept=".pdf,.doc,.docx" onchange="document.getElementById('ffNomDocument').textContent = this.files[0]?.name || ''">
+          <div id="ffDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
+        </div>
         <div class="form-grup full">
           <label class="form-label">Notes</label>
           <input type="text" class="form-control" id="ffNotes" placeholder="Observacions">
@@ -1057,17 +1076,6 @@ function toast(msg, tipus='ok') {
   </div>
 </div>
 <script>
-async function ferBackup() {
-  try {
-    const r = await fetch('/api/backup');
-    const d = await r.json();
-    if (d.ok) {
-      const cmd = "cd ~/Documents/gestiodespeses && git tag backup-" + d.data + " && git push --tags";
-      prompt("Copia aquesta comanda al Terminal:", cmd);
-    }
-  } catch(e) { toast("Error fent backup", "error"); }
-}
-
 // ─── FACTURES ─────────────────────────────────────────────────────────────────
 let factures = [];
 let facturaEdId = null;
@@ -1146,6 +1154,8 @@ function renderFactures(llista) {
       <td style="font-size:.85rem;color:var(--blue)">${formatImport(f.iva)} <span style="color:var(--gray-3)">(${f.iva_pct}%)</span></td>
       <td style="font-size:.85rem;color:var(--red)">${f.irpf > 0 ? '-' + formatImport(f.irpf) : '—'} <span style="color:var(--gray-3)">${f.irpf_pct > 0 ? '('+f.irpf_pct+'%)' : ''}</span></td>
       <td class="import-cell">${formatImport(f.total)}</td>
+      <td><span style="padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600;${f.estat==='pagada'?'background:#e6f4ee;color:#1a6b4a':f.estat==='proforma'?'background:#e8f0fb;color:#1a4a7a':'background:#fff3e0;color:#e65100'}">${f.estat==='pagada'?'✅ Pagada':f.estat==='proforma'?'📋 Proforma':'⏳ Pendent'}</span></td>
+      <td>${f.document_url ? `<a href="${f.document_url}" target="_blank" style="color:var(--blue);font-size:.8rem">📎 ${esc(f.document_nom||'Doc')}</a>` : '—'}</td>
       <td class="accions">
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarFactura(${f.id})" title="Editar">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="eliminarFactura(${f.id})" title="Eliminar">🗑</button>
@@ -1175,6 +1185,10 @@ function obrirModalFactura(f = null) {
   document.getElementById('ffIva').value = f ? f.iva_pct : 21;
   document.getElementById('ffIrpf').value = f ? f.irpf_pct : 0;
   document.getElementById('ffNotes').value = f ? f.notes : '';
+  document.getElementById('ffEstat').value = f ? f.estat : 'pendent';
+  document.getElementById('ffNomDocument').textContent = '';
+  document.getElementById('ffDocument').value = '';
+  document.getElementById('ffDocActual').innerHTML = f && f.document_url ? `Document actual: <a href="${f.document_url}" target="_blank" style="color:var(--blue)">${f.document_nom||'veure'}</a>` : '';
   calcularTotals();
   document.getElementById('modalFacturaOverlay').classList.add('actiu');
 }
@@ -1196,24 +1210,26 @@ async function guardarFactura() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Guardant…';
 
-  const payload = {
-    data, client_nom,
-    client_nif: document.getElementById('ffClientNif').value,
-    client_adreca: document.getElementById('ffClientAdreca').value,
-    concepte,
-    base: parseFloat(base),
-    iva_pct: parseFloat(document.getElementById('ffIva').value) || 0,
-    irpf_pct: parseFloat(document.getElementById('ffIrpf').value) || 0,
-    notes: document.getElementById('ffNotes').value,
-  };
+  const fd = new FormData();
+  fd.append('data', data);
+  fd.append('client_nom', client_nom);
+  fd.append('client_nif', document.getElementById('ffClientNif').value);
+  fd.append('client_adreca', document.getElementById('ffClientAdreca').value);
+  fd.append('concepte', concepte);
+  fd.append('base', parseFloat(base));
+  fd.append('iva_pct', parseFloat(document.getElementById('ffIva').value) || 0);
+  fd.append('irpf_pct', parseFloat(document.getElementById('ffIrpf').value) || 0);
+  fd.append('notes', document.getElementById('ffNotes').value);
+  fd.append('estat', document.getElementById('ffEstat').value);
+  const fitxerF = document.getElementById('ffDocument').files[0];
+  if (fitxerF) fd.append('document', fitxerF);
 
   try {
     const url = facturaEdId ? `/api/factures/${facturaEdId}` : '/api/factures';
     const method = facturaEdId ? 'PUT' : 'POST';
     const r = await fetch(url, {
       method,
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
+      body: fd
     });
     if (!r.ok) throw new Error();
     toast(facturaEdId ? 'Factura actualitzada ✓' : 'Factura creada ✓', 'ok');
