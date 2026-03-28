@@ -6,16 +6,16 @@
   <title>GestióDespeses — Accés</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
-    body { font-family: "DM Sans", sans-serif; background: #0f1f3d; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .box { background: #f8f5ef; border-radius: 12px; padding: 2.5rem; width: 100%; max-width: 380px; box-shadow: 0 8px 40px rgba(0,0,0,.3); }
-    .logo { font-family: "Playfair Display", serif; font-size: 1.5rem; font-weight: 700; color: #0f1f3d; text-align: center; margin-bottom: .25rem; }
-    .sub { font-size: .8rem; color: #9a9080; text-align: center; margin-bottom: 2rem; letter-spacing: .06em; text-transform: uppercase; }
-    label { font-size: .78rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: #5a5248; display: block; margin-bottom: 5px; }
-    input { width: 100%; padding: 10px 12px; border: 1.5px solid #d9d0c3; border-radius: 6px; font-family: "DM Sans", sans-serif; font-size: .9rem; background: white; box-sizing: border-box; margin-bottom: 1rem; }
-    input:focus { outline: none; border-color: #c9a84c; }
-    button { width: 100%; padding: 11px; background: #c9a84c; color: #0f1f3d; border: none; border-radius: 6px; font-family: "DM Sans", sans-serif; font-size: .95rem; font-weight: 600; cursor: pointer; }
-    button:hover { background: #e8c97a; }
-    .error { color: #c0392b; font-size: .85rem; text-align: center; margin-top: .75rem; display: none; }
+    body{font-family:"DM Sans",sans-serif;background:#0f1f3d;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0}
+    .box{background:#f8f5ef;border-radius:12px;padding:2.5rem;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,.3)}
+    .logo{font-family:"Playfair Display",serif;font-size:1.5rem;font-weight:700;color:#0f1f3d;text-align:center;margin-bottom:.25rem}
+    .sub{font-size:.8rem;color:#9a9080;text-align:center;margin-bottom:2rem;letter-spacing:.06em;text-transform:uppercase}
+    label{font-size:.78rem;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5a5248;display:block;margin-bottom:5px}
+    input{width:100%;padding:10px 12px;border:1.5px solid #d9d0c3;border-radius:6px;font-family:"DM Sans",sans-serif;font-size:.9rem;background:white;box-sizing:border-box;margin-bottom:1rem}
+    input:focus{outline:none;border-color:#c9a84c}
+    button{width:100%;padding:11px;background:#c9a84c;color:#0f1f3d;border:none;border-radius:6px;font-family:"DM Sans",sans-serif;font-size:.95rem;font-weight:600;cursor:pointer}
+    button:hover{background:#e8c97a}
+    .error{color:#c0392b;font-size:.85rem;text-align:center;margin-top:.75rem;display:none}
   </style>
 </head>
 <body>
@@ -28,11 +28,15 @@
     <div class="error" id="err">Contrasenya incorrecta</div>
   </div>
   <script>
-    async function entrar() {
-      const pwd = document.getElementById("pwd").value;
-      const r = await fetch("/auth", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({pwd})});
-      if (r.ok) { window.location.href = "/"; }
-      else { document.getElementById("err").style.display = "block"; }
+    if(localStorage.getItem('gd_auth')==='ok') window.location.href='/';
+    function entrar(){
+      const p = document.getElementById('pwd').value;
+      if(p==='Css75917591'){
+        localStorage.setItem('gd_auth','ok');
+        window.location.href='/';
+      } else {
+        document.getElementById('err').style.display='block';
+      }
     }
   </script>
 </body>
