@@ -28,13 +28,11 @@
     <div class="error" id="err">Contrasenya incorrecta</div>
   </div>
   <script>
-    function entrar() {
-      if (document.getElementById("pwd").value === "Css75917591") {
-        sessionStorage.setItem("auth", "ok");
-        window.location.href = "/";
-      } else {
-        document.getElementById("err").style.display = "block";
-      }
+    async function entrar() {
+      const pwd = document.getElementById("pwd").value;
+      const r = await fetch("/auth", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({pwd})});
+      if (r.ok) { window.location.href = "/"; }
+      else { document.getElementById("err").style.display = "block"; }
     }
   </script>
 </body>
