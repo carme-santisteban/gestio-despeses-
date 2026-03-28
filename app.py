@@ -74,7 +74,7 @@ def login():
 
 @app.route('/auth', methods=['POST'])
 def auth():
-    if request.json.get('pwd') == 'Css75917591***':
+    if request.json.get('pwd') == 'Css75917591':
         session['auth'] = True
         return jsonify({'ok': True})
     return jsonify({'ok': False}), 401
