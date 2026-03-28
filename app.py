@@ -3,7 +3,7 @@ import csv
 import io
 import base64
 from datetime import datetime, date
-from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import extract, func
 import cloudinary
@@ -68,8 +68,21 @@ with app.app_context():
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
+@app.route('/login')
+def login():
+    return render_template('login.html')
+
+@app.route('/auth', methods=['POST'])
+def auth():
+    if request.json.get('pwd') == 'Css75917591***':
+        session['auth'] = True
+        return jsonify({'ok': True})
+    return jsonify({'ok': False}), 401
+
 @app.route('/')
 def index():
+    if not session.get('auth'):
+        return redirect('/login')
     return render_template('index.html')
 
 # --- CRUD Despeses ---
