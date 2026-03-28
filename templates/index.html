@@ -715,6 +715,7 @@ const MESOS = ['','Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  canviarTab('despeses');
   const avui = new Date();
   document.getElementById('fData').value = avui.toISOString().slice(0,10);
   document.getElementById('anyActual').textContent = avui.getFullYear();
