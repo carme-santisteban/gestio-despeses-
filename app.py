@@ -75,6 +75,22 @@ def auth():
         return jsonify({'ok': True})
     return jsonify({'ok': False}), 401
 
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        if request.form.get('password') == '2026gestio':
+            session['auth'] = True
+            return redirect('/')
+        else:
+            error = 'Contrasenya incorrecta'
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.pop('auth', None)
+    return redirect('/login')
 @app.route('/')
 def index():
     if not session.get('auth'):
