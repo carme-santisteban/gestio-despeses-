@@ -448,5 +448,41 @@ def get_anys_factures():
     return jsonify([int(r.any) for r in anys])
 
 
+
+@app.route('/api/exportar-json')
+def exportar_json():
+    import json
+    from flask import Response
+    despeses = Despesa.query.order_by(Despesa.id).all()
+    factures = Factura.query.order_by(Factura.id).all()
+    def d(val):
+        return str(val) if val else ""
+    dades = {
+        "despeses": [
+            {"id": e.id, "data": d(e.data), "descripcio": e.descripcio,
+             "categoria": e.categoria, "tipus": e.tipus,
+             "import": float(e.import_) if e.import_ else 0,
+             "proveidor": e.proveidor, "notes": e.notes,
+             "document_nom": e.document_nom, "document_url": e.document_url}
+            for e in despeses
+        ],
+        "factures": [
+            {"id": f.id, "numero": f.numero, "data": d(f.data),
+             "client_nom": f.client_nom, "client_nif": f.client_nif,
+             "client_adreca": f.client_adreca, "concepte": f.concepte,
+             "base": float(f.base) if f.base else 0,
+             "iva_pct": float(f.iva_pct) if f.iva_pct else 0,
+             "irpf_pct": float(f.irpf_pct) if f.irpf_pct else 0,
+             "notes": f.notes, "estat": f.estat,
+             "document_nom": f.document_nom, "document_url": f.document_url}
+            for f in factures
+        ]
+    }
+    return Response(
+        json.dumps(dades, ensure_ascii=False, indent=2),
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment; filename=gestiodespeses_backup.json"}
+    )
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
