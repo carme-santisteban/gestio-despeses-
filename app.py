@@ -484,5 +484,105 @@ def exportar_json():
         headers={"Content-Disposition": "attachment; filename=gestiodespeses_backup.json"}
     )
 
+
+@app.route('/importar', methods=['GET'])
+def importar_page():
+    return """<!DOCTYPE html>
+<html lang="ca">
+<head><meta charset="UTF-8"><title>Importar dades - GestióDespeses</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.box{background:#1e293b;border-radius:16px;padding:40px;max-width:500px;width:100%;box-shadow:0 4px 32px #0004}
+h1{font-size:1.4rem;margin-bottom:8px;color:#f8fafc}
+p{color:#94a3b8;font-size:.9rem;margin-bottom:24px}
+input[type=file]{width:100%;padding:12px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;margin-bottom:16px}
+button{width:100%;padding:12px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer}
+button:hover{background:#1d4ed8}
+#resultat{margin-top:20px;padding:12px;border-radius:8px;display:none}
+.ok{background:#14532d;color:#86efac}
+.err{background:#7f1d1d;color:#fca5a5}
+a{color:#60a5fa;text-decoration:none;font-size:.85rem}
+</style></head>
+<body><div class="box">
+<h1>📥 Importar dades</h1>
+<p>Selecciona el fitxer <strong>gestiodespeses_backup.json</strong> per restaurar totes les despeses i factures.</p>
+<input type="file" id="fitxer" accept=".json">
+<button onclick="importar()">Importar ara</button>
+<div id="resultat"></div>
+<br><br><a href="/">← Tornar al dashboard</a>
+</div>
+<script>
+async function importar(){
+  const f=document.getElementById('fitxer').files[0];
+  if(!f){alert('Selecciona un fitxer JSON');return}
+  const text=await f.text();
+  let dades;
+  try{dades=JSON.parse(text)}catch(e){mostra('Format JSON invàlid','err');return}
+  const r=await fetch('/api/importar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(dades)});
+  const res=await r.json();
+  if(res.ok) mostra('✓ '+res.missatge,'ok');
+  else mostra('Error: '+res.error,'err');
+}
+function mostra(msg,cls){
+  const el=document.getElementById('resultat');
+  el.textContent=msg;el.className=cls;el.style.display='block';
+}
+</script></div></body></html>"""
+
+@app.route('/api/importar', methods=['POST'])
+def importar_dades():
+    from datetime import date
+    dades = request.get_json()
+    if not dades:
+        return jsonify({'ok': False, 'error': 'Cap dada rebuda'})
+    importats = 0
+    omesos = 0
+    def parse_date(s):
+        try:
+            return date.fromisoformat(s) if s else None
+        except:
+            return None
+    for d in dades.get('despeses', []):
+        try:
+            db.session.add(Despesa(
+                data=parse_date(d.get('data','')),
+                descripcio=d.get('descripcio',''),
+                categoria=d.get('categoria',''),
+                tipus=d.get('tipus','professional'),
+                import_=d.get('import',0),
+                proveidor=d.get('proveidor',''),
+                notes=d.get('notes',''),
+                document_nom=d.get('document_nom',''),
+                document_url=d.get('document_url','')
+            ))
+            db.session.commit()
+            importats += 1
+        except Exception:
+            db.session.rollback()
+            omesos += 1
+    for f in dades.get('factures', []):
+        try:
+            db.session.add(Factura(
+                numero=f.get('numero',''),
+                data=parse_date(f.get('data','')),
+                client_nom=f.get('client_nom',''),
+                client_nif=f.get('client_nif',''),
+                client_adreca=f.get('client_adreca',''),
+                concepte=f.get('concepte',''),
+                base=f.get('base',0),
+                iva_pct=f.get('iva_pct',21),
+                irpf_pct=f.get('irpf_pct',0),
+                notes=f.get('notes',''),
+                estat=f.get('estat','pendent'),
+                document_nom=f.get('document_nom',''),
+                document_url=f.get('document_url','')
+            ))
+            db.session.commit()
+            importats += 1
+        except Exception:
+            db.session.rollback()
+            omesos += 1
+    return jsonify({'ok': True, 'missatge': f'{importats} registres importats, {omesos} omesos'})
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
