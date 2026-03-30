@@ -36,6 +36,7 @@
       min-height: 100vh;
     }
 
+    /* ── Header ─────────────────────────────────────────── */
     header {
       background: var(--navy);
       padding: 0 2rem;
@@ -48,141 +49,393 @@
       z-index: 100;
       box-shadow: 0 2px 16px rgba(0,0,0,.3);
     }
-    .header-brand { display: flex; align-items: center; gap: 12px; }
-    .header-logo { width: 36px; height: 36px; background: var(--gold); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-    .header-title { font-family: var(--font-head); color: var(--white); font-size: 1.2rem; font-weight: 600; letter-spacing: .02em; }
-    .header-sub { color: var(--gold); font-size: .75rem; font-weight: 300; letter-spacing: .08em; text-transform: uppercase; }
-    .header-actions { display: flex; gap: 10px; }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-logo {
+      width: 36px; height: 36px;
+      background: var(--gold);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .header-title {
+      font-family: var(--font-head);
+      color: var(--white);
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+    .header-sub {
+      color: var(--gold);
+      font-size: .75rem;
+      font-weight: 300;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
 
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 6px; font-family: var(--font-body); font-size: .875rem; font-weight: 500; cursor: pointer; border: none; transition: all .2s; text-decoration: none; }
-    .btn-primary { background: var(--gold); color: var(--navy); }
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-family: var(--font-body);
+      font-size: .875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--gold);
+      color: var(--navy);
+    }
     .btn-primary:hover { background: var(--gold-lt); transform: translateY(-1px); box-shadow: var(--shadow); }
-    .btn-outline { background: transparent; color: var(--white); border: 1.5px solid rgba(255,255,255,.3); }
+    .btn-outline {
+      background: transparent;
+      color: var(--white);
+      border: 1.5px solid rgba(255,255,255,.3);
+    }
     .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
     .btn-danger { background: #fde8e6; color: var(--red); }
     .btn-danger:hover { background: var(--red); color: white; }
     .btn-sm { padding: 5px 10px; font-size: .8rem; }
     .btn-icon { padding: 6px 8px; }
 
+    /* ── Layout ──────────────────────────────────────────── */
     .container { max-width: 1300px; margin: 0 auto; padding: 0 1.5rem; }
 
-    .page-header { padding: 2rem 0 1.5rem; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-    .page-title { font-family: var(--font-head); font-size: 1.8rem; font-weight: 700; color: var(--navy); }
+    .page-header {
+      padding: 2rem 0 1.5rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .page-title {
+      font-family: var(--font-head);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
     .page-title span { color: var(--gold); }
 
-    .filtres-bar { background: var(--white); border-radius: var(--radius); padding: 1rem 1.25rem; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; box-shadow: var(--shadow); }
-    .filtres-bar select, .filtres-bar input { font-family: var(--font-body); font-size: .875rem; padding: 7px 12px; border: 1.5px solid var(--gray-2); border-radius: 6px; background: var(--cream); color: var(--navy); min-width: 130px; }
-    .filtres-bar select:focus, .filtres-bar input:focus { outline: none; border-color: var(--gold); }
+    /* ── Filtres ─────────────────────────────────────────── */
+    .filtres-bar {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    .filtres-bar select, .filtres-bar input {
+      font-family: var(--font-body);
+      font-size: .875rem;
+      padding: 7px 12px;
+      border: 1.5px solid var(--gray-2);
+      border-radius: 6px;
+      background: var(--cream);
+      color: var(--navy);
+      min-width: 130px;
+    }
+    .filtres-bar select:focus, .filtres-bar input:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
     .filtres-bar label { font-size: .8rem; color: var(--gray-3); font-weight: 500; white-space: nowrap; }
     .filtre-grup { display: flex; flex-direction: column; gap: 3px; }
 
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-    .kpi-card { background: var(--white); border-radius: var(--radius); padding: 1.25rem 1.5rem; box-shadow: var(--shadow); position: relative; overflow: hidden; }
-    .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+    /* ── KPI Cards ───────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .kpi-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px;
+      height: 100%;
+    }
     .kpi-card.total::before  { background: var(--navy); }
     .kpi-card.prof::before   { background: var(--blue); }
     .kpi-card.pers::before   { background: var(--green); }
     .kpi-card.count::before  { background: var(--gold); }
-    .kpi-card.entrada::before { background: var(--green); }
-    .kpi-card.sortida::before { background: var(--red); }
-    .kpi-card.saldo::before  { background: var(--gold); }
     .kpi-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--gray-3); font-weight: 500; margin-bottom: 6px; }
     .kpi-value { font-family: var(--font-head); font-size: 1.7rem; font-weight: 700; color: var(--navy); }
-    .kpi-value.positiu { color: var(--green); }
-    .kpi-value.negatiu { color: var(--red); }
+    .kpi-sub { font-size: .75rem; color: var(--gray-3); margin-top: 4px; }
 
-    .taula-wrapper { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
-    .taula-cap { padding: 1rem 1.5rem; border-bottom: 1px solid var(--gray-1); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-    .taula-cap h2 { font-family: var(--font-head); font-size: 1.1rem; font-weight: 600; }
-    .cerca-input { font-family: var(--font-body); font-size: .875rem; padding: 7px 12px 7px 32px; border: 1.5px solid var(--gray-2); border-radius: 6px; background: var(--cream) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239a9080' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center; width: 200px; }
+    /* ── Taula ───────────────────────────────────────────── */
+    .taula-wrapper {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .taula-cap {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--gray-1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .taula-cap h2 {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .cerca-input {
+      font-family: var(--font-body);
+      font-size: .875rem;
+      padding: 7px 12px 7px 32px;
+      border: 1.5px solid var(--gray-2);
+      border-radius: 6px;
+      background: var(--cream) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239a9080' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;
+      width: 200px;
+    }
     .cerca-input:focus { outline: none; border-color: var(--gold); }
 
     table { width: 100%; border-collapse: collapse; }
-    thead th { background: var(--navy); color: var(--white); font-size: .75rem; font-weight: 500; text-transform: uppercase; letter-spacing: .07em; padding: 11px 14px; text-align: left; }
+    thead th {
+      background: var(--navy);
+      color: var(--white);
+      font-size: .75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      padding: 11px 14px;
+      text-align: left;
+    }
     thead th:last-child { text-align: center; }
-    tbody tr { border-bottom: 1px solid var(--gray-1); transition: background .15s; }
+    tbody tr {
+      border-bottom: 1px solid var(--gray-1);
+      transition: background .15s;
+    }
     tbody tr:hover { background: var(--cream); }
     tbody td { padding: 11px 14px; font-size: .875rem; vertical-align: middle; }
 
-    .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
     .badge-prof { background: #e8f0fb; color: var(--blue); }
     .badge-pers { background: #e6f4ee; color: var(--green); }
-    .badge-entrada { background: #e6f4ee; color: var(--green); }
-    .badge-sortida { background: #fde8e6; color: var(--red); }
 
-    .import-cell { font-family: var(--font-head); font-size: 1rem; font-weight: 600; color: var(--navy); white-space: nowrap; }
-    .import-entrada { color: var(--green); }
-    .import-sortida { color: var(--red); }
+    .import-cell {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--navy);
+      white-space: nowrap;
+    }
 
-    .doc-link { display: inline-flex; align-items: center; gap: 4px; font-size: .8rem; color: var(--blue); text-decoration: none; }
+    .doc-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .8rem;
+      color: var(--blue);
+      text-decoration: none;
+    }
     .doc-link:hover { color: var(--gold); }
+
     .accions { display: flex; gap: 6px; justify-content: center; }
 
-    .buit { padding: 3rem; text-align: center; color: var(--gray-3); }
+    .buit {
+      padding: 3rem;
+      text-align: center;
+      color: var(--gray-3);
+    }
     .buit-icon { font-size: 2.5rem; margin-bottom: .75rem; }
     .buit-text { font-size: .95rem; }
 
-    /* Bancs grid */
-    .bancs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-    .banc-card { background: var(--white); border-radius: var(--radius); padding: 1.25rem 1.5rem; box-shadow: var(--shadow); border-left: 4px solid var(--navy); }
-    .banc-card-nom { font-family: var(--font-head); font-size: 1rem; font-weight: 600; margin-bottom: 10px; color: var(--navy); display: flex; align-items: center; justify-content: space-between; }
-    .banc-card-row { display: flex; justify-content: space-between; font-size: .82rem; padding: 4px 0; border-bottom: 1px solid var(--gray-1); }
-    .banc-card-row:last-child { border-bottom: none; }
-    .banc-card-row .etiqueta { color: var(--gray-3); }
-    .banc-card-row .valor { font-weight: 500; }
-    .banc-card-row .valor.positiu { color: var(--green); }
-    .banc-card-row .valor.negatiu { color: var(--red); }
-    .banc-card-saldo { font-family: var(--font-head); font-size: 1.4rem; font-weight: 700; margin-top: 8px; }
-    .banc-edit-btn { background: none; border: none; cursor: pointer; font-size: .8rem; color: var(--gray-3); padding: 2px 6px; border-radius: 4px; }
-    .banc-edit-btn:hover { color: var(--gold); background: var(--cream); }
-
-    /* Modal */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,31,61,.55); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+    /* ── Modal ───────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15,31,61,.55);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
     .modal-overlay.actiu { display: flex; }
-    .modal { background: var(--white); border-radius: 12px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: modalIn .2s ease; }
-    @keyframes modalIn { from { opacity: 0; transform: scale(.96) translateY(-8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-    .modal-cap { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--gray-1); }
-    .modal-cap h3 { font-family: var(--font-head); font-size: 1.15rem; font-weight: 600; }
+    .modal {
+      background: var(--white);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: modalIn .2s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(.96) translateY(-8px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-cap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--gray-1);
+    }
+    .modal-cap h3 {
+      font-family: var(--font-head);
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
     .modal-cos { padding: 1.5rem; }
-    .modal-peu { padding: 1rem 1.5rem; border-top: 1px solid var(--gray-1); display: flex; gap: 8px; justify-content: flex-end; }
+    .modal-peu {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--gray-1);
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
 
+    /* ── Formulari ───────────────────────────────────────── */
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .form-grup { display: flex; flex-direction: column; gap: 5px; }
     .form-grup.full { grid-column: 1 / -1; }
-    .form-label { font-size: .78rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--gray-4); }
+    .form-label {
+      font-size: .78rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--gray-4);
+    }
     .form-label span { color: var(--red); }
-    .form-control { font-family: var(--font-body); font-size: .9rem; padding: 9px 12px; border: 1.5px solid var(--gray-2); border-radius: 6px; background: var(--cream); color: var(--navy); transition: border-color .2s; }
+    .form-control {
+      font-family: var(--font-body);
+      font-size: .9rem;
+      padding: 9px 12px;
+      border: 1.5px solid var(--gray-2);
+      border-radius: 6px;
+      background: var(--cream);
+      color: var(--navy);
+      transition: border-color .2s;
+    }
     .form-control:focus { outline: none; border-color: var(--gold); background: white; }
     textarea.form-control { resize: vertical; min-height: 70px; }
 
-    .tipus-selector { display: flex; gap: 8px; }
-    .tipus-opt { flex: 1; padding: 9px; border: 2px solid var(--gray-2); border-radius: 6px; text-align: center; cursor: pointer; font-size: .85rem; font-weight: 500; transition: all .2s; background: var(--cream); }
-    .tipus-opt.seleccionat.prof { border-color: var(--blue); background: #e8f0fb; color: var(--blue); }
-    .tipus-opt.seleccionat.pers { border-color: var(--green); background: #e6f4ee; color: var(--green); }
-    .tipus-opt.seleccionat.entrada { border-color: var(--green); background: #e6f4ee; color: var(--green); }
-    .tipus-opt.seleccionat.sortida { border-color: var(--red); background: #fde8e6; color: var(--red); }
+    .tipus-selector {
+      display: flex;
+      gap: 8px;
+    }
+    .tipus-opt {
+      flex: 1;
+      padding: 9px;
+      border: 2px solid var(--gray-2);
+      border-radius: 6px;
+      text-align: center;
+      cursor: pointer;
+      font-size: .85rem;
+      font-weight: 500;
+      transition: all .2s;
+      background: var(--cream);
+    }
+    .tipus-opt.seleccionat.prof {
+      border-color: var(--blue);
+      background: #e8f0fb;
+      color: var(--blue);
+    }
+    .tipus-opt.seleccionat.pers {
+      border-color: var(--green);
+      background: #e6f4ee;
+      color: var(--green);
+    }
 
-    .upload-zona { border: 2px dashed var(--gray-2); border-radius: 6px; padding: 1rem; text-align: center; cursor: pointer; transition: border-color .2s; background: var(--cream); }
+    .upload-zona {
+      border: 2px dashed var(--gray-2);
+      border-radius: 6px;
+      padding: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s;
+      background: var(--cream);
+    }
     .upload-zona:hover { border-color: var(--gold); }
     .upload-zona input { display: none; }
     .upload-text { font-size: .85rem; color: var(--gray-3); margin-top: 4px; }
     .upload-nom { font-size: .85rem; color: var(--green); font-weight: 500; margin-top: 4px; }
 
-    .toast-container { position: fixed; top: 80px; right: 1.5rem; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
-    .toast { background: var(--navy); color: white; padding: 10px 16px; border-radius: 8px; font-size: .875rem; display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow-lg); animation: toastIn .3s ease; max-width: 320px; }
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      right: 1.5rem;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      background: var(--navy);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: .875rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: var(--shadow-lg);
+      animation: toastIn .3s ease;
+      max-width: 320px;
+    }
     .toast.ok { border-left: 4px solid var(--gold); }
     .toast.error { border-left: 4px solid var(--red); }
-    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
 
-    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .6s linear infinite; }
+    /* ── Spinner ─────────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Nav tabs */
-    .nav-tabs { display: flex; gap: 4px; padding: 1rem 0 0; border-bottom: 2px solid var(--gray-2); margin-bottom: 0; }
-    .nav-tab { padding: 9px 20px; border: none; background: none; font-family: var(--font-body); font-size: .9rem; font-weight: 500; color: var(--gray-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
-    .nav-tab:hover { color: var(--navy); }
-    .nav-tab.actiu { color: var(--navy); border-bottom-color: var(--gold); }
-
+    /* ── Responsive ──────────────────────────────────────── */
     @media (max-width: 768px) {
       .form-grid { grid-template-columns: 1fr; }
       table { font-size: .8rem; }
@@ -199,6 +452,7 @@
 </head>
 <body>
 
+<!-- Header -->
 <header>
   <div class="header-brand">
     <div class="header-logo">💼</div>
@@ -208,155 +462,98 @@
     </div>
   </div>
   <div class="header-actions">
-    <button class="btn btn-outline btn-sm" onclick="copiaSeguреtat()" style="background:rgba(255,255,255,0.1);color:white;border-color:rgba(255,255,255,0.3)">⬇ Còpia seguretat</button>
-    <button class="btn btn-outline btn-sm" id="btnExportCSV" onclick="exportarCSV()">⬇ Exportar CSV</button>
-    <a href="/api/exportar-json" class="btn btn-outline btn-sm" style="text-decoration:none;">⬇ Exportar JSON</a>
-    <a href="/importar" class="btn btn-outline btn-sm" style="text-decoration:none;">📥 Importar</a>
-    <button class="btn btn-primary" id="btnNou" onclick="obrirModal()">+ Nova despesa</button>
+    <button class="btn btn-outline btn-sm" onclick="exportarCSV()">⬇ Exportar CSV</button>
+    <button class="btn btn-primary" onclick="obrirModal()">+ Nova despesa</button>
   </div>
 </header>
 
+<!-- Toast -->
 <div class="toast-container" id="toasts"></div>
 
+<!-- Contingut principal -->
 <div class="container">
 
-  <div class="nav-tabs">
-    <button class="nav-tab actiu" id="tabDespeses" onclick="canviarTab('despeses')">💼 Despeses</button>
-    <button class="nav-tab" id="tabFactures" onclick="canviarTab('factures')">🧾 Factures emeses</button>
-    <button class="nav-tab" id="tabBancs" onclick="canviarTab('bancs')">🏦 Bancs</button>
-  </div>
-
-  <!-- ══════════════════════════════════════════════════════════ DESPESES -->
-  <div id="seccioDespeses" style="display:block">
-    <div class="page-header">
-      <div><div class="page-title">Despeses <span id="anyActual"></span></div></div>
-    </div>
-    <div class="filtres-bar">
-      <div class="filtre-grup"><label>Any</label><select id="filtreAny" onchange="aplicarFiltres()"><option value="">Tots</option></select></div>
-      <div class="filtre-grup"><label>Mes</label>
-        <select id="filtreMes" onchange="aplicarFiltres()">
-          <option value="">Tots</option>
-          <option value="1">Gener</option><option value="2">Febrer</option><option value="3">Març</option>
-          <option value="4">Abril</option><option value="5">Maig</option><option value="6">Juny</option>
-          <option value="7">Juliol</option><option value="8">Agost</option><option value="9">Setembre</option>
-          <option value="10">Octubre</option><option value="11">Novembre</option><option value="12">Desembre</option>
-        </select>
-      </div>
-      <div class="filtre-grup"><label>Tipus</label><select id="filtreTipus" onchange="aplicarFiltres()"><option value="">Tots</option><option value="professional">Professional</option><option value="personal">Personal</option></select></div>
-      <div class="filtre-grup"><label>Categoria</label><select id="filtreCat" onchange="aplicarFiltres()"><option value="">Totes</option></select></div>
-      <button class="btn btn-outline" style="background:var(--navy);margin-top:18px" onclick="netejarFiltres()">✕ Netejar</button>
-    </div>
-    <div class="kpi-grid" id="kpiGrid">
-      <div class="kpi-card total"><div class="kpi-label">Total any</div><div class="kpi-value" id="kpiTotal">—</div></div>
-      <div class="kpi-card prof"><div class="kpi-label">Professional</div><div class="kpi-value" id="kpiProf">—</div></div>
-      <div class="kpi-card pers"><div class="kpi-label">Personal</div><div class="kpi-value" id="kpiPers">—</div></div>
-      <div class="kpi-card count"><div class="kpi-label">Registres</div><div class="kpi-value" id="kpiCount">—</div></div>
-    </div>
-    <div class="taula-wrapper">
-      <div class="taula-cap">
-        <h2>Llistat de despeses</h2>
-        <input type="text" class="cerca-input" placeholder="Cercar…" id="cercaInput" oninput="filtrarTaula()">
-      </div>
-      <div style="overflow-x:auto">
-        <table id="taulaDespeses">
-          <thead><tr><th>Data</th><th>Descripció</th><th>Categoria</th><th>Tipus</th><th>Proveïdor</th><th>Import</th><th>Doc.</th><th style="text-align:center">Accions</th></tr></thead>
-          <tbody id="taulaCos"><tr><td colspan="8" class="buit"><div class="buit-icon">📊</div><div class="buit-text">Carregant…</div></td></tr></tbody>
-        </table>
-      </div>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Despeses <span id="anyActual"></span></div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════ FACTURES -->
-  <div class="seccio" id="seccioFactures" style="display:none">
-    <div class="page-header"><div class="page-title">Factures emeses <span id="anyFacturesActual"></span></div></div>
-    <div class="filtres-bar">
-      <div class="filtre-grup"><label>Any</label><select id="filtreAnyFactures" onchange="carregarFactures()"><option value="">Tots</option></select></div>
+  <!-- Filtres -->
+  <div class="filtres-bar">
+    <div class="filtre-grup">
+      <label>Any</label>
+      <select id="filtreAny" onchange="aplicarFiltres()">
+        <option value="">Tots</option>
+      </select>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem">
-      <div style="background:white;border-radius:10px;padding:1.25rem 1.5rem;box-shadow:var(--shadow);border-left:4px solid var(--navy)"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-3);font-weight:500;margin-bottom:6px">Total facturat</div><div style="font-family:var(--font-head);font-size:1.6rem;font-weight:700;color:var(--navy)" id="factTotal">—</div></div>
-      <div style="background:white;border-radius:10px;padding:1.25rem 1.5rem;box-shadow:var(--shadow);border-left:4px solid var(--navy)"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-3);font-weight:500;margin-bottom:6px">Base imponible</div><div style="font-family:var(--font-head);font-size:1.6rem;font-weight:700;color:var(--navy)" id="factBase">—</div></div>
-      <div style="background:white;border-radius:10px;padding:1.25rem 1.5rem;box-shadow:var(--shadow);border-left:4px solid var(--navy)"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-3);font-weight:500;margin-bottom:6px">IVA</div><div style="font-family:var(--font-head);font-size:1.6rem;font-weight:700;color:var(--navy)" id="factIva">—</div></div>
-      <div style="background:white;border-radius:10px;padding:1.25rem 1.5rem;box-shadow:var(--shadow);border-left:4px solid var(--navy)"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-3);font-weight:500;margin-bottom:6px">IRPF retingut</div><div style="font-family:var(--font-head);font-size:1.6rem;font-weight:700;color:var(--navy)" id="factIrpf">—</div></div>
-      <div style="background:white;border-radius:10px;padding:1.25rem 1.5rem;box-shadow:var(--shadow);border-left:4px solid var(--navy)"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-3);font-weight:500;margin-bottom:6px">Factures</div><div style="font-family:var(--font-head);font-size:1.6rem;font-weight:700;color:var(--navy)" id="factCount">—</div></div>
+    <div class="filtre-grup">
+      <label>Mes</label>
+      <select id="filtreMes" onchange="aplicarFiltres()">
+        <option value="">Tots</option>
+        <option value="1">Gener</option><option value="2">Febrer</option>
+        <option value="3">Març</option><option value="4">Abril</option>
+        <option value="5">Maig</option><option value="6">Juny</option>
+        <option value="7">Juliol</option><option value="8">Agost</option>
+        <option value="9">Setembre</option><option value="10">Octubre</option>
+        <option value="11">Novembre</option><option value="12">Desembre</option>
+      </select>
     </div>
-    <div class="taula-wrapper">
-      <div class="taula-cap"><h2>Llistat de factures</h2></div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr><th>Número</th><th>Data</th><th>Client</th><th>Concepte</th><th>Base</th><th>IVA</th><th>IRPF</th><th>Total</th><th>Estat</th><th>Doc.</th><th style="text-align:center">Accions</th></tr></thead>
-          <tbody id="taulaFacturesCos"><tr><td colspan="9" class="buit"><div class="buit-icon">🧾</div><div class="buit-text">Carregant…</div></td></tr></tbody>
-        </table>
-      </div>
+    <div class="filtre-grup">
+      <label>Tipus</label>
+      <select id="filtreTipus" onchange="aplicarFiltres()">
+        <option value="">Tots</option>
+        <option value="professional">Professional</option>
+        <option value="personal">Personal</option>
+      </select>
+    </div>
+    <div class="filtre-grup">
+      <label>Categoria</label>
+      <select id="filtreCat" onchange="aplicarFiltres()">
+        <option value="">Totes</option>
+      </select>
+    </div>
+    <button class="btn btn-outline" style="background:var(--navy);margin-top:18px" onclick="netejarFiltres()">✕ Netejar</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card total"><div class="kpi-label">Total any</div><div class="kpi-value" id="kpiTotal">—</div></div>
+    <div class="kpi-card prof"><div class="kpi-label">Professional</div><div class="kpi-value" id="kpiProf">—</div></div>
+    <div class="kpi-card pers"><div class="kpi-label">Personal</div><div class="kpi-value" id="kpiPers">—</div></div>
+    <div class="kpi-card count"><div class="kpi-label">Registres</div><div class="kpi-value" id="kpiCount">—</div></div>
+  </div>
+
+  <!-- Taula -->
+  <div class="taula-wrapper">
+    <div class="taula-cap">
+      <h2>Llistat de despeses</h2>
+      <input type="text" class="cerca-input" placeholder="Cercar…" id="cercaInput" oninput="filtrarTaula()">
+    </div>
+    <div style="overflow-x:auto">
+      <table id="taulaDespeses">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Descripció</th>
+            <th>Categoria</th>
+            <th>Tipus</th>
+            <th>Proveïdor</th>
+            <th>Import</th>
+            <th>Doc.</th>
+            <th style="text-align:center">Accions</th>
+          </tr>
+        </thead>
+        <tbody id="taulaCos">
+          <tr><td colspan="8" class="buit"><div class="buit-icon">📊</div><div class="buit-text">Carregant…</div></td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════ BANCS -->
-  <div id="seccioBancs" style="display:none">
-    <div class="page-header">
-      <div><div class="page-title">Bancs <span style="color:var(--gold)">· Evolució de saldos</span></div></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="obrirModalMoviment()">+ Nou moviment</button>
-        <button class="btn btn-primary" onclick="obrirModalFotografia()">📸 Nova fotografia</button>
-      </div>
-    </div>
+</div>
 
-    <div style="background:var(--white);border-radius:var(--radius);padding:1rem 1.5rem;margin-bottom:1.5rem;box-shadow:var(--shadow);font-size:.85rem;color:var(--gray-4);border-left:4px solid var(--gold)">
-      <strong>Com funciona:</strong> Cada "fotografia" és una data on registres els saldos. La taula mostra l'evolució. La fila groga és la variació entre cada data. La columna <em>Total variació</em> = diferència entre la primera i l'última fotografia.
-    </div>
-
-    <!-- Taula dinàmica per dates -->
-    <div class="taula-wrapper" style="margin-bottom:1.5rem">
-      <div class="taula-cap">
-        <h2>Evolució per dates</h2>
-        <span id="bancTaulaInfo" style="font-size:.82rem;color:var(--gray-3)"></span>
-      </div>
-      <div style="overflow-x:auto">
-        <div id="taulaBancsDinamicaWrap">
-          <table id="taulaBancsDinamica" style="min-width:600px">
-            <thead id="taulaBancsHead"></thead>
-            <tbody id="taulaBancsCos">
-              <tr><td colspan="3" class="buit"><div class="buit-icon">📊</div><div class="buit-text">Afegeix moviments o fotografies per veure l'evolució</div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Historial -->
-    <div class="filtres-bar" style="margin-top:0">
-      <div class="filtre-grup">
-        <label>Filtrar per banc</label>
-        <select id="filtreBancMov" onchange="carregarMoviments()">
-          <option value="">Tots els bancs</option>
-        </select>
-      </div>
-      <div class="filtre-grup">
-        <label>Tipus</label>
-        <select id="filtreTipusMov" onchange="filtrarMoviments()">
-          <option value="">Tots</option>
-          <option value="entrada">Entrades</option>
-          <option value="sortida">Sortides</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="taula-wrapper">
-      <div class="taula-cap">
-        <h2>Historial de moviments</h2>
-        <span id="totalMovimentsLabel" style="font-size:.85rem;color:var(--gray-3)"></span>
-      </div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr><th>Data</th><th>Banc</th><th>Descripció</th><th>Tipus</th><th style="text-align:right">Import</th><th style="text-align:center">Accions</th></tr></thead>
-          <tbody id="taulaMovimentsCos"><tr><td colspan="6" class="buit"><div class="buit-icon">🏦</div><div class="buit-text">Cap moviment registrat</div></td></tr></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-</div><!-- fi container -->
-
-<!-- Modal despesa -->
+<!-- Modal nova/editar despesa -->
 <div class="modal-overlay" id="modalOverlay" onclick="tancarModalFora(event)">
   <div class="modal" id="modal">
     <div class="modal-cap">
@@ -365,6 +562,7 @@
     </div>
     <div class="modal-cos">
       <div class="form-grid">
+
         <div class="form-grup full">
           <label class="form-label">Tipus <span>*</span></label>
           <div class="tipus-selector">
@@ -373,9 +571,22 @@
           </div>
           <input type="hidden" id="fTipus" value="professional">
         </div>
-        <div class="form-grup"><label class="form-label">Data <span>*</span></label><input type="date" class="form-control" id="fData"></div>
-        <div class="form-grup"><label class="form-label">Import (€) <span>*</span></label><input type="number" class="form-control" id="fImport" step="0.01" min="0" placeholder="0,00"></div>
-        <div class="form-grup full"><label class="form-label">Descripció <span>*</span></label><input type="text" class="form-control" id="fDescripcio" placeholder="Breu descripció de la despesa"></div>
+
+        <div class="form-grup">
+          <label class="form-label">Data <span>*</span></label>
+          <input type="date" class="form-control" id="fData">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Import (€) <span>*</span></label>
+          <input type="number" class="form-control" id="fImport" step="0.01" min="0" placeholder="0,00">
+        </div>
+
+        <div class="form-grup full">
+          <label class="form-label">Descripció <span>*</span></label>
+          <input type="text" class="form-control" id="fDescripcio" placeholder="Breu descripció de la despesa">
+        </div>
+
         <div class="form-grup">
           <label class="form-label">Categoria <span>*</span></label>
           <select class="form-control" id="fCategoria">
@@ -402,8 +613,17 @@
             </optgroup>
           </select>
         </div>
-        <div class="form-grup"><label class="form-label">Proveïdor / Entitat</label><input type="text" class="form-control" id="fProveidor" placeholder="Nom del proveïdor"></div>
-        <div class="form-grup full"><label class="form-label">Notes</label><textarea class="form-control" id="fNotes" placeholder="Observacions addicionals…"></textarea></div>
+
+        <div class="form-grup">
+          <label class="form-label">Proveïdor / Entitat</label>
+          <input type="text" class="form-control" id="fProveidor" placeholder="Nom del proveïdor">
+        </div>
+
+        <div class="form-grup full">
+          <label class="form-label">Notes</label>
+          <textarea class="form-control" id="fNotes" placeholder="Observacions addicionals…"></textarea>
+        </div>
+
         <div class="form-grup full">
           <label class="form-label">Document adjunt (PDF/imatge)</label>
           <div class="upload-zona" onclick="document.getElementById('fDocument').click()">
@@ -414,6 +634,7 @@
           <input type="file" id="fDocument" accept=".pdf,.jpg,.jpeg,.png" onchange="mostrarNomFitxer()">
           <div id="docActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
         </div>
+
       </div>
     </div>
     <div class="modal-peu">
@@ -423,170 +644,24 @@
   </div>
 </div>
 
-<!-- Modal factura -->
-<div class="modal-overlay" id="modalFacturaOverlay" onclick="if(event.target===this)tancarModalFactura()">
-  <div class="modal" id="modalFactura" style="max-width:650px">
-    <div class="modal-cap">
-      <h3 id="modalFacturaTitol">Nova factura</h3>
-      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalFactura()">✕</button>
-    </div>
-    <div class="modal-cos">
-      <div class="form-grid">
-        <div class="form-grup"><label class="form-label">Data <span>*</span></label><input type="date" class="form-control" id="ffData"></div>
-        <div class="form-grup"><label class="form-label">Núm. factura</label><input type="text" class="form-control" id="ffNumero" placeholder="Automàtic" disabled style="opacity:.6"></div>
-        <div class="form-grup"><label class="form-label">Client <span>*</span></label><input type="text" class="form-control" id="ffClientNom" placeholder="Nom del client"></div>
-        <div class="form-grup"><label class="form-label">NIF/CIF client</label><input type="text" class="form-control" id="ffClientNif" placeholder="NIF o CIF"></div>
-        <div class="form-grup full"><label class="form-label">Adreça client</label><input type="text" class="form-control" id="ffClientAdreca" placeholder="Adreça completa"></div>
-        <div class="form-grup full"><label class="form-label">Concepte <span>*</span></label><textarea class="form-control" id="ffConcepte" placeholder="Descripció dels serveis prestats…"></textarea></div>
-        <div class="form-grup"><label class="form-label">Base imponible (€) <span>*</span></label><input type="number" class="form-control" id="ffBase" step="0.01" min="0" placeholder="0,00" oninput="calcularTotals()"></div>
-        <div class="form-grup"><label class="form-label">IVA (%)</label><input type="number" class="form-control" id="ffIva" value="21" step="0.1" min="0" oninput="calcularTotals()"></div>
-        <div class="form-grup"><label class="form-label">IRPF (%)</label><input type="number" class="form-control" id="ffIrpf" value="0" step="0.1" min="0" oninput="calcularTotals()"></div>
-        <div class="form-grup"><label class="form-label">Total factura</label><div class="form-control" id="ffTotal" style="background:var(--navy);color:var(--gold);font-family:var(--font-head);font-size:1.1rem;font-weight:700">0,00 €</div></div>
-        <div class="form-grup"><label class="form-label">Estat</label><select class="form-control" id="ffEstat"><option value="pendent">⏳ Pendent de cobrament</option><option value="pagada">✅ Pagada</option><option value="proforma">📋 Proforma</option></select></div>
-        <div class="form-grup full">
-          <label class="form-label">Document adjunt (PDF)</label>
-          <div class="upload-zona" onclick="document.getElementById('ffDocument').click()"><div>📎 Fes clic per adjuntar la factura en PDF</div><div class="upload-text">PDF fins a 10 MB</div><div class="upload-nom" id="ffNomDocument"></div></div>
-          <input type="file" id="ffDocument" accept=".pdf,.doc,.docx" onchange="document.getElementById('ffNomDocument').textContent = this.files[0]?.name || ''">
-          <div id="ffDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
-        </div>
-        <div class="form-grup full"><label class="form-label">Notes</label><input type="text" class="form-control" id="ffNotes" placeholder="Observacions"></div>
-      </div>
-    </div>
-    <div class="modal-peu">
-      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalFactura()">Cancel·lar</button>
-      <button class="btn btn-primary" id="btnGuardarFactura" onclick="guardarFactura()">💾 Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal saldo inicial banc -->
-<div class="modal-overlay" id="modalSaldoOverlay" onclick="if(event.target===this)tancarModalSaldo()">
-  <div class="modal" style="max-width:440px">
-    <div class="modal-cap">
-      <h3 id="modalSaldoTitol">Editar saldo inicial</h3>
-      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalSaldo()">✕</button>
-    </div>
-    <div class="modal-cos">
-      <input type="hidden" id="sBancId">
-      <div class="form-grid">
-        <div class="form-grup full"><label class="form-label">Banc</label><input type="text" class="form-control" id="sBancNom" disabled style="opacity:.7"></div>
-        <div class="form-grup"><label class="form-label">Saldo inicial (€) <span>*</span></label><input type="number" class="form-control" id="sSaldoIni" step="0.01" placeholder="0,00"></div>
-        <div class="form-grup"><label class="form-label">Data d'inici <span>*</span></label><input type="date" class="form-control" id="sDataIni"></div>
-      </div>
-      <p style="font-size:.8rem;color:var(--gray-3);margin-top:12px">El saldo actual es calcularà sumant/restant els moviments registrats des d'aquesta data.</p>
-    </div>
-    <div class="modal-peu">
-      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalSaldo()">Cancel·lar</button>
-      <button class="btn btn-primary" onclick="guardarSaldo()">💾 Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal fotografia de saldos -->
-<div class="modal-overlay" id="modalFotografiaOverlay" onclick="if(event.target===this)tancarModalFotografia()">
-  <div class="modal" style="max-width:520px">
-    <div class="modal-cap">
-      <h3>📸 Nova fotografia de saldos</h3>
-      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalFotografia()">✕</button>
-    </div>
-    <div class="modal-cos">
-      <div class="form-grup full" style="margin-bottom:1rem">
-        <label class="form-label">Data de la fotografia <span>*</span></label>
-        <input type="date" class="form-control" id="fotoData">
-        <p style="font-size:.78rem;color:var(--gray-3);margin-top:4px">Introdueix el saldo real de cada banc en aquesta data. Es crearan els moviments necessaris per quadrar.</p>
-      </div>
-      <div id="fotoSaldosGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
-    </div>
-    <div class="modal-peu">
-      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalFotografia()">Cancel·lar</button>
-      <button class="btn btn-primary" id="btnGuardarFoto" onclick="guardarFotografia()">📸 Guardar fotografia</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal nou moviment -->
-<div class="modal-overlay" id="modalMovimentOverlay" onclick="if(event.target===this)tancarModalMoviment()">
-  <div class="modal" style="max-width:500px">
-    <div class="modal-cap">
-      <h3 id="modalMovTitol">Nou moviment</h3>
-      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalMoviment()">✕</button>
-    </div>
-    <div class="modal-cos">
-      <div class="form-grid">
-        <div class="form-grup full">
-          <label class="form-label">Tipus <span>*</span></label>
-          <div class="tipus-selector">
-            <div class="tipus-opt entrada seleccionat" id="mOptEntrada" onclick="selTipusMov('entrada')">⬆ Entrada (ingrés)</div>
-            <div class="tipus-opt sortida" id="mOptSortida" onclick="selTipusMov('sortida')">⬇ Sortida (despesa)</div>
-          </div>
-          <input type="hidden" id="mTipus" value="entrada">
-        </div>
-        <div class="form-grup">
-          <label class="form-label">Banc <span>*</span></label>
-          <select class="form-control" id="mBanc">
-            <option value="">Selecciona banc…</option>
-          </select>
-        </div>
-        <div class="form-grup"><label class="form-label">Data <span>*</span></label><input type="date" class="form-control" id="mData"></div>
-        <div class="form-grup full"><label class="form-label">Descripció <span>*</span></label><input type="text" class="form-control" id="mDescripcio" placeholder="Concepte del moviment"></div>
-        <div class="form-grup full"><label class="form-label">Import (€) <span>*</span></label><input type="number" class="form-control" id="mImport" step="0.01" min="0" placeholder="0,00"></div>
-      </div>
-    </div>
-    <div class="modal-peu">
-      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalMoviment()">Cancel·lar</button>
-      <button class="btn btn-primary" id="btnGuardarMov" onclick="guardarMoviment()">💾 Guardar</button>
-    </div>
-  </div>
-</div>
-
 <script>
-// ─── Globals ──────────────────────────────────────────────────────────────────
-let despeses    = [];
-let factures    = [];
-let moviments   = [];
-let bancosResum = [];
-let despesaEdId = null;
-let facturaEdId = null;
+// ─── Estat global ────────────────────────────────────────────────────────────
+let despeses     = [];
+let despesaEdId  = null;
 const MESOS = ['','Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
 
-// ─── Init ─────────────────────────────────────────────────────────────────────
+// ─── Init ────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  canviarTab('despeses');
   const avui = new Date();
   document.getElementById('fData').value = avui.toISOString().slice(0,10);
   document.getElementById('anyActual').textContent = avui.getFullYear();
   document.getElementById('filtreAny').value = avui.getFullYear();
+
   carregarAnys();
   carregarDespeses();
 });
 
-// ─── Tab navigation ───────────────────────────────────────────────────────────
-function canviarTab(tab) {
-  document.getElementById('seccioDespeses').style.display = tab === 'despeses' ? 'block' : 'none';
-  document.getElementById('seccioFactures').style.display = tab === 'factures' ? 'block' : 'none';
-  document.getElementById('seccioBancs').style.display    = tab === 'bancs'    ? 'block' : 'none';
-  ['tabDespeses','tabFactures','tabBancs'].forEach(id => document.getElementById(id).classList.remove('actiu'));
-  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('actiu');
-
-  if (tab === 'despeses') {
-    document.getElementById('btnNou').textContent = '+ Nova despesa';
-    document.getElementById('btnNou').onclick = obrirModal;
-    document.getElementById('btnExportCSV').style.display = '';
-  } else if (tab === 'factures') {
-    document.getElementById('btnNou').textContent = '+ Nova factura';
-    document.getElementById('btnNou').onclick = () => obrirModalFactura();
-    document.getElementById('btnExportCSV').style.display = 'none';
-    carregarFactures();
-    carregarAnysFactures();
-  } else if (tab === 'bancs') {
-    document.getElementById('btnNou').textContent = '+ Nou moviment';
-    document.getElementById('btnNou').onclick = obrirModalMoviment;
-    document.getElementById('btnExportCSV').style.display = 'none';
-    carregarBancs();
-  }
-}
-
-// ─── Despeses ─────────────────────────────────────────────────────────────────
+// ─── Anys disponibles ────────────────────────────────────────────────────────
 async function carregarAnys() {
   try {
     const r = await fetch('/api/anys');
@@ -603,6 +678,7 @@ async function carregarAnys() {
   } catch(e) {}
 }
 
+// ─── Carregar despeses ───────────────────────────────────────────────────────
 async function carregarDespeses() {
   const params = new URLSearchParams();
   const any_ = document.getElementById('filtreAny').value;
@@ -613,19 +689,26 @@ async function carregarDespeses() {
   if (mes)  params.set('mes', mes);
   if (tip)  params.set('tipus', tip);
   if (cat)  params.set('categoria', cat);
+
   try {
     const r = await fetch('/api/despeses?' + params);
     despeses = await r.json();
     renderTaula(despeses);
     actualitzarKPIs(despeses);
     actualitzarCategoriesFiltres();
-  } catch(e) { toast('Error carregant dades', 'error'); }
+  } catch(e) {
+    toast('Error carregant dades', 'error');
+  }
 }
 
+// ─── Render taula ────────────────────────────────────────────────────────────
 function renderTaula(llista) {
   const cos = document.getElementById('taulaCos');
   if (!llista.length) {
-    cos.innerHTML = `<tr><td colspan="8" class="buit"><div class="buit-icon">📭</div><div class="buit-text">Cap despesa registrada amb els filtres actuals</div></td></tr>`;
+    cos.innerHTML = `<tr><td colspan="8" class="buit">
+      <div class="buit-icon">📭</div>
+      <div class="buit-text">Cap despesa registrada amb els filtres actuals</div>
+    </td></tr>`;
     return;
   }
   cos.innerHTML = llista.map(d => `
@@ -641,9 +724,11 @@ function renderTaula(llista) {
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})" title="Editar">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="eliminarDespesa(${d.id})" title="Eliminar">🗑</button>
       </td>
-    </tr>`).join('');
+    </tr>
+  `).join('');
 }
 
+// ─── KPIs ────────────────────────────────────────────────────────────────────
 function actualitzarKPIs(llista) {
   const total = llista.reduce((s,d) => s + d.import_, 0);
   const prof  = llista.filter(d=>d.tipus==='professional').reduce((s,d)=>s+d.import_,0);
@@ -654,6 +739,7 @@ function actualitzarKPIs(llista) {
   document.getElementById('kpiCount').textContent = llista.length;
 }
 
+// ─── Categories filtre ───────────────────────────────────────────────────────
 function actualitzarCategoriesFiltres() {
   const cats = [...new Set(despeses.map(d=>d.categoria))].sort();
   const sel = document.getElementById('filtreCat');
@@ -661,6 +747,7 @@ function actualitzarCategoriesFiltres() {
   sel.innerHTML = '<option value="">Totes</option>' + cats.map(c=>`<option value="${esc(c)}"${c===actual?' selected':''}>${esc(c)}</option>`).join('');
 }
 
+// ─── Cerca local ─────────────────────────────────────────────────────────────
 function filtrarTaula() {
   const q = document.getElementById('cercaInput').value.toLowerCase();
   if (!q) { renderTaula(despeses); actualitzarKPIs(despeses); return; }
@@ -674,6 +761,7 @@ function filtrarTaula() {
   actualitzarKPIs(filtrat);
 }
 
+// ─── Filtres ─────────────────────────────────────────────────────────────────
 function aplicarFiltres() {
   const any_ = document.getElementById('filtreAny').value;
   document.getElementById('anyActual').textContent = any_ || 'Tots';
@@ -690,6 +778,7 @@ function netejarFiltres() {
   carregarDespeses();
 }
 
+// ─── Modal ───────────────────────────────────────────────────────────────────
 function obrirModal(d = null) {
   despesaEdId = d ? d.id : null;
   document.getElementById('modalTitol').textContent = d ? 'Editar despesa' : 'Nova despesa';
@@ -701,17 +790,25 @@ function obrirModal(d = null) {
   document.getElementById('fCategoria').value   = d ? d.categoria : 'Taxes i aranzels';
   document.getElementById('nomDocument').textContent = '';
   document.getElementById('fDocument').value    = '';
+
   if (d && d.document_url) {
     document.getElementById('docActual').innerHTML = `Document actual: <a href="${d.document_url}" target="_blank" style="color:var(--blue)">${esc(d.document_nom||'veure')}</a>`;
   } else {
     document.getElementById('docActual').textContent = '';
   }
+
   selTipus(d ? d.tipus : 'professional');
   document.getElementById('modalOverlay').classList.add('actiu');
 }
 
-function tancarModal() { document.getElementById('modalOverlay').classList.remove('actiu'); despesaEdId = null; }
-function tancarModalFora(e) { if (e.target === document.getElementById('modalOverlay')) tancarModal(); }
+function tancarModal() {
+  document.getElementById('modalOverlay').classList.remove('actiu');
+  despesaEdId = null;
+}
+
+function tancarModalFora(e) {
+  if (e.target === document.getElementById('modalOverlay')) tancarModal();
+}
 
 function selTipus(t) {
   document.getElementById('fTipus').value = t;
@@ -724,41 +821,69 @@ function mostrarNomFitxer() {
   document.getElementById('nomDocument').textContent = f ? '✓ ' + f.name : '';
 }
 
+// ─── Guardar ─────────────────────────────────────────────────────────────────
 async function guardarDespesa() {
   const data       = document.getElementById('fData').value;
   const import_    = document.getElementById('fImport').value;
   const descripcio = document.getElementById('fDescripcio').value.trim();
   const categoria  = document.getElementById('fCategoria').value;
   const tipus      = document.getElementById('fTipus').value;
-  if (!data || !import_ || !descripcio || !categoria) { toast('Omple els camps obligatoris', 'error'); return; }
+
+  if (!data || !import_ || !descripcio || !categoria) {
+    toast('Omple els camps obligatoris', 'error'); return;
+  }
+
   const btn = document.getElementById('btnGuardar');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Guardant…';
+
   const fd = new FormData();
-  fd.append('data', data); fd.append('import_', import_); fd.append('descripcio', descripcio);
-  fd.append('categoria', categoria); fd.append('tipus', tipus);
+  fd.append('data', data);
+  fd.append('import_', import_);
+  fd.append('descripcio', descripcio);
+  fd.append('categoria', categoria);
+  fd.append('tipus', tipus);
   fd.append('proveidor', document.getElementById('fProveidor').value);
   fd.append('notes', document.getElementById('fNotes').value);
   const fitxer = document.getElementById('fDocument').files[0];
   if (fitxer) fd.append('document', fitxer);
+
   try {
     const url    = despesaEdId ? `/api/despeses/${despesaEdId}` : '/api/despeses';
     const method = despesaEdId ? 'PUT' : 'POST';
     const r = await fetch(url, { method, body: fd });
     if (!r.ok) throw new Error();
     const result = await r.json();
-    if (result.cloudinary_error) toast('Despesa guardada però error al document: ' + result.cloudinary_error, 'error');
-    else toast(despesaEdId ? 'Despesa actualitzada ✓' : 'Despesa afegida ✓', 'ok');
+    if (result.cloudinary_error) {
+      toast('Despesa guardada però error al document: ' + result.cloudinary_error, 'error');
+    } else {
+      toast(despesaEdId ? 'Despesa actualitzada ✓' : 'Despesa afegida ✓', 'ok');
+    }
     tancarModal();
     carregarDespeses();
-  } catch(e) { toast('Error guardant la despesa', 'error'); }
-  finally { btn.disabled = false; btn.innerHTML = '💾 Guardar'; }
+    if (!despesaEdId) {
+      const any_ = new Date(data).getFullYear().toString();
+      const selAny = document.getElementById('filtreAny');
+      if (![...selAny.options].some(o=>o.value===any_)) {
+        const op = document.createElement('option'); op.value=any_; op.textContent=any_;
+        selAny.insertBefore(op, selAny.options[1]);
+      }
+    }
+  } catch(e) {
+    toast('Error guardant la despesa', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '💾 Guardar';
+  }
 }
 
+// ─── Editar ───────────────────────────────────────────────────────────────────
 function editarDespesa(id) {
   const d = despeses.find(x=>x.id===id);
   if (d) obrirModal(d);
 }
 
+// ─── Eliminar ─────────────────────────────────────────────────────────────────
 async function eliminarDespesa(id) {
   const d = despeses.find(x=>x.id===id);
   if (!confirm(`Eliminar "${d?.descripcio}"?`)) return;
@@ -766,449 +891,24 @@ async function eliminarDespesa(id) {
     await fetch(`/api/despeses/${id}`, { method: 'DELETE' });
     toast('Despesa eliminada', 'ok');
     carregarDespeses();
-  } catch(e) { toast('Error eliminant', 'error'); }
+  } catch(e) {
+    toast('Error eliminant', 'error');
+  }
 }
 
+// ─── Export CSV ───────────────────────────────────────────────────────────────
 function exportarCSV() {
   const params = new URLSearchParams();
   const any_ = document.getElementById('filtreAny').value;
   const mes  = document.getElementById('filtreMes').value;
   const tip  = document.getElementById('filtreTipus').value;
-  if (any_) params.set('any', any_); if (mes) params.set('mes', mes); if (tip) params.set('tipus', tip);
+  if (any_) params.set('any', any_);
+  if (mes)  params.set('mes', mes);
+  if (tip)  params.set('tipus', tip);
   window.open('/api/export/csv?' + params, '_blank');
 }
 
-// ─── Factures ─────────────────────────────────────────────────────────────────
-async function carregarAnysFactures() {
-  try {
-    const r = await fetch('/api/factures/anys');
-    const anys = await r.json();
-    const sel = document.getElementById('filtreAnyFactures');
-    const anyActual = new Date().getFullYear().toString();
-    sel.innerHTML = '<option value="">Tots</option>';
-    const tots = new Set([...anys.map(String), anyActual]);
-    [...tots].sort((a,b)=>b-a).forEach(a => {
-      const o = document.createElement('option');
-      o.value = a; o.textContent = a;
-      if (a === anyActual) o.selected = true;
-      sel.appendChild(o);
-    });
-  } catch(e) {}
-}
-
-async function carregarFactures() {
-  const any_ = document.getElementById('filtreAnyFactures').value;
-  document.getElementById('anyFacturesActual').textContent = any_ || '';
-  const params = new URLSearchParams();
-  if (any_) params.set('any', any_);
-  try {
-    const r = await fetch('/api/factures?' + params);
-    factures = await r.json();
-    renderFactures(factures);
-  } catch(e) { toast('Error carregant factures', 'error'); }
-}
-
-function renderFactures(llista) {
-  const cos = document.getElementById('taulaFacturesCos');
-  const totalBase = llista.reduce((s,f) => s+f.base, 0);
-  const totalIva  = llista.reduce((s,f) => s+f.iva, 0);
-  const totalIrpf = llista.reduce((s,f) => s+f.irpf, 0);
-  const totalNet  = llista.reduce((s,f) => s+f.total, 0);
-  document.getElementById('factTotal').textContent  = formatImport(totalNet);
-  document.getElementById('factBase').textContent   = formatImport(totalBase);
-  document.getElementById('factIva').textContent    = formatImport(totalIva);
-  document.getElementById('factIrpf').textContent   = formatImport(totalIrpf);
-  document.getElementById('factCount').textContent  = llista.length;
-  if (!llista.length) { cos.innerHTML = `<tr><td colspan="11" class="buit"><div class="buit-icon">🧾</div><div class="buit-text">Cap factura registrada</div></td></tr>`; return; }
-  cos.innerHTML = llista.map(f => `
-    <tr>
-      <td style="font-weight:600;white-space:nowrap">${esc(f.numero)}</td>
-      <td style="color:var(--gray-3);white-space:nowrap">${formatData(f.data)}</td>
-      <td><div style="font-weight:500">${esc(f.client_nom)}</div><div style="font-size:.75rem;color:var(--gray-3)">${esc(f.client_nif)}</div></td>
-      <td style="max-width:200px;font-size:.85rem">${esc(f.concepte.substring(0,60))}${f.concepte.length>60?'…':''}</td>
-      <td class="import-cell" style="font-size:.9rem">${formatImport(f.base)}</td>
-      <td style="font-size:.85rem;color:var(--blue)">${formatImport(f.iva)} <span style="color:var(--gray-3)">(${f.iva_pct}%)</span></td>
-      <td style="font-size:.85rem;color:var(--red)">${f.irpf > 0 ? '-' + formatImport(f.irpf) : '—'} <span style="color:var(--gray-3)">${f.irpf_pct > 0 ? '('+f.irpf_pct+'%)' : ''}</span></td>
-      <td class="import-cell">${formatImport(f.total)}</td>
-      <td><span style="padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600;${f.estat==='pagada'?'background:#e6f4ee;color:#1a6b4a':f.estat==='proforma'?'background:#e8f0fb;color:#1a4a7a':'background:#fff3e0;color:#e65100'}">${f.estat==='pagada'?'✅ Pagada':f.estat==='proforma'?'📋 Proforma':'⏳ Pendent'}</span></td>
-      <td>${f.document_url ? `<a href="${f.document_url}" target="_blank" style="color:var(--blue);font-size:.8rem">📎 ${esc(f.document_nom||'Doc')}</a>` : '—'}</td>
-      <td class="accions">
-        <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarFactura(${f.id})" title="Editar">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="eliminarFactura(${f.id})" title="Eliminar">🗑</button>
-      </td>
-    </tr>`).join('');
-}
-
-function calcularTotals() {
-  const base = parseFloat(document.getElementById('ffBase').value) || 0;
-  const iva  = parseFloat(document.getElementById('ffIva').value) || 0;
-  const irpf = parseFloat(document.getElementById('ffIrpf').value) || 0;
-  document.getElementById('ffTotal').textContent = formatImport(base + (base*iva/100) - (base*irpf/100));
-}
-
-function obrirModalFactura(f = null) {
-  facturaEdId = f ? f.id : null;
-  document.getElementById('modalFacturaTitol').textContent = f ? 'Editar factura' : 'Nova factura';
-  document.getElementById('ffData').value = f ? f.data : new Date().toISOString().slice(0,10);
-  document.getElementById('ffNumero').value = f ? f.numero : '(automàtic)';
-  document.getElementById('ffClientNom').value = f ? f.client_nom : '';
-  document.getElementById('ffClientNif').value = f ? f.client_nif : '';
-  document.getElementById('ffClientAdreca').value = f ? f.client_adreca : '';
-  document.getElementById('ffConcepte').value = f ? f.concepte : '';
-  document.getElementById('ffBase').value = f ? f.base : '';
-  document.getElementById('ffIva').value = f ? f.iva_pct : 21;
-  document.getElementById('ffIrpf').value = f ? f.irpf_pct : 0;
-  document.getElementById('ffNotes').value = f ? f.notes : '';
-  document.getElementById('ffEstat').value = f ? f.estat : 'pendent';
-  document.getElementById('ffNomDocument').textContent = '';
-  document.getElementById('ffDocument').value = '';
-  document.getElementById('ffDocActual').innerHTML = f && f.document_url ? `Document actual: <a href="${f.document_url}" target="_blank" style="color:var(--blue)">${f.document_nom||'veure'}</a>` : '';
-  calcularTotals();
-  document.getElementById('modalFacturaOverlay').classList.add('actiu');
-}
-
-function tancarModalFactura() { document.getElementById('modalFacturaOverlay').classList.remove('actiu'); facturaEdId = null; }
-
-async function guardarFactura() {
-  const data = document.getElementById('ffData').value;
-  const client_nom = document.getElementById('ffClientNom').value.trim();
-  const concepte = document.getElementById('ffConcepte').value.trim();
-  const base = document.getElementById('ffBase').value;
-  if (!data || !client_nom || !concepte || !base) { toast('Omple els camps obligatoris', 'error'); return; }
-  const btn = document.getElementById('btnGuardarFactura');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
-  const fd = new FormData();
-  fd.append('data', data); fd.append('client_nom', client_nom);
-  fd.append('client_nif', document.getElementById('ffClientNif').value);
-  fd.append('client_adreca', document.getElementById('ffClientAdreca').value);
-  fd.append('concepte', concepte); fd.append('base', parseFloat(base));
-  fd.append('iva_pct', parseFloat(document.getElementById('ffIva').value) || 0);
-  fd.append('irpf_pct', parseFloat(document.getElementById('ffIrpf').value) || 0);
-  fd.append('notes', document.getElementById('ffNotes').value);
-  fd.append('estat', document.getElementById('ffEstat').value);
-  const fitxerF = document.getElementById('ffDocument').files[0];
-  if (fitxerF) fd.append('document', fitxerF);
-  try {
-    const url = facturaEdId ? `/api/factures/${facturaEdId}` : '/api/factures';
-    const method = facturaEdId ? 'PUT' : 'POST';
-    const r = await fetch(url, { method, body: fd });
-    if (!r.ok) throw new Error();
-    toast(facturaEdId ? 'Factura actualitzada ✓' : 'Factura creada ✓', 'ok');
-    tancarModalFactura();
-    carregarFactures();
-  } catch(e) { toast('Error guardant la factura', 'error'); }
-  finally { btn.disabled = false; btn.innerHTML = '💾 Guardar'; }
-}
-
-function editarFactura(id) { const f = factures.find(x=>x.id===id); if (f) obrirModalFactura(f); }
-
-async function eliminarFactura(id) {
-  const f = factures.find(x=>x.id===id);
-  if (!confirm(`Eliminar factura ${f?.numero}?`)) return;
-  try { await fetch(`/api/factures/${id}`, {method:'DELETE'}); toast('Factura eliminada', 'ok'); carregarFactures(); }
-  catch(e) { toast('Error eliminant', 'error'); }
-}
-
-// ─── BANCS ────────────────────────────────────────────────────────────────────
-let moviments   = [];
-let bancosResum = [];
-
-async function carregarBancs() {
-  try {
-    // Carregar taula dinàmica
-    const r = await fetch('/api/bancs/taula');
-    const taula = await r.json();
-    renderTaulaDinamica(taula);
-
-    // Carregar resum per selects
-    const r2 = await fetch('/api/bancs/resum');
-    bancosResum = await r2.json();
-    omplirSelectBancs();
-    carregarMoviments();
-  } catch(e) { toast('Error carregant bancs', 'error'); }
-}
-
-function renderTaulaDinamica(t) {
-  const head = document.getElementById('taulaBancsHead');
-  const cos  = document.getElementById('taulaBancsCos');
-  const info = document.getElementById('bancTaulaInfo');
-
-  if (!t.dates || t.dates.length === 0) {
-    head.innerHTML = '';
-    cos.innerHTML = '<tr><td colspan="3" class="buit"><div class="buit-icon">📊</div><div class="buit-text">Afegeix moviments o fotografies per veure l\'evolució</div></td></tr>';
-    info.textContent = '';
-    return;
-  }
-
-  const nDates = t.dates.length;
-  info.textContent = nDates + ' dates · ' + t.bancs.length + ' bancs';
-
-  // Capçalera: FECHA | dates... | TOTAL VARIACIÓ
-  const thDates = t.dates.map(d => {
-    const parts = d.split('-');
-    const label = parts[2] + '/' + parts[1] + '/' + parts[0].slice(2);
-    return `<th style="text-align:right;white-space:nowrap;background:#1a3a5c;min-width:100px">${label}</th>`;
-  }).join('');
-  head.innerHTML = `<tr>
-    <th style="background:var(--navy);min-width:130px">FECHA</th>
-    ${thDates}
-    <th style="text-align:right;background:#2d4a1e;min-width:120px;white-space:nowrap">TOTAL VARIACIÓ</th>
-  </tr>`;
-
-  // Files per banc
-  let filesBancs = t.bancs.map(banc => {
-    const saldos = t.files[banc];
-    const tdSaldos = saldos.map((s, i) => {
-      const cls = s >= 0 ? 'color:var(--navy)' : 'color:var(--red)';
-      return `<td style="text-align:right;font-weight:500;${cls}">${fmtN(s)}</td>`;
-    }).join('');
-    const varTotal = t.total_variacio[banc] || 0;
-    const varCls = varTotal > 0 ? 'color:var(--green)' : varTotal < 0 ? 'color:var(--red)' : 'color:var(--gray-3)';
-    const varTxt = varTotal > 0 ? '+' + fmtN(varTotal) : fmtN(varTotal);
-    return `<tr>
-      <td style="font-weight:600;color:var(--navy)">${banc}</td>
-      ${tdSaldos}
-      <td style="text-align:right;font-weight:700;${varCls}">${varTxt}</td>
-    </tr>`;
-  }).join('');
-
-  // Fila TOTAL (suma per columna)
-  const tdTotals = t.totals.map(tot => {
-    return `<td style="text-align:right;font-weight:700;font-family:var(--font-head);font-size:.95rem">${fmtN(tot)}</td>`;
-  }).join('');
-  const totVar = t.total_variacio['__total__'] || 0;
-  const totVarCls = totVar > 0 ? 'color:var(--green)' : totVar < 0 ? 'color:var(--red)' : '';
-  const totVarTxt = totVar > 0 ? '+' + fmtN(totVar) : fmtN(totVar);
-  const filaTotals = `<tr style="border-top:2px solid var(--gray-2)">
-    <td style="font-weight:700;color:var(--navy)">TOTAL</td>
-    ${tdTotals}
-    <td style="text-align:right;font-weight:700;font-family:var(--font-head);${totVarCls}">${totVarTxt}</td>
-  </tr>`;
-
-  // Fila VARIACIÓ (fila groga)
-  const tdVariacions = t.variacions.map((v, i) => {
-    if (v === null) return `<td style="text-align:right;background:#f5e6b0;color:var(--gray-3);font-size:.8rem">—</td>`;
-    const cls = v > 0 ? 'color:#5a7a2a' : v < 0 ? 'color:#8b2020' : 'color:var(--gray-3)';
-    const txt = v > 0 ? '+' + fmtN(v) : fmtN(v);
-    return `<td style="text-align:right;background:#f5e6b0;font-weight:600;font-size:.85rem;${cls}">${txt}</td>`;
-  }).join('');
-  const filaVariacio = `<tr>
-    <td style="background:#f5e6b0;font-size:.78rem;font-weight:600;color:#7a6010;letter-spacing:.05em">VARIACIÓ</td>
-    ${tdVariacions}
-    <td style="background:#f5e6b0"></td>
-  </tr>`;
-
-  cos.innerHTML = filesBancs + filaTotals + filaVariacio;
-}
-
-function fmtN(v) {
-  return new Intl.NumberFormat('ca-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v || 0);
-}
-
-function omplirSelectBancs() {
-  const selMov  = document.getElementById('filtreBancMov');
-  const selForm = document.getElementById('mBanc');
-  const bancs   = bancosResum.map(b => b.banc);
-  selMov.innerHTML  = '<option value="">Tots els bancs</option>' + bancs.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
-  selForm.innerHTML = '<option value="">Selecciona banc…</option>' + bancs.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
-
-  // Omplir grid fotografia
-  const grid = document.getElementById('fotoSaldosGrid');
-  if (grid) {
-    grid.innerHTML = bancs.map(b => `
-      <div class="form-grup">
-        <label class="form-label">${esc(b)}</label>
-        <input type="number" class="form-control" id="fotoSaldo_${esc(b).replace(/ /g,'_')}" step="0.01" placeholder="0,00">
-      </div>`).join('');
-  }
-}
-
-async function carregarMoviments() {
-  const banc = document.getElementById('filtreBancMov').value;
-  const params = new URLSearchParams();
-  if (banc) params.set('banc', banc);
-  try {
-    const r = await fetch('/api/bancs/moviments?' + params);
-    moviments = await r.json();
-    filtrarMoviments();
-  } catch(e) {}
-}
-
-function filtrarMoviments() {
-  const tipus = document.getElementById('filtreTipusMov').value;
-  const llista = tipus ? moviments.filter(m => m.tipus === tipus) : moviments;
-  renderMoviments(llista);
-}
-
-function renderMoviments(llista) {
-  const cos = document.getElementById('taulaMovimentsCos');
-  const totalE = llista.filter(m => m.tipus === 'entrada').reduce((s, m) => s + m.import_, 0);
-  const totalS = llista.filter(m => m.tipus === 'sortida').reduce((s, m) => s + m.import_, 0);
-  document.getElementById('totalMovimentsLabel').innerHTML =
-    llista.length ? `<span style="color:var(--green)">+${formatImport(totalE)} entrades</span> &nbsp;|&nbsp; <span style="color:var(--red)">-${formatImport(totalS)} sortides</span>` : '';
-  if (!llista.length) {
-    cos.innerHTML = `<tr><td colspan="6" class="buit"><div class="buit-icon">🏦</div><div class="buit-text">Cap moviment registrat</div></td></tr>`;
-    return;
-  }
-  cos.innerHTML = llista.map(m => `
-    <tr>
-      <td style="white-space:nowrap;color:var(--gray-3)">${formatData(m.data)}</td>
-      <td style="font-weight:500">${esc(m.banc)}</td>
-      <td>${esc(m.descripcio)}</td>
-      <td><span class="badge badge-${m.tipus}">${m.tipus === 'entrada' ? '⬆ Entrada' : '⬇ Sortida'}</span></td>
-      <td style="text-align:right" class="import-cell import-${m.tipus}">${m.tipus === 'sortida' ? '-' : '+'}${formatImport(m.import_)}</td>
-      <td class="accions"><button class="btn btn-sm btn-danger" onclick="eliminarMoviment(${m.id})" title="Eliminar">🗑</button></td>
-    </tr>`).join('');
-}
-
-// Modal saldo inicial
-function obrirModalSaldo(id, banc, saldo, dataIni) {
-  document.getElementById('sBancId').value   = id;
-  document.getElementById('sBancNom').value  = banc;
-  document.getElementById('sSaldoIni').value = saldo;
-  document.getElementById('sDataIni').value  = dataIni || new Date().toISOString().slice(0, 10);
-  document.getElementById('modalSaldoOverlay').classList.add('actiu');
-}
-
-function tancarModalSaldo() { document.getElementById('modalSaldoOverlay').classList.remove('actiu'); }
-
-async function guardarSaldo() {
-  const id      = document.getElementById('sBancId').value;
-  const saldo   = document.getElementById('sSaldoIni').value;
-  const dataIni = document.getElementById('sDataIni').value;
-  if (!saldo || !dataIni) { toast('Omple tots els camps', 'error'); return; }
-  try {
-    const r = await fetch(`/api/bancs/saldos/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ saldo_ini: parseFloat(saldo), data_ini: dataIni })
-    });
-    if (!r.ok) throw new Error();
-    toast('Saldo inicial actualitzat ✓', 'ok');
-    tancarModalSaldo();
-    carregarBancs();
-  } catch(e) { toast('Error guardant el saldo', 'error'); }
-}
-
-// Modal fotografia
-function obrirModalFotografia() {
-  document.getElementById('fotoData').value = new Date().toISOString().slice(0, 10);
-  // Netejar valors anteriors
-  bancosResum.forEach(b => {
-    const el = document.getElementById('fotoSaldo_' + b.banc.replace(/ /g, '_'));
-    if (el) el.value = '';
-  });
-  document.getElementById('modalFotografiaOverlay').classList.add('actiu');
-}
-
-function tancarModalFotografia() { document.getElementById('modalFotografiaOverlay').classList.remove('actiu'); }
-
-async function guardarFotografia() {
-  const data = document.getElementById('fotoData').value;
-  if (!data) { toast('Selecciona una data', 'error'); return; }
-
-  const btn = document.getElementById('btnGuardarFoto');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
-
-  // Per cada banc que tingui un saldo introduït, crear un moviment d'ajust
-  // Lògica: calculem el saldo actual fins a la data anterior i creem un moviment d'ajust
-  let errors = 0;
-  let guardats = 0;
-
-  for (const b of bancosResum) {
-    const el = document.getElementById('fotoSaldo_' + b.banc.replace(/ /g, '_'));
-    if (!el || el.value === '') continue;
-    const saldoNou = parseFloat(el.value);
-
-    // Obtenir saldo actual fins aquella data
-    try {
-      const r = await fetch(`/api/bancs/saldo-a-data?banc=${encodeURIComponent(b.banc)}&data=${data}`);
-      const info = await r.json();
-      const saldoActual = info.saldo;
-      const diferencia = saldoNou - saldoActual;
-
-      if (Math.abs(diferencia) > 0.005) {
-        const tipus = diferencia > 0 ? 'entrada' : 'sortida';
-        const importAjust = Math.abs(diferencia);
-        const r2 = await fetch('/api/bancs/moviments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            banc: b.banc,
-            data: data,
-            descripcio: `Ajust fotografia ${data}`,
-            import_: importAjust,
-            tipus: tipus
-          })
-        });
-        if (r2.ok) guardats++;
-        else errors++;
-      }
-    } catch(e) { errors++; }
-  }
-
-  btn.disabled = false; btn.innerHTML = '📸 Guardar fotografia';
-
-  if (errors > 0) toast(`${guardats} ajustos creats, ${errors} errors`, 'error');
-  else if (guardats > 0) toast(`Fotografia guardada: ${guardats} ajustos creats ✓`, 'ok');
-  else toast('Cap canvi detectat', 'ok');
-
-  tancarModalFotografia();
-  carregarBancs();
-}
-
-// Modal nou moviment
-function obrirModalMoviment(bancPreseleccionat = null) {
-  document.getElementById('mData').value       = new Date().toISOString().slice(0, 10);
-  document.getElementById('mDescripcio').value = '';
-  document.getElementById('mImport').value     = '';
-  if (bancPreseleccionat) document.getElementById('mBanc').value = bancPreseleccionat;
-  else document.getElementById('mBanc').value = '';
-  selTipusMov('entrada');
-  document.getElementById('modalMovimentOverlay').classList.add('actiu');
-}
-
-function tancarModalMoviment() { document.getElementById('modalMovimentOverlay').classList.remove('actiu'); }
-
-function selTipusMov(t) {
-  document.getElementById('mTipus').value = t;
-  document.getElementById('mOptEntrada').className = 'tipus-opt entrada' + (t === 'entrada' ? ' seleccionat' : '');
-  document.getElementById('mOptSortida').className = 'tipus-opt sortida' + (t === 'sortida' ? ' seleccionat' : '');
-}
-
-async function guardarMoviment() {
-  const banc       = document.getElementById('mBanc').value;
-  const data       = document.getElementById('mData').value;
-  const descripcio = document.getElementById('mDescripcio').value.trim();
-  const import_    = document.getElementById('mImport').value;
-  const tipus      = document.getElementById('mTipus').value;
-  if (!banc || !data || !descripcio || !import_) { toast('Omple tots els camps', 'error'); return; }
-  const btn = document.getElementById('btnGuardarMov');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
-  try {
-    const r = await fetch('/api/bancs/moviments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ banc, data, descripcio, import_: parseFloat(import_), tipus })
-    });
-    if (!r.ok) throw new Error();
-    toast('Moviment afegit ✓', 'ok');
-    tancarModalMoviment();
-    carregarBancs();
-  } catch(e) { toast('Error guardant el moviment', 'error'); }
-  finally { btn.disabled = false; btn.innerHTML = '💾 Guardar'; }
-}
-
-async function eliminarMoviment(id) {
-  if (!confirm('Eliminar aquest moviment?')) return;
-  try {
-    await fetch(`/api/bancs/moviments/${id}`, { method: 'DELETE' });
-    toast('Moviment eliminat', 'ok');
-    carregarBancs();
-  } catch(e) { toast('Error eliminant', 'error'); }
-}
-
-// ─── Utils ─────────────────────────────────────────────────────────────────────
+// ─── Utils ────────────────────────────────────────────────────────────────────
 function formatData(s) {
   if (!s) return '—';
   const [y,m,d] = s.split('-');
@@ -1221,7 +921,7 @@ function formatImport(v) {
 
 function esc(s) {
   if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function toast(msg, tipus='ok') {
@@ -1230,16 +930,6 @@ function toast(msg, tipus='ok') {
   el.innerHTML = (tipus==='ok'?'✓':'✕') + ' ' + msg;
   document.getElementById('toasts').appendChild(el);
   setTimeout(() => el.remove(), 3500);
-}
-
-function copiaSeguреtat() {
-  const ara = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const tag = `backup-${ara.getFullYear()}${pad(ara.getMonth()+1)}${pad(ara.getDate())}-${pad(ara.getHours())}${pad(ara.getMinutes())}`;
-  const cmd = `cd ~/Documents/gestiodespeses && git tag ${tag} && git push --tags`;
-  if (confirm(`Copia aquesta comanda al Terminal:\n\n${cmd}\n\nVols copiar-la al portapapers?`)) {
-    navigator.clipboard.writeText(cmd);
-  }
 }
 </script>
 </body>
