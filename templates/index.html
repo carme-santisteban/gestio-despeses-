@@ -1541,6 +1541,28 @@ function toast(msg, tipus='ok') {
   setTimeout(() => el.remove(), 3500);
 }
 
+// ─── Inactivitat (logout als 10 minuts) ──────────────────────────────────────
+(function() {
+  const MINUTS = 10;
+  const MS = MINUTS * 60 * 1000;
+  let timer;
+
+  function resetTimer() {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      window.location.href = '/logout';
+    }, MS);
+  }
+
+  // Detectar qualsevol activitat
+  ['mousemove', 'mousedown', 'keydown', 'touchstart', 'click', 'scroll'].forEach(ev => {
+    document.addEventListener(ev, resetTimer, { passive: true });
+  });
+
+  // Iniciar el temporitzador
+  resetTimer();
+})();
+
 function copiaSeguреtat() {
   const ara = new Date();
   const pad = n => String(n).padStart(2,'0');
