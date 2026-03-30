@@ -596,6 +596,108 @@ def get_bancs_resum():
         })
     return jsonify(resultat)
 
+
+@app.route('/api/bancs/taula', methods=['GET'])
+def get_bancs_taula():
+    """
+    Taula dinàmica per dates:
+    Per cada data de 'fotografia' (dates úniques de moviments),
+    calcula el saldo acumulat de cada banc fins aquella data.
+    Retorna columnes = dates, files = bancs, + variació entre columnes.
+    """
+    bancs = BancSaldo.query.order_by(BancSaldo.id).all()
+    banc_noms = [b.banc for b in bancs]
+    banc_dict = {b.banc: float(b.saldo_ini) for b in bancs}
+
+    # Dates úniques de moviments, ordenades
+    dates_q = db.session.query(MovimentBanc.data).distinct().order_by(MovimentBanc.data).all()
+    dates = [r.data for r in dates_q]
+
+    if not dates:
+        return jsonify({'bancs': banc_noms, 'dates': [], 'files': {}, 'totals': [], 'variacions': [], 'total_variacio': {}})
+
+    # Per cada banc i data: saldo acumulat = saldo_ini + sum(entrades fins data) - sum(sortides fins data)
+    files = {}
+    for b in bancs:
+        files[b.banc] = []
+        for d in dates:
+            entrades = db.session.query(func.sum(MovimentBanc.import_)).filter(
+                MovimentBanc.banc == b.banc,
+                MovimentBanc.tipus == 'entrada',
+                MovimentBanc.data <= d
+            ).scalar() or 0
+            sortides = db.session.query(func.sum(MovimentBanc.import_)).filter(
+                MovimentBanc.banc == b.banc,
+                MovimentBanc.tipus == 'sortida',
+                MovimentBanc.data <= d
+            ).scalar() or 0
+            saldo = round(float(b.saldo_ini) + float(entrades) - float(sortides), 2)
+            files[b.banc].append(saldo)
+
+    # Totals per columna (suma de tots els bancs en cada data)
+    totals = []
+    for i in range(len(dates)):
+        t = sum(files[b][i] for b in banc_noms)
+        totals.append(round(t, 2))
+
+    # Variació entre columnes consecutives (fila groga)
+    variacions = []
+    for i in range(len(dates)):
+        if i == 0:
+            variacions.append(None)  # primera columna sense variació
+        else:
+            variacions.append(round(totals[i] - totals[i-1], 2))
+
+    # Total variació per banc: diferència entre última i primera fotografia
+    total_variacio = {}
+    for b in banc_noms:
+        if len(files[b]) >= 2:
+            total_variacio[b] = round(files[b][-1] - files[b][0], 2)
+        elif len(files[b]) == 1:
+            total_variacio[b] = 0.0
+        else:
+            total_variacio[b] = 0.0
+    total_variacio['__total__'] = round(totals[-1] - totals[0], 2) if len(totals) >= 2 else 0.0
+
+    return jsonify({
+        'bancs':         banc_noms,
+        'dates':         [d.isoformat() for d in dates],
+        'files':         files,
+        'totals':        totals,
+        'variacions':    variacions,
+        'total_variacio': total_variacio,
+    })
+
+@app.route('/api/bancs/saldo-a-data', methods=['GET'])
+def get_saldo_a_data():
+    """Retorna el saldo calculat d'un banc fins a una data donada (inclosa)"""
+    banc_nom = request.args.get('banc')
+    data_str = request.args.get('data')
+    if not banc_nom or not data_str:
+        return jsonify({'error': 'Cal banc i data'}), 400
+    try:
+        data_limit = datetime.strptime(data_str, '%Y-%m-%d').date()
+    except:
+        return jsonify({'error': 'Format data incorrecte'}), 400
+
+    banc = BancSaldo.query.filter_by(banc=banc_nom).first()
+    if not banc:
+        return jsonify({'saldo': 0.0})
+
+    entrades = db.session.query(func.sum(MovimentBanc.import_)).filter(
+        MovimentBanc.banc == banc_nom,
+        MovimentBanc.tipus == 'entrada',
+        MovimentBanc.data <= data_limit
+    ).scalar() or 0
+    sortides = db.session.query(func.sum(MovimentBanc.import_)).filter(
+        MovimentBanc.banc == banc_nom,
+        MovimentBanc.tipus == 'sortida',
+        MovimentBanc.data <= data_limit
+    ).scalar() or 0
+    saldo = round(float(banc.saldo_ini) + float(entrades) - float(sortides), 2)
+    return jsonify({'saldo': saldo, 'banc': banc_nom, 'data': data_str})
+
+
 # ─── Export / Import JSON ─────────────────────────────────────────────────────
 
 @app.route('/api/exportar-json')
