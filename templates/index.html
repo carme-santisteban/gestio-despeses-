@@ -296,66 +296,233 @@
       <div><div class="page-title">Bancs <span style="color:var(--gold)">· Evolució de saldos</span></div></div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="obrirModalGestioBancs()">⚙ Gestió bancs</button>
-        <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="obrirModalMoviment()">+ Nou moviment</button>
         <button class="btn btn-primary" onclick="obrirModalFotografia()">📸 Nova fotografia</button>
       </div>
     </div>
 
     <div style="background:var(--white);border-radius:var(--radius);padding:1rem 1.5rem;margin-bottom:1.5rem;box-shadow:var(--shadow);font-size:.85rem;color:var(--gray-4);border-left:4px solid var(--gold)">
-      <strong>Com funciona:</strong> Cada "fotografia" és una data on registres els saldos. La taula mostra l'evolució. La fila groga és la variació entre cada data. La columna <em>Total variació</em> = diferència entre la primera i l'última fotografia.
+      <strong>Com funciona:</strong> Clica <em>📸 Nova fotografia</em> per introduir el saldo real de cada banc en una data. La taula mostra l'evolució. La fila groga és la variació entre dates. La columna dreta = diferència entre primera i última fotografia.
     </div>
 
-    <!-- Taula dinàmica per dates -->
+    <!-- Taula dinàmica -->
     <div class="taula-wrapper" style="margin-bottom:1.5rem">
       <div class="taula-cap">
         <h2>Evolució per dates</h2>
         <span id="bancTaulaInfo" style="font-size:.82rem;color:var(--gray-3)"></span>
       </div>
       <div style="overflow-x:auto">
-        <div id="taulaBancsDinamicaWrap">
-          <table id="taulaBancsDinamica" style="min-width:600px">
-            <thead id="taulaBancsHead"></thead>
-            <tbody id="taulaBancsCos">
-              <tr><td colspan="3" class="buit"><div class="buit-icon">📊</div><div class="buit-text">Afegeix moviments o fotografies per veure l'evolució</div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Historial -->
-    <div class="filtres-bar" style="margin-top:0">
-      <div class="filtre-grup">
-        <label>Filtrar per banc</label>
-        <select id="filtreBancMov" onchange="carregarMoviments()">
-          <option value="">Tots els bancs</option>
-        </select>
-      </div>
-      <div class="filtre-grup">
-        <label>Tipus</label>
-        <select id="filtreTipusMov" onchange="filtrarMoviments()">
-          <option value="">Tots</option>
-          <option value="entrada">Entrades</option>
-          <option value="sortida">Sortides</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="taula-wrapper">
-      <div class="taula-cap">
-        <h2>Historial de moviments</h2>
-        <span id="totalMovimentsLabel" style="font-size:.85rem;color:var(--gray-3)"></span>
-      </div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr><th>Data</th><th>Banc</th><th>Descripció</th><th>Tipus</th><th style="text-align:right">Import</th><th style="text-align:center">Accions</th></tr></thead>
-          <tbody id="taulaMovimentsCos"><tr><td colspan="6" class="buit"><div class="buit-icon">🏦</div><div class="buit-text">Cap moviment registrat</div></td></tr></tbody>
+        <table id="taulaBancsDinamica" style="min-width:600px">
+          <thead id="taulaBancsHead"></thead>
+          <tbody id="taulaBancsCos">
+            <tr><td colspan="3" class="buit"><div class="buit-icon">📊</div><div class="buit-text">Afegeix fotografies per veure l'evolució</div></td></tr>
+          </tbody>
         </table>
       </div>
     </div>
   </div>
 
 </div><!-- fi container -->
+
+<!-- Modal despesa -->
+<div class="modal-overlay" id="modalOverlay" onclick="tancarModalFora(event)">
+  <div class="modal" id="modal">
+    <div class="modal-cap">
+      <h3 id="modalTitol">Nova despesa</h3>
+      <button class="btn btn-icon" onclick="tancarModal()" style="color:var(--gray-3);font-size:1.2rem;background:none;border:none;cursor:pointer">✕</button>
+    </div>
+    <div class="modal-cos">
+      <div class="form-grid">
+        <div class="form-grup full">
+          <label class="form-label">Tipus <span>*</span></label>
+          <div class="tipus-selector">
+            <div class="tipus-opt prof seleccionat" id="optProf" onclick="selTipus('professional')">💼 Professional</div>
+            <div class="tipus-opt pers" id="optPers" onclick="selTipus('personal')">🏠 Personal</div>
+          </div>
+          <input type="hidden" id="fTipus" value="professional">
+        </div>
+        <div class="form-grup"><label class="form-label">Data <span>*</span></label><input type="date" class="form-control" id="fData"></div>
+        <div class="form-grup"><label class="form-label">Import (€) <span>*</span></label><input type="number" class="form-control" id="fImport" step="0.01" min="0" placeholder="0,00"></div>
+        <div class="form-grup full"><label class="form-label">Descripció <span>*</span></label><input type="text" class="form-control" id="fDescripcio" placeholder="Breu descripció de la despesa"></div>
+        <div class="form-grup">
+          <label class="form-label">Categoria <span>*</span></label>
+          <select class="form-control" id="fCategoria">
+            <optgroup label="Professional">
+              <option value="Honoraris advocat/a">Honoraris advocat/a</option>
+              <option value="Taxes i aranzels">Taxes i aranzels</option>
+              <option value="Material oficina">Material oficina</option>
+              <option value="Formació">Formació</option>
+              <option value="Viatges i desplaçaments">Viatges i desplaçaments</option>
+              <option value="Subscripcions jurídiques">Subscripcions jurídiques</option>
+              <option value="Assegurances professionals">Assegurances professionals</option>
+              <option value="Tecnologia i programari">Tecnologia i programari</option>
+              <option value="Serveis externs">Serveis externs</option>
+              <option value="Altres professional">Altres professional</option>
+            </optgroup>
+            <optgroup label="Personal">
+              <option value="Alimentació">Alimentació</option>
+              <option value="Habitatge">Habitatge</option>
+              <option value="Transport">Transport</option>
+              <option value="Salut">Salut</option>
+              <option value="Oci i cultura">Oci i cultura</option>
+              <option value="Roba i complements">Roba i complements</option>
+              <option value="Altres personal">Altres personal</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-grup"><label class="form-label">Proveïdor / Entitat</label><input type="text" class="form-control" id="fProveidor" placeholder="Nom del proveïdor"></div>
+        <div class="form-grup full"><label class="form-label">Notes</label><textarea class="form-control" id="fNotes" placeholder="Observacions addicionals…"></textarea></div>
+        <div class="form-grup full">
+          <label class="form-label">Document adjunt (PDF/imatge)</label>
+          <div class="upload-zona" onclick="document.getElementById('fDocument').click()">
+            <div>📎 Fes clic per adjuntar un document</div>
+            <div class="upload-text">PDF, JPG, PNG fins a 10 MB</div>
+            <div class="upload-nom" id="nomDocument"></div>
+          </div>
+          <input type="file" id="fDocument" accept=".pdf,.jpg,.jpeg,.png" onchange="mostrarNomFitxer()">
+          <div id="docActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModal()">Cancel·lar</button>
+      <button class="btn btn-primary" id="btnGuardar" onclick="guardarDespesa()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal factura -->
+<div class="modal-overlay" id="modalFacturaOverlay" onclick="if(event.target===this)tancarModalFactura()">
+  <div class="modal" id="modalFactura" style="max-width:650px">
+    <div class="modal-cap">
+      <h3 id="modalFacturaTitol">Nova factura</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalFactura()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <div class="form-grid">
+        <div class="form-grup"><label class="form-label">Data <span>*</span></label><input type="date" class="form-control" id="ffData"></div>
+        <div class="form-grup"><label class="form-label">Núm. factura</label><input type="text" class="form-control" id="ffNumero" placeholder="Automàtic" disabled style="opacity:.6"></div>
+        <div class="form-grup"><label class="form-label">Client <span>*</span></label><input type="text" class="form-control" id="ffClientNom" placeholder="Nom del client"></div>
+        <div class="form-grup"><label class="form-label">NIF/CIF client</label><input type="text" class="form-control" id="ffClientNif" placeholder="NIF o CIF"></div>
+        <div class="form-grup full"><label class="form-label">Adreça client</label><input type="text" class="form-control" id="ffClientAdreca" placeholder="Adreça completa"></div>
+        <div class="form-grup full"><label class="form-label">Concepte <span>*</span></label><textarea class="form-control" id="ffConcepte" placeholder="Descripció dels serveis prestats…"></textarea></div>
+        <div class="form-grup"><label class="form-label">Base imponible (€) <span>*</span></label><input type="number" class="form-control" id="ffBase" step="0.01" min="0" placeholder="0,00" oninput="calcularTotals()"></div>
+        <div class="form-grup"><label class="form-label">IVA (%)</label><input type="number" class="form-control" id="ffIva" value="21" step="0.1" min="0" oninput="calcularTotals()"></div>
+        <div class="form-grup"><label class="form-label">IRPF (%)</label><input type="number" class="form-control" id="ffIrpf" value="0" step="0.1" min="0" oninput="calcularTotals()"></div>
+        <div class="form-grup"><label class="form-label">Total factura</label><div class="form-control" id="ffTotal" style="background:var(--navy);color:var(--gold);font-family:var(--font-head);font-size:1.1rem;font-weight:700">0,00 €</div></div>
+        <div class="form-grup"><label class="form-label">Estat</label><select class="form-control" id="ffEstat"><option value="pendent">⏳ Pendent de cobrament</option><option value="pagada">✅ Pagada</option><option value="proforma">📋 Proforma</option></select></div>
+        <div class="form-grup full">
+          <label class="form-label">Document adjunt (PDF)</label>
+          <div class="upload-zona" onclick="document.getElementById('ffDocument').click()"><div>📎 Fes clic per adjuntar la factura en PDF</div><div class="upload-text">PDF fins a 10 MB</div><div class="upload-nom" id="ffNomDocument"></div></div>
+          <input type="file" id="ffDocument" accept=".pdf,.doc,.docx" onchange="document.getElementById('ffNomDocument').textContent = this.files[0]?.name || ''">
+          <div id="ffDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
+        </div>
+        <div class="form-grup full"><label class="form-label">Notes</label><input type="text" class="form-control" id="ffNotes" placeholder="Observacions"></div>
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalFactura()">Cancel·lar</button>
+      <button class="btn btn-primary" id="btnGuardarFactura" onclick="guardarFactura()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal saldo inicial banc -->
+<div class="modal-overlay" id="modalSaldoOverlay" onclick="if(event.target===this)tancarModalSaldo()">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-cap">
+      <h3 id="modalSaldoTitol">Editar saldo inicial</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalSaldo()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <input type="hidden" id="sBancId">
+      <div class="form-grid">
+        <div class="form-grup full"><label class="form-label">Banc</label><input type="text" class="form-control" id="sBancNom" disabled style="opacity:.7"></div>
+        <div class="form-grup"><label class="form-label">Saldo inicial (€) <span>*</span></label><input type="number" class="form-control" id="sSaldoIni" step="0.01" placeholder="0,00"></div>
+        <div class="form-grup"><label class="form-label">Data d'inici <span>*</span></label><input type="date" class="form-control" id="sDataIni"></div>
+      </div>
+      <p style="font-size:.8rem;color:var(--gray-3);margin-top:12px">El saldo actual es calcularà sumant/restant els moviments registrats des d'aquesta data.</p>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalSaldo()">Cancel·lar</button>
+      <button class="btn btn-primary" onclick="guardarSaldo()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal gestió bancs -->
+<div class="modal-overlay" id="modalGestioBancsOverlay" onclick="if(event.target===this)tancarModalGestioBancs()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-cap">
+      <h3>⚙ Gestió de bancs</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalGestioBancs()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <div id="llistaBancsGestio" style="margin-bottom:1.5rem"></div>
+      <div style="border-top:1px solid var(--gray-1);padding-top:1rem">
+        <p style="font-size:.82rem;font-weight:500;color:var(--gray-4);margin-bottom:8px">AFEGIR NOU BANC</p>
+        <div style="display:flex;gap:8px">
+          <input type="text" class="form-control" id="nouBancNom" placeholder="Nom del banc..." style="flex:1">
+          <button class="btn btn-primary" onclick="afegirBanc()">Afegir</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalGestioBancs()">Tancar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nova fotografia -->
+<div class="modal-overlay" id="modalFotografiaOverlay" onclick="if(event.target===this)tancarModalFotografia()">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-cap">
+      <h3 id="modalFotoTitol">📸 Nova fotografia de saldos</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalFotografia()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <div class="form-grup full" style="margin-bottom:1.25rem">
+        <label class="form-label">Data <span>*</span></label>
+        <input type="date" class="form-control" id="fotoData">
+      </div>
+      <p style="font-size:.8rem;color:var(--gray-3);margin-bottom:1rem">Introdueix el saldo real de cada banc en aquesta data. Deixa en blanc els que no vulguis registrar.</p>
+      <div id="fotoSaldosGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalFotografia()">Cancel·lar</button>
+      <button class="btn btn-primary" id="btnGuardarFoto" onclick="guardarFotografia()">📸 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal editar cel·la -->
+<div class="modal-overlay" id="modalEditCellaOverlay" onclick="if(event.target===this)tancarModalEditCella()">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-cap">
+      <h3 id="modalEditCellaTitol">✏️ Editar saldo</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalEditCella()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <input type="hidden" id="editCellaId">
+      <div class="form-grup" style="margin-bottom:1rem">
+        <label class="form-label">Banc</label>
+        <input type="text" class="form-control" id="editCellaBanc" disabled style="opacity:.7">
+      </div>
+      <div class="form-grup" style="margin-bottom:1rem">
+        <label class="form-label">Data</label>
+        <input type="date" class="form-control" id="editCellaData">
+      </div>
+      <div class="form-grup">
+        <label class="form-label">Saldo (€) <span>*</span></label>
+        <input type="number" class="form-control" id="editCellaSaldo" step="0.01" placeholder="0,00">
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-sm btn-danger" onclick="eliminarCella()" style="margin-right:auto">🗑 Eliminar</button>
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalEditCella()">Cancel·lar</button>
+      <button class="btn btn-primary" onclick="guardarEditCella()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal despesa -->
 <div class="modal-overlay" id="modalOverlay" onclick="tancarModalFora(event)">
@@ -646,8 +813,8 @@ function canviarTab(tab) {
     carregarFactures();
     carregarAnysFactures();
   } else if (tab === 'bancs') {
-    document.getElementById('btnNou').textContent = '+ Nou moviment';
-    document.getElementById('btnNou').onclick = obrirModalMoviment;
+    document.getElementById('btnNou').textContent = '📸 Nova fotografia';
+    document.getElementById('btnNou').onclick = obrirModalFotografia;
     document.getElementById('btnExportCSV').style.display = 'none';
     carregarBancs();
   }
@@ -977,20 +1144,40 @@ async function eliminarFactura(id) {
 }
 
 // ─── BANCS ────────────────────────────────────────────────────────────────────
+let bancsCfg = [];
 
 async function carregarBancs() {
   try {
-    // Carregar taula dinàmica
+    const r = await fetch('/api/bancs/config');
+    bancsCfg = await r.json();
+    omplirSelectsBancs();
+    await carregarTaulaBancs();
+  } catch(e) { toast('Error carregant bancs', 'error'); }
+}
+
+async function carregarTaulaBancs() {
+  try {
     const r = await fetch('/api/bancs/taula');
     const taula = await r.json();
     renderTaulaDinamica(taula);
+  } catch(e) { toast('Error carregant taula', 'error'); }
+}
 
-    // Carregar resum per selects
-    const r2 = await fetch('/api/bancs/resum');
-    bancosResum = await r2.json();
-    omplirSelectBancs();
-    carregarMoviments();
-  } catch(e) { toast('Error carregant bancs', 'error'); }
+function omplirSelectsBancs() {
+  const selForm = document.getElementById('mBanc');
+  if (selForm) {
+    selForm.innerHTML = '<option value="">Selecciona banc…</option>' +
+      bancsCfg.map(b => `<option value="${esc(b.nom)}">${esc(b.nom)}</option>`).join('');
+  }
+  // Grid de fotografies
+  const grid = document.getElementById('fotoSaldosGrid');
+  if (grid) {
+    grid.innerHTML = bancsCfg.map(b => `
+      <div class="form-grup">
+        <label class="form-label">${esc(b.nom)}</label>
+        <input type="number" class="form-control" id="fotoSaldo_${b.id}" step="0.01" placeholder="0,00">
+      </div>`).join('');
+  }
 }
 
 function renderTaulaDinamica(t) {
@@ -1000,284 +1187,70 @@ function renderTaulaDinamica(t) {
 
   if (!t.dates || t.dates.length === 0) {
     head.innerHTML = '';
-    cos.innerHTML = '<tr><td colspan="3" class="buit"><div class="buit-icon">📊</div><div class="buit-text">Afegeix moviments o fotografies per veure l\'evolució</div></td></tr>';
+    cos.innerHTML = '<tr><td colspan="3" class="buit"><div class="buit-icon">📊</div><div class="buit-text">Afegeix fotografies per veure l\'evolució</div></td></tr>';
     info.textContent = '';
     return;
   }
 
-  const nDates = t.dates.length;
-  info.textContent = nDates + ' dates · ' + t.bancs.length + ' bancs';
+  info.textContent = t.dates.length + ' dates · ' + t.bancs.length + ' bancs';
 
-  // Capçalera: FECHA | dates... | TOTAL VARIACIÓ
+  // Capçalera
   const thDates = t.dates.map(d => {
-    const parts = d.split('-');
-    const label = parts[2] + '/' + parts[1] + '/' + parts[0].slice(2);
-    return `<th style="text-align:right;white-space:nowrap;background:#1a3a5c;min-width:100px">${label}</th>`;
+    const p = d.split('-');
+    return `<th style="text-align:right;white-space:nowrap;background:#1a3a5c;min-width:105px;font-size:.75rem">${p[2]}/${p[1]}/${p[0].slice(2)}</th>`;
   }).join('');
   head.innerHTML = `<tr>
     <th style="background:var(--navy);min-width:130px">FECHA</th>
     ${thDates}
-    <th style="text-align:right;background:#2d4a1e;min-width:120px;white-space:nowrap">TOTAL VARIACIÓ</th>
+    <th style="text-align:right;background:#2d4a1e;min-width:120px;white-space:nowrap;font-size:.75rem">TOTAL VARIACIÓ</th>
   </tr>`;
 
-  // Files per banc
-  let filesBancs = t.bancs.map(banc => {
-    const saldos = t.files[banc];
-    const tdSaldos = saldos.map((s, i) => {
-      const cls = s >= 0 ? 'color:var(--navy)' : 'color:var(--red)';
-      return `<td style="text-align:right;font-weight:500;${cls}">${fmtN(s)}</td>`;
+  // Files bancs — cada cel·la és clicable per editar
+  const filesBancs = t.bancs.map(banc => {
+    const tds = t.dates.map((d, i) => {
+      const val = t.files[banc][i];
+      if (val === null || val === undefined) {
+        return `<td style="text-align:right;color:var(--gray-2);cursor:pointer" onclick="obrirEditCella('${esc(banc)}','${d}',null)">—</td>`;
+      }
+      return `<td style="text-align:right;font-weight:500;cursor:pointer" onclick="obrirEditCellaPerId('${esc(banc)}','${d}')" title="Clic per editar">${fmtN(val)}</td>`;
     }).join('');
     const varTotal = t.total_variacio[banc] || 0;
     const varCls = varTotal > 0 ? 'color:var(--green)' : varTotal < 0 ? 'color:var(--red)' : 'color:var(--gray-3)';
     const varTxt = varTotal > 0 ? '+' + fmtN(varTotal) : fmtN(varTotal);
-    return `<tr>
-      <td style="font-weight:600;color:var(--navy)">${banc}</td>
-      ${tdSaldos}
-      <td style="text-align:right;font-weight:700;${varCls}">${varTxt}</td>
-    </tr>`;
+    return `<tr><td style="font-weight:600">${esc(banc)}</td>${tds}<td style="text-align:right;font-weight:700;${varCls}">${varTxt}</td></tr>`;
   }).join('');
 
-  // Fila TOTAL (suma per columna)
-  const tdTotals = t.totals.map(tot => {
-    return `<td style="text-align:right;font-weight:700;font-family:var(--font-head);font-size:.95rem">${fmtN(tot)}</td>`;
-  }).join('');
+  // Fila TOTAL
+  const tdTotals = t.totals.map(tot =>
+    `<td style="text-align:right;font-weight:700;font-family:var(--font-head)">${fmtN(tot)}</td>`
+  ).join('');
   const totVar = t.total_variacio['__total__'] || 0;
   const totVarCls = totVar > 0 ? 'color:var(--green)' : totVar < 0 ? 'color:var(--red)' : '';
   const totVarTxt = totVar > 0 ? '+' + fmtN(totVar) : fmtN(totVar);
   const filaTotals = `<tr style="border-top:2px solid var(--gray-2)">
-    <td style="font-weight:700;color:var(--navy)">TOTAL</td>
-    ${tdTotals}
+    <td style="font-weight:700">TOTAL</td>${tdTotals}
     <td style="text-align:right;font-weight:700;font-family:var(--font-head);${totVarCls}">${totVarTxt}</td>
   </tr>`;
 
-  // Fila VARIACIÓ (fila groga)
-  const tdVariacions = t.variacions.map((v, i) => {
-    if (v === null) return `<td style="text-align:right;background:#f5e6b0;color:var(--gray-3);font-size:.8rem">—</td>`;
+  // Fila VARIACIÓ groga
+  const tdVars = t.variacions.map(v => {
+    if (v === null) return `<td style="background:#f5e6b0;text-align:right;color:var(--gray-3)">—</td>`;
     const cls = v > 0 ? 'color:#5a7a2a' : v < 0 ? 'color:#8b2020' : 'color:var(--gray-3)';
-    const txt = v > 0 ? '+' + fmtN(v) : fmtN(v);
-    return `<td style="text-align:right;background:#f5e6b0;font-weight:600;font-size:.85rem;${cls}">${txt}</td>`;
+    return `<td style="background:#f5e6b0;text-align:right;font-weight:600;font-size:.85rem;${cls}">${v > 0 ? '+' : ''}${fmtN(v)}</td>`;
   }).join('');
-  const filaVariacio = `<tr>
-    <td style="background:#f5e6b0;font-size:.78rem;font-weight:600;color:#7a6010;letter-spacing:.05em">VARIACIÓ</td>
-    ${tdVariacions}
-    <td style="background:#f5e6b0"></td>
+  const filaVar = `<tr>
+    <td style="background:#f5e6b0;font-size:.78rem;font-weight:600;color:#7a6010;letter-spacing:.04em">VARIACIÓ</td>
+    ${tdVars}<td style="background:#f5e6b0"></td>
   </tr>`;
 
-  cos.innerHTML = filesBancs + filaTotals + filaVariacio;
+  cos.innerHTML = filesBancs + filaTotals + filaVar;
 }
 
 function fmtN(v) {
   return new Intl.NumberFormat('ca-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v || 0);
 }
 
-function omplirSelectBancs() {
-  const selMov  = document.getElementById('filtreBancMov');
-  const selForm = document.getElementById('mBanc');
-  const bancs   = bancosResum.map(b => b.banc);
-  selMov.innerHTML  = '<option value="">Tots els bancs</option>' + bancs.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
-  selForm.innerHTML = '<option value="">Selecciona banc…</option>' + bancs.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
-
-  // Omplir grid fotografia
-  const grid = document.getElementById('fotoSaldosGrid');
-  if (grid) {
-    grid.innerHTML = bancs.map(b => `
-      <div class="form-grup">
-        <label class="form-label">${esc(b)}</label>
-        <input type="number" class="form-control" id="fotoSaldo_${esc(b).replace(/ /g,'_')}" step="0.01" placeholder="0,00">
-      </div>`).join('');
-  }
-}
-
-async function carregarMoviments() {
-  const banc = document.getElementById('filtreBancMov').value;
-  const params = new URLSearchParams();
-  if (banc) params.set('banc', banc);
-  try {
-    const r = await fetch('/api/bancs/moviments?' + params);
-    moviments = await r.json();
-    filtrarMoviments();
-  } catch(e) {}
-}
-
-function filtrarMoviments() {
-  const tipus = document.getElementById('filtreTipusMov').value;
-  const llista = tipus ? moviments.filter(m => m.tipus === tipus) : moviments;
-  renderMoviments(llista);
-}
-
-function renderMoviments(llista) {
-  const cos = document.getElementById('taulaMovimentsCos');
-  const totalE = llista.filter(m => m.tipus === 'entrada').reduce((s, m) => s + m.import_, 0);
-  const totalS = llista.filter(m => m.tipus === 'sortida').reduce((s, m) => s + m.import_, 0);
-  document.getElementById('totalMovimentsLabel').innerHTML =
-    llista.length ? `<span style="color:var(--green)">+${formatImport(totalE)} entrades</span> &nbsp;|&nbsp; <span style="color:var(--red)">-${formatImport(totalS)} sortides</span>` : '';
-  if (!llista.length) {
-    cos.innerHTML = `<tr><td colspan="6" class="buit"><div class="buit-icon">🏦</div><div class="buit-text">Cap moviment registrat</div></td></tr>`;
-    return;
-  }
-  cos.innerHTML = llista.map(m => `
-    <tr>
-      <td style="white-space:nowrap;color:var(--gray-3)">${formatData(m.data)}</td>
-      <td style="font-weight:500">${esc(m.banc)}</td>
-      <td>${esc(m.descripcio)}</td>
-      <td><span class="badge badge-${m.tipus}">${m.tipus === 'entrada' ? '⬆ Entrada' : '⬇ Sortida'}</span></td>
-      <td style="text-align:right" class="import-cell import-${m.tipus}">${m.tipus === 'sortida' ? '-' : '+'}${formatImport(m.import_)}</td>
-      <td class="accions">
-        <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarMoviment(${m.id})" title="Editar">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="eliminarMoviment(${m.id})" title="Eliminar">🗑</button>
-      </td>
-    </tr>`).join('');
-}
-
-// Modal saldo inicial
-function obrirModalSaldo(id, banc, saldo, dataIni) {
-  document.getElementById('sBancId').value   = id;
-  document.getElementById('sBancNom').value  = banc;
-  document.getElementById('sSaldoIni').value = saldo;
-  document.getElementById('sDataIni').value  = dataIni || new Date().toISOString().slice(0, 10);
-  document.getElementById('modalSaldoOverlay').classList.add('actiu');
-}
-
-function tancarModalSaldo() { document.getElementById('modalSaldoOverlay').classList.remove('actiu'); }
-
-async function guardarSaldo() {
-  const id      = document.getElementById('sBancId').value;
-  const saldo   = document.getElementById('sSaldoIni').value;
-  const dataIni = document.getElementById('sDataIni').value;
-  if (!saldo || !dataIni) { toast('Omple tots els camps', 'error'); return; }
-  try {
-    const r = await fetch(`/api/bancs/saldos/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ saldo_ini: parseFloat(saldo), data_ini: dataIni })
-    });
-    if (!r.ok) throw new Error();
-    toast('Saldo inicial actualitzat ✓', 'ok');
-    tancarModalSaldo();
-    carregarBancs();
-  } catch(e) { toast('Error guardant el saldo', 'error'); }
-}
-
-// Modal fotografia
-function obrirModalFotografia() {
-  document.getElementById('fotoData').value = new Date().toISOString().slice(0, 10);
-  // Netejar valors anteriors
-  bancosResum.forEach(b => {
-    const el = document.getElementById('fotoSaldo_' + b.banc.replace(/ /g, '_'));
-    if (el) el.value = '';
-  });
-  document.getElementById('modalFotografiaOverlay').classList.add('actiu');
-}
-
-function tancarModalFotografia() { document.getElementById('modalFotografiaOverlay').classList.remove('actiu'); }
-
-async function guardarFotografia() {
-  const data = document.getElementById('fotoData').value;
-  if (!data) { toast('Selecciona una data', 'error'); return; }
-
-  const btn = document.getElementById('btnGuardarFoto');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
-
-  // Per cada banc que tingui un saldo introduït, crear un moviment d'ajust
-  // Lògica: calculem el saldo actual fins a la data anterior i creem un moviment d'ajust
-  let errors = 0;
-  let guardats = 0;
-
-  for (const b of bancosResum) {
-    const el = document.getElementById('fotoSaldo_' + b.banc.replace(/ /g, '_'));
-    if (!el || el.value === '') continue;
-    const saldoNou = parseFloat(el.value);
-
-    // Obtenir saldo actual fins aquella data
-    try {
-      const r = await fetch(`/api/bancs/saldo-a-data?banc=${encodeURIComponent(b.banc)}&data=${data}`);
-      const info = await r.json();
-      const saldoActual = info.saldo;
-      const diferencia = saldoNou - saldoActual;
-
-      if (Math.abs(diferencia) > 0.005) {
-        const tipus = diferencia > 0 ? 'entrada' : 'sortida';
-        const importAjust = Math.abs(diferencia);
-        const r2 = await fetch('/api/bancs/moviments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            banc: b.banc,
-            data: data,
-            descripcio: `Ajust fotografia ${data}`,
-            import_: importAjust,
-            tipus: tipus
-          })
-        });
-        if (r2.ok) guardats++;
-        else errors++;
-      }
-    } catch(e) { errors++; }
-  }
-
-  btn.disabled = false; btn.innerHTML = '📸 Guardar fotografia';
-
-  if (errors > 0) toast(`${guardats} ajustos creats, ${errors} errors`, 'error');
-  else if (guardats > 0) toast(`Fotografia guardada: ${guardats} ajustos creats ✓`, 'ok');
-  else toast('Cap canvi detectat', 'ok');
-
-  tancarModalFotografia();
-  carregarBancs();
-}
-
-// Modal nou moviment
-function obrirModalMoviment(bancPreseleccionat = null) {
-  document.getElementById('mData').value       = new Date().toISOString().slice(0, 10);
-  document.getElementById('mDescripcio').value = '';
-  document.getElementById('mImport').value     = '';
-  if (bancPreseleccionat) document.getElementById('mBanc').value = bancPreseleccionat;
-  else document.getElementById('mBanc').value = '';
-  selTipusMov('entrada');
-  document.getElementById('modalMovimentOverlay').classList.add('actiu');
-}
-
-function tancarModalMoviment() { document.getElementById('modalMovimentOverlay').classList.remove('actiu'); }
-
-function selTipusMov(t) {
-  document.getElementById('mTipus').value = t;
-  document.getElementById('mOptEntrada').className = 'tipus-opt entrada' + (t === 'entrada' ? ' seleccionat' : '');
-  document.getElementById('mOptSortida').className = 'tipus-opt sortida' + (t === 'sortida' ? ' seleccionat' : '');
-}
-
-async function guardarMoviment() {
-  const banc       = document.getElementById('mBanc').value;
-  const data       = document.getElementById('mData').value;
-  const descripcio = document.getElementById('mDescripcio').value.trim();
-  const import_    = document.getElementById('mImport').value;
-  const tipus      = document.getElementById('mTipus').value;
-  if (!banc || !data || !descripcio || !import_) { toast('Omple tots els camps', 'error'); return; }
-  const btn = document.getElementById('btnGuardarMov');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
-  try {
-    const r = await fetch('/api/bancs/moviments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ banc, data, descripcio, import_: parseFloat(import_), tipus })
-    });
-    if (!r.ok) throw new Error();
-    toast('Moviment afegit ✓', 'ok');
-    tancarModalMoviment();
-    carregarBancs();
-  } catch(e) { toast('Error guardant el moviment', 'error'); }
-  finally { btn.disabled = false; btn.innerHTML = '💾 Guardar'; }
-}
-
-async function eliminarMoviment(id) {
-  if (!confirm('Eliminar aquest moviment?')) return;
-  try {
-    await fetch(`/api/bancs/moviments/${id}`, { method: 'DELETE' });
-    toast('Moviment eliminat', 'ok');
-    carregarBancs();
-  } catch(e) { toast('Error eliminant', 'error'); }
-}
-
-
-// ─── Gestió bancs ─────────────────────────────────────────────────────────────
+// ─── Modal gestió bancs ───────────────────────────────────────────────────────
 async function obrirModalGestioBancs() {
   await renderLlistaBancs();
   document.getElementById('nouBancNom').value = '';
@@ -1291,101 +1264,159 @@ function tancarModalGestioBancs() {
 async function renderLlistaBancs() {
   const el = document.getElementById('llistaBancsGestio');
   try {
-    const r = await fetch('/api/bancs/resum');
+    const r = await fetch('/api/bancs/config');
     const bancs = await r.json();
     if (!bancs.length) { el.innerHTML = '<p style="color:var(--gray-3);font-size:.85rem">Cap banc configurat</p>'; return; }
     el.innerHTML = '<p style="font-size:.82rem;font-weight:500;color:var(--gray-4);margin-bottom:8px">BANCS ACTUALS</p>' +
-      bancs.map(b => {
-        const teMoviments = b.entrades > 0 || b.sortides > 0;
-        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-1)">
-          <span style="font-weight:500">🏦 ${esc(b.banc)}</span>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:.8rem;color:var(--gray-3)">${formatImport(b.saldo_actual)}</span>
-            ${teMoviments
-              ? `<span style="font-size:.75rem;color:var(--gray-3);font-style:italic">té moviments</span>`
-              : `<button class="btn btn-sm btn-danger" onclick="eliminarBanc(${b.id},'${esc(b.banc)}')">🗑</button>`
-            }
-          </div>
-        </div>`;
-      }).join('');
-  } catch(e) { el.innerHTML = '<p style="color:var(--red)">Error carregant bancs</p>'; }
+      bancs.map(b => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-1)">
+          <span style="font-weight:500">🏦 ${esc(b.nom)}</span>
+          <button class="btn btn-sm btn-danger" onclick="eliminarBanc(${b.id},'${esc(b.nom)}')">🗑</button>
+        </div>`).join('');
+  } catch(e) { el.innerHTML = '<p style="color:var(--red)">Error</p>'; }
 }
 
 async function afegirBanc() {
   const nom = document.getElementById('nouBancNom').value.trim();
   if (!nom) { toast('Escriu el nom del banc', 'error'); return; }
   try {
-    const r = await fetch('/api/bancs/saldos', {
+    const r = await fetch('/api/bancs/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ banc: nom, saldo_ini: 0, data_ini: new Date().toISOString().slice(0,10) })
+      body: JSON.stringify({ nom })
     });
-    if (!r.ok) throw new Error();
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.error || 'Error');
     toast(`Banc "${nom}" afegit ✓`, 'ok');
     document.getElementById('nouBancNom').value = '';
     await renderLlistaBancs();
     carregarBancs();
-  } catch(e) { toast('Error afegint banc', 'error'); }
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
 
 async function eliminarBanc(id, nom) {
-  if (!confirm(`Eliminar el banc "${nom}"? Només es pot eliminar si no té moviments.`)) return;
+  if (!confirm(`Eliminar el banc "${nom}"?\nNomés es pot eliminar si no té fotografies registrades.`)) return;
   try {
-    const r = await fetch(`/api/bancs/saldos/${id}`, { method: 'DELETE' });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Error'); }
+    const r = await fetch(`/api/bancs/config/${id}`, { method: 'DELETE' });
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.error || 'Error');
     toast(`Banc "${nom}" eliminat ✓`, 'ok');
     await renderLlistaBancs();
     carregarBancs();
   } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
 
-// ─── Editar moviment ──────────────────────────────────────────────────────────
-function editarMoviment(id) {
-  const m = moviments.find(x => x.id === id);
-  if (!m) return;
-  document.getElementById('editMovId').value        = id;
-  document.getElementById('editMovData').value      = m.data;
-  document.getElementById('editMovDescripcio').value= m.descripcio;
-  document.getElementById('editMovImport').value    = m.import_;
-  // Omplir select bancs
-  const sel = document.getElementById('editMovBanc');
-  sel.innerHTML = bancosResum.map(b => `<option value="${esc(b.banc)}"${b.banc===m.banc?' selected':''}>${esc(b.banc)}</option>`).join('');
-  selTipusEditMov(m.tipus);
-  document.getElementById('modalEditMovOverlay').classList.add('actiu');
+// ─── Modal fotografia ─────────────────────────────────────────────────────────
+function obrirModalFotografia() {
+  document.getElementById('modalFotoTitol').textContent = '📸 Nova fotografia de saldos';
+  document.getElementById('fotoData').value = new Date().toISOString().slice(0, 10);
+  bancsCfg.forEach(b => {
+    const el = document.getElementById('fotoSaldo_' + b.id);
+    if (el) el.value = '';
+  });
+  document.getElementById('modalFotografiaOverlay').classList.add('actiu');
 }
 
-function tancarModalEditMov() {
-  document.getElementById('modalEditMovOverlay').classList.remove('actiu');
+function tancarModalFotografia() {
+  document.getElementById('modalFotografiaOverlay').classList.remove('actiu');
 }
 
-function selTipusEditMov(t) {
-  document.getElementById('editMovTipus').value = t;
-  document.getElementById('editOptEntrada').className = 'tipus-opt entrada' + (t==='entrada'?' seleccionat':'');
-  document.getElementById('editOptSortida').className = 'tipus-opt sortida' + (t==='sortida'?' seleccionat':'');
-}
-
-async function guardarEditMoviment() {
-  const id         = document.getElementById('editMovId').value;
-  const banc       = document.getElementById('editMovBanc').value;
-  const data       = document.getElementById('editMovData').value;
-  const descripcio = document.getElementById('editMovDescripcio').value.trim();
-  const import_    = document.getElementById('editMovImport').value;
-  const tipus      = document.getElementById('editMovTipus').value;
-  if (!banc || !data || !descripcio || !import_) { toast('Omple tots els camps', 'error'); return; }
-  const btn = document.getElementById('btnGuardarEditMov');
+async function guardarFotografia() {
+  const data = document.getElementById('fotoData').value;
+  if (!data) { toast('Selecciona una data', 'error'); return; }
+  const btn = document.getElementById('btnGuardarFoto');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
+  let guardats = 0, errors = 0;
+  for (const b of bancsCfg) {
+    const el = document.getElementById('fotoSaldo_' + b.id);
+    if (!el || el.value === '') continue;
+    try {
+      const r = await fetch('/api/bancs/fotografies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data, banc: b.nom, saldo: parseFloat(el.value) })
+      });
+      if (r.ok) guardats++; else errors++;
+    } catch(e) { errors++; }
+  }
+  btn.disabled = false; btn.innerHTML = '📸 Guardar';
+  if (guardats > 0) toast(`${guardats} saldos guardats ✓`, 'ok');
+  if (errors > 0) toast(`${errors} errors`, 'error');
+  tancarModalFotografia();
+  carregarTaulaBancs();
+}
+
+// ─── Editar cel·la individual ─────────────────────────────────────────────────
+let fotografiesCache = {};
+
+async function obrirEditCellaPerId(banc, data) {
   try {
-    const r = await fetch(`/api/bancs/moviments/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ banc, data, descripcio, import_: parseFloat(import_), tipus })
-    });
+    const r = await fetch(`/api/bancs/fotografies?banc=${encodeURIComponent(banc)}`);
+    const fotos = await r.json();
+    const foto = fotos.find(f => f.data === data && f.banc === banc);
+    if (foto) {
+      document.getElementById('editCellaId').value    = foto.id;
+      document.getElementById('editCellaBanc').value  = banc;
+      document.getElementById('editCellaData').value  = data;
+      document.getElementById('editCellaSaldo').value = foto.saldo;
+      document.getElementById('modalEditCellaTitol').textContent = `✏️ ${banc} · ${data.split('-').reverse().join('/')}`;
+      document.getElementById('modalEditCellaOverlay').classList.add('actiu');
+    }
+  } catch(e) { toast('Error carregant dades', 'error'); }
+}
+
+function obrirEditCella(banc, data, val) {
+  // Crear nova entrada per a una cel·la buida
+  document.getElementById('editCellaId').value    = '';
+  document.getElementById('editCellaBanc').value  = banc;
+  document.getElementById('editCellaData').value  = data;
+  document.getElementById('editCellaSaldo').value = val || '';
+  document.getElementById('modalEditCellaTitol').textContent = `✏️ ${banc} · ${data.split('-').reverse().join('/')}`;
+  document.getElementById('modalEditCellaOverlay').classList.add('actiu');
+}
+
+function tancarModalEditCella() {
+  document.getElementById('modalEditCellaOverlay').classList.remove('actiu');
+}
+
+async function guardarEditCella() {
+  const id    = document.getElementById('editCellaId').value;
+  const banc  = document.getElementById('editCellaBanc').value;
+  const data  = document.getElementById('editCellaData').value;
+  const saldo = document.getElementById('editCellaSaldo').value;
+  if (!saldo) { toast('Introdueix un saldo', 'error'); return; }
+  try {
+    let r;
+    if (id) {
+      r = await fetch(`/api/bancs/fotografies/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data, banc, saldo: parseFloat(saldo) })
+      });
+    } else {
+      r = await fetch('/api/bancs/fotografies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data, banc, saldo: parseFloat(saldo) })
+      });
+    }
     if (!r.ok) throw new Error();
-    toast('Moviment actualitzat ✓', 'ok');
-    tancarModalEditMov();
-    carregarBancs();
+    toast('Saldo actualitzat ✓', 'ok');
+    tancarModalEditCella();
+    carregarTaulaBancs();
   } catch(e) { toast('Error guardant', 'error'); }
-  finally { btn.disabled = false; btn.innerHTML = '💾 Guardar'; }
+}
+
+async function eliminarCella() {
+  const id = document.getElementById('editCellaId').value;
+  if (!id) { tancarModalEditCella(); return; }
+  if (!confirm('Eliminar aquest registre?')) return;
+  try {
+    await fetch(`/api/bancs/fotografies/${id}`, { method: 'DELETE' });
+    toast('Registre eliminat ✓', 'ok');
+    tancarModalEditCella();
+    carregarTaulaBancs();
+  } catch(e) { toast('Error eliminant', 'error'); }
 }
 
 // ─── Utils ─────────────────────────────────────────────────────────────────────

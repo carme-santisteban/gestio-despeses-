@@ -117,40 +117,33 @@ class Factura(db.Model):
 
 # ─── Models Bancs ─────────────────────────────────────────────────────────────
 
-class BancSaldo(db.Model):
-    __tablename__ = 'bancs_saldo'
-    id        = db.Column(db.Integer, primary_key=True)
-    banc      = db.Column(db.String(50), unique=True, nullable=False)
-    saldo_ini = db.Column(db.Numeric(12, 2), nullable=False, default=0)
-    data_ini  = db.Column(db.Date, nullable=False, default=date.today)
+class BancConfig(db.Model):
+    """Llista de bancs configurats"""
+    __tablename__ = 'bancs_config'
+    id   = db.Column(db.Integer, primary_key=True)
+    nom  = db.Column(db.String(50), unique=True, nullable=False)
+    ordre = db.Column(db.Integer, default=0)
+
+    def to_dict(self):
+        return {'id': self.id, 'nom': self.nom, 'ordre': self.ordre}
+
+
+class FotografiaBanc(db.Model):
+    """Saldo real d'un banc en una data concreta"""
+    __tablename__ = 'fotografies_banc'
+    id     = db.Column(db.Integer, primary_key=True)
+    data   = db.Column(db.Date, nullable=False)
+    banc   = db.Column(db.String(50), nullable=False)
+    saldo  = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    nota   = db.Column(db.String(200))
 
     def to_dict(self):
         return {
-            'id':        self.id,
-            'banc':      self.banc,
-            'saldo_ini': float(self.saldo_ini) if self.saldo_ini else 0,
-            'data_ini':  self.data_ini.isoformat() if self.data_ini else None,
-        }
-
-
-class MovimentBanc(db.Model):
-    __tablename__ = 'moviments_banc'
-    id         = db.Column(db.Integer, primary_key=True)
-    banc       = db.Column(db.String(50), nullable=False)
-    data       = db.Column(db.Date, nullable=False, default=date.today)
-    descripcio = db.Column(db.String(500), nullable=False)
-    import_    = db.Column(db.Numeric(12, 2), nullable=False)
-    tipus      = db.Column(db.String(10), nullable=False)  # 'entrada' / 'sortida'
-    creat_el   = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def to_dict(self):
-        return {
-            'id':         self.id,
-            'banc':       self.banc,
-            'data':       self.data.isoformat() if self.data else None,
-            'descripcio': self.descripcio,
-            'import_':    float(self.import_) if self.import_ else 0,
-            'tipus':      self.tipus,
+            'id':    self.id,
+            'data':  self.data.isoformat() if self.data else None,
+            'banc':  self.banc,
+            'saldo': float(self.saldo) if self.saldo else 0,
+            'nota':  self.nota or '',
         }
 
 
@@ -159,10 +152,10 @@ class MovimentBanc(db.Model):
 with app.app_context():
     db.create_all()
     # Inserir bancs per defecte si la taula és buida
-    if BancSaldo.query.count() == 0:
+    if BancConfig.query.count() == 0:
         bancs_defecte = ['TRADE', 'CAIXA GUISONA', 'SANTANDER', 'CETELEM', 'REVOLUT', 'BUNQ', 'CAIXA']
-        for b in bancs_defecte:
-            db.session.add(BancSaldo(banc=b, saldo_ini=0, data_ini=date.today()))
+        for i, b in enumerate(bancs_defecte):
+            db.session.add(BancConfig(nom=b, ordre=i))
         db.session.commit()
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
@@ -494,239 +487,149 @@ def get_anys_factures():
 
 # ─── API Bancs ────────────────────────────────────────────────────────────────
 
-@app.route('/api/bancs/saldos', methods=['GET'])
-def get_bancs_saldos():
-    bancs = BancSaldo.query.order_by(BancSaldo.id).all()
+@app.route('/api/bancs/config', methods=['GET'])
+def get_bancs_config():
+    bancs = BancConfig.query.order_by(BancConfig.ordre, BancConfig.id).all()
     return jsonify([b.to_dict() for b in bancs])
 
-@app.route('/api/bancs/saldos', methods=['POST'])
-def create_banc_saldo():
+@app.route('/api/bancs/config', methods=['POST'])
+def create_banc_config():
     data = request.get_json()
-    try:
-        # Si ja existeix el banc, actualitzem el saldo inicial
-        existent = BancSaldo.query.filter_by(banc=data['banc']).first()
-        if existent:
-            existent.saldo_ini = float(data['saldo_ini'])
-            existent.data_ini  = datetime.strptime(data['data_ini'], '%Y-%m-%d').date()
-            db.session.commit()
-            return jsonify(existent.to_dict())
-        banc = BancSaldo(
-            banc      = data['banc'],
-            saldo_ini = float(data['saldo_ini']),
-            data_ini  = datetime.strptime(data['data_ini'], '%Y-%m-%d').date(),
-        )
-        db.session.add(banc)
-        db.session.commit()
-        return jsonify(banc.to_dict()), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/api/bancs/saldos/<int:id>', methods=['PUT'])
-def update_banc_saldo(id):
-    banc = BancSaldo.query.get_or_404(id)
-    data = request.get_json()
-    try:
-        banc.saldo_ini = float(data['saldo_ini'])
-        banc.data_ini  = datetime.strptime(data['data_ini'], '%Y-%m-%d').date()
-        db.session.commit()
-        return jsonify(banc.to_dict())
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/api/bancs/moviments', methods=['GET'])
-def get_moviments():
-    banc = request.args.get('banc')
-    q = MovimentBanc.query
-    if banc:
-        q = q.filter(MovimentBanc.banc == banc)
-    moviments = q.order_by(MovimentBanc.data.desc(), MovimentBanc.id.desc()).all()
-    return jsonify([m.to_dict() for m in moviments])
-
-@app.route('/api/bancs/moviments', methods=['POST'])
-def create_moviment():
-    data = request.get_json()
-    try:
-        mov = MovimentBanc(
-            banc       = data['banc'],
-            data       = datetime.strptime(data['data'], '%Y-%m-%d').date(),
-            descripcio = data['descripcio'],
-            import_    = float(data['import_']),
-            tipus      = data['tipus'],
-        )
-        db.session.add(mov)
-        db.session.commit()
-        return jsonify(mov.to_dict()), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/api/bancs/moviments/<int:id>', methods=['DELETE'])
-def delete_moviment(id):
-    mov = MovimentBanc.query.get_or_404(id)
-    db.session.delete(mov)
+    nom = data.get('nom', '').strip()
+    if not nom:
+        return jsonify({'error': 'Cal un nom'}), 400
+    if BancConfig.query.filter_by(nom=nom).first():
+        return jsonify({'error': 'Ja existeix aquest banc'}), 400
+    ordre = BancConfig.query.count()
+    banc = BancConfig(nom=nom, ordre=ordre)
+    db.session.add(banc)
     db.session.commit()
-    return jsonify({'ok': True})
+    return jsonify(banc.to_dict()), 201
 
-@app.route('/api/bancs/resum', methods=['GET'])
-def get_bancs_resum():
-    """Retorna saldo inicial + moviments calculats per cada banc"""
-    bancs = BancSaldo.query.order_by(BancSaldo.id).all()
-    resultat = []
-    for b in bancs:
-        entrades = db.session.query(func.sum(MovimentBanc.import_)).filter(
-            MovimentBanc.banc == b.banc,
-            MovimentBanc.tipus == 'entrada'
-        ).scalar() or 0
-        sortides = db.session.query(func.sum(MovimentBanc.import_)).filter(
-            MovimentBanc.banc == b.banc,
-            MovimentBanc.tipus == 'sortida'
-        ).scalar() or 0
-        saldo_actual = float(b.saldo_ini) + float(entrades) - float(sortides)
-        resultat.append({
-            'id':           b.id,
-            'banc':         b.banc,
-            'saldo_ini':    float(b.saldo_ini),
-            'data_ini':     b.data_ini.isoformat() if b.data_ini else None,
-            'entrades':     float(entrades),
-            'sortides':     float(sortides),
-            'saldo_actual': round(saldo_actual, 2),
-            'diferencia':   round(saldo_actual - float(b.saldo_ini), 2),
-        })
-    return jsonify(resultat)
-
-@app.route('/api/bancs/moviments/<int:id>', methods=['PUT'])
-def update_moviment(id):
-    mov = MovimentBanc.query.get_or_404(id)
-    data = request.get_json()
-    try:
-        mov.banc       = data['banc']
-        mov.data       = datetime.strptime(data['data'], '%Y-%m-%d').date()
-        mov.descripcio = data['descripcio']
-        mov.import_    = float(data['import_'])
-        mov.tipus      = data['tipus']
-        db.session.commit()
-        return jsonify(mov.to_dict())
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
-
-
-@app.route('/api/bancs/saldos/<int:id>', methods=['DELETE'])
-def delete_banc_saldo(id):
-    banc = BancSaldo.query.get_or_404(id)
-    # Verificar que no té moviments
-    count = MovimentBanc.query.filter_by(banc=banc.banc).count()
+@app.route('/api/bancs/config/<int:id>', methods=['DELETE'])
+def delete_banc_config(id):
+    banc = BancConfig.query.get_or_404(id)
+    # Verificar que no té fotografies
+    count = FotografiaBanc.query.filter_by(banc=banc.nom).count()
     if count > 0:
-        return jsonify({'error': f'No es pot eliminar: el banc té {count} moviments'}), 400
+        return jsonify({'error': f'No es pot eliminar: el banc té {count} registres'}), 400
     db.session.delete(banc)
     db.session.commit()
     return jsonify({'ok': True})
 
+@app.route('/api/bancs/fotografies', methods=['GET'])
+def get_fotografies():
+    banc = request.args.get('banc')
+    q = FotografiaBanc.query
+    if banc:
+        q = q.filter_by(banc=banc)
+    return jsonify([f.to_dict() for f in q.order_by(FotografiaBanc.data, FotografiaBanc.id).all()])
 
+@app.route('/api/bancs/fotografies', methods=['POST'])
+def create_fotografia():
+    data = request.get_json()
+    try:
+        data_foto = datetime.strptime(data['data'], '%Y-%m-%d').date()
+        banc_nom  = data['banc']
+        saldo     = float(data['saldo'])
+        nota      = data.get('nota', '')
+        # Si ja existeix registre per aquest banc+data, actualitzar
+        existent = FotografiaBanc.query.filter_by(banc=banc_nom, data=data_foto).first()
+        if existent:
+            existent.saldo = saldo
+            existent.nota  = nota
+            db.session.commit()
+            return jsonify(existent.to_dict())
+        foto = FotografiaBanc(data=data_foto, banc=banc_nom, saldo=saldo, nota=nota)
+        db.session.add(foto)
+        db.session.commit()
+        return jsonify(foto.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
 
+@app.route('/api/bancs/fotografies/<int:id>', methods=['PUT'])
+def update_fotografia(id):
+    foto = FotografiaBanc.query.get_or_404(id)
+    data = request.get_json()
+    try:
+        foto.data  = datetime.strptime(data['data'], '%Y-%m-%d').date()
+        foto.banc  = data['banc']
+        foto.saldo = float(data['saldo'])
+        foto.nota  = data.get('nota', '')
+        db.session.commit()
+        return jsonify(foto.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/bancs/fotografies/<int:id>', methods=['DELETE'])
+def delete_fotografia(id):
+    foto = FotografiaBanc.query.get_or_404(id)
+    db.session.delete(foto)
+    db.session.commit()
+    return jsonify({'ok': True})
 
 @app.route('/api/bancs/taula', methods=['GET'])
 def get_bancs_taula():
     """
-    Taula dinàmica per dates:
-    Per cada data de 'fotografia' (dates úniques de moviments),
-    calcula el saldo acumulat de cada banc fins aquella data.
-    Retorna columnes = dates, files = bancs, + variació entre columnes.
+    Taula dinàmica: files=bancs, columnes=dates.
+    Cada cel·la = saldo real introduït per l'usuari.
+    Fila groga = variació entre data anterior i actual.
+    Columna TOTAL VARIACIÓ = última - primera fotografia.
     """
-    bancs = BancSaldo.query.order_by(BancSaldo.id).all()
-    banc_noms = [b.banc for b in bancs]
-    banc_dict = {b.banc: float(b.saldo_ini) for b in bancs}
+    bancs_cfg = BancConfig.query.order_by(BancConfig.ordre, BancConfig.id).all()
+    banc_noms = [b.nom for b in bancs_cfg]
 
-    # Dates úniques de moviments, ordenades
-    dates_q = db.session.query(MovimentBanc.data).distinct().order_by(MovimentBanc.data).all()
+    # Dates úniques, ordenades
+    dates_q = db.session.query(FotografiaBanc.data).distinct().order_by(FotografiaBanc.data).all()
     dates = [r.data for r in dates_q]
 
     if not dates:
         return jsonify({'bancs': banc_noms, 'dates': [], 'files': {}, 'totals': [], 'variacions': [], 'total_variacio': {}})
 
-    # Per cada banc i data: saldo acumulat = saldo_ini + sum(entrades fins data) - sum(sortides fins data)
-    files = {}
-    for b in bancs:
-        files[b.banc] = []
-        for d in dates:
-            entrades = db.session.query(func.sum(MovimentBanc.import_)).filter(
-                MovimentBanc.banc == b.banc,
-                MovimentBanc.tipus == 'entrada',
-                MovimentBanc.data <= d
-            ).scalar() or 0
-            sortides = db.session.query(func.sum(MovimentBanc.import_)).filter(
-                MovimentBanc.banc == b.banc,
-                MovimentBanc.tipus == 'sortida',
-                MovimentBanc.data <= d
-            ).scalar() or 0
-            saldo = round(float(b.saldo_ini) + float(entrades) - float(sortides), 2)
-            files[b.banc].append(saldo)
+    # Construir diccionari {banc: {data_iso: saldo}}
+    totes = FotografiaBanc.query.all()
+    index = {}
+    for f in totes:
+        if f.banc not in index:
+            index[f.banc] = {}
+        index[f.banc][f.data.isoformat()] = float(f.saldo)
 
-    # Totals per columna (suma de tots els bancs en cada data)
+    # Files: per cada banc, saldo en cada data (None si no hi ha registre)
+    files = {}
+    for b in banc_noms:
+        files[b] = [index.get(b, {}).get(d.isoformat()) for d in dates]
+
+    # Totals per columna (suma bancs amb registre)
     totals = []
     for i in range(len(dates)):
-        t = sum(files[b][i] for b in banc_noms)
+        t = sum(files[b][i] for b in banc_noms if files[b][i] is not None)
         totals.append(round(t, 2))
 
-    # Variació entre columnes consecutives (fila groga)
+    # Variació entre columnes consecutives
     variacions = []
     for i in range(len(dates)):
         if i == 0:
-            variacions.append(None)  # primera columna sense variació
+            variacions.append(None)
         else:
             variacions.append(round(totals[i] - totals[i-1], 2))
 
-    # Total variació per banc: diferència entre última i primera fotografia
+    # Total variació per banc: última - primera fotografia amb valor
     total_variacio = {}
     for b in banc_noms:
-        if len(files[b]) >= 2:
-            total_variacio[b] = round(files[b][-1] - files[b][0], 2)
-        elif len(files[b]) == 1:
-            total_variacio[b] = 0.0
-        else:
-            total_variacio[b] = 0.0
+        valors = [v for v in files[b] if v is not None]
+        total_variacio[b] = round(valors[-1] - valors[0], 2) if len(valors) >= 2 else 0.0
     total_variacio['__total__'] = round(totals[-1] - totals[0], 2) if len(totals) >= 2 else 0.0
 
     return jsonify({
-        'bancs':         banc_noms,
-        'dates':         [d.isoformat() for d in dates],
-        'files':         files,
-        'totals':        totals,
-        'variacions':    variacions,
+        'bancs':          banc_noms,
+        'dates':          [d.isoformat() for d in dates],
+        'files':          files,
+        'totals':         totals,
+        'variacions':     variacions,
         'total_variacio': total_variacio,
     })
-
-@app.route('/api/bancs/saldo-a-data', methods=['GET'])
-def get_saldo_a_data():
-    """Retorna el saldo calculat d'un banc fins a una data donada (inclosa)"""
-    banc_nom = request.args.get('banc')
-    data_str = request.args.get('data')
-    if not banc_nom or not data_str:
-        return jsonify({'error': 'Cal banc i data'}), 400
-    try:
-        data_limit = datetime.strptime(data_str, '%Y-%m-%d').date()
-    except:
-        return jsonify({'error': 'Format data incorrecte'}), 400
-
-    banc = BancSaldo.query.filter_by(banc=banc_nom).first()
-    if not banc:
-        return jsonify({'saldo': 0.0})
-
-    entrades = db.session.query(func.sum(MovimentBanc.import_)).filter(
-        MovimentBanc.banc == banc_nom,
-        MovimentBanc.tipus == 'entrada',
-        MovimentBanc.data <= data_limit
-    ).scalar() or 0
-    sortides = db.session.query(func.sum(MovimentBanc.import_)).filter(
-        MovimentBanc.banc == banc_nom,
-        MovimentBanc.tipus == 'sortida',
-        MovimentBanc.data <= data_limit
-    ).scalar() or 0
-    saldo = round(float(banc.saldo_ini) + float(entrades) - float(sortides), 2)
-    return jsonify({'saldo': saldo, 'banc': banc_nom, 'data': data_str})
-
 
 # ─── Export / Import JSON ─────────────────────────────────────────────────────
 
