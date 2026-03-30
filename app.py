@@ -147,6 +147,13 @@ class FotografiaBanc(db.Model):
         }
 
 
+class ConfigApp(db.Model):
+    """Configuració general de l'app (clau-valor)"""
+    __tablename__ = 'config_app'
+    id    = db.Column(db.Integer, primary_key=True)
+    clau  = db.Column(db.String(50), unique=True, nullable=False)
+    valor = db.Column(db.String(200))
+
 # ─── Init DB ──────────────────────────────────────────────────────────────────
 
 with app.app_context():
@@ -484,6 +491,42 @@ def get_anys_factures():
         extract('year', Factura.data).label('any')
     ).distinct().order_by('any').all()
     return jsonify([int(r.any) for r in anys])
+
+# ─── PIN Bancs ────────────────────────────────────────────────────────────────
+
+@app.route('/api/bancs/verificar-pin', methods=['POST'])
+def verificar_pin_bancs():
+    data = request.get_json()
+    pin_introduit = data.get('pin', '')
+    config = ConfigApp.query.filter_by(clau='pin_bancs').first()
+    if not config:
+        # Si no hi ha PIN configurat, acceptar qualsevol
+        return jsonify({'ok': True})
+    if config.valor == pin_introduit:
+        return jsonify({'ok': True})
+    return jsonify({'ok': False}), 401
+
+@app.route('/api/bancs/pin', methods=['GET'])
+def get_pin_bancs():
+    config = ConfigApp.query.filter_by(clau='pin_bancs').first()
+    return jsonify({'te_pin': config is not None and bool(config.valor)})
+
+@app.route('/api/bancs/pin', methods=['POST'])
+def set_pin_bancs():
+    if not session.get('auth'):
+        return jsonify({'error': 'No autoritzat'}), 401
+    data = request.get_json()
+    nou_pin = data.get('pin', '').strip()
+    if not nou_pin:
+        return jsonify({'error': 'Cal un PIN'}), 400
+    config = ConfigApp.query.filter_by(clau='pin_bancs').first()
+    if config:
+        config.valor = nou_pin
+    else:
+        config = ConfigApp(clau='pin_bancs', valor=nou_pin)
+        db.session.add(config)
+    db.session.commit()
+    return jsonify({'ok': True})
 
 # ─── API Bancs ────────────────────────────────────────────────────────────────
 

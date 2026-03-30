@@ -213,6 +213,7 @@
     <a href="/api/exportar-json" class="btn btn-outline btn-sm" style="text-decoration:none;">⬇ Exportar JSON</a>
     <a href="/importar" class="btn btn-outline btn-sm" style="text-decoration:none;">📥 Importar</a>
     <button class="btn btn-primary" id="btnNou" onclick="obrirModal()">+ Nova despesa</button>
+    <a href="/logout" class="btn btn-outline btn-sm" style="text-decoration:none;border-color:rgba(255,255,255,.3);color:white" title="Sortir">← Sortir</a>
   </div>
 </header>
 
@@ -449,6 +450,24 @@
   </div>
 </div>
 
+<!-- Modal PIN Bancs -->
+<div class="modal-overlay" id="modalPinBancsOverlay">
+  <div class="modal" style="max-width:360px" onclick="event.stopPropagation()">
+    <div class="modal-cap">
+      <h3>🔒 Accés a Bancs</h3>
+    </div>
+    <div class="modal-cos" style="text-align:center;padding:2rem 1.5rem">
+      <p style="font-size:.9rem;color:var(--gray-3);margin-bottom:1.5rem">Introdueix la contrasenya per accedir a la secció de Bancs</p>
+      <input type="password" class="form-control" id="pinBancsInput" placeholder="Contrasenya..." style="text-align:center;font-size:1.1rem;letter-spacing:.1em;margin-bottom:1rem" onkeydown="if(event.key==='Enter')verificarPinBancs()">
+      <div id="pinBancsError" style="color:var(--red);font-size:.85rem;min-height:1.2rem;margin-bottom:.5rem"></div>
+    </div>
+    <div class="modal-peu" style="justify-content:center;gap:12px">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarPinBancs()">Cancel·lar</button>
+      <button class="btn btn-primary" onclick="verificarPinBancs()">Entrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal gestió bancs -->
 <div class="modal-overlay" id="modalGestioBancsOverlay" onclick="if(event.target===this)tancarModalGestioBancs()">
   <div class="modal" style="max-width:480px">
@@ -464,6 +483,15 @@
           <input type="text" class="form-control" id="nouBancNom" placeholder="Nom del banc..." style="flex:1">
           <button class="btn btn-primary" onclick="afegirBanc()">Afegir</button>
         </div>
+      </div>
+    </div>
+      <div style="border-top:1px solid var(--gray-1);padding-top:1rem;margin-top:1rem">
+        <p style="font-size:.82rem;font-weight:500;color:var(--gray-4);margin-bottom:8px">CANVIAR CONTRASENYA DE BANCS</p>
+        <div style="display:flex;gap:8px">
+          <input type="password" class="form-control" id="nouPinBancs" placeholder="Nova contrasenya..." style="flex:1">
+          <button class="btn btn-primary" onclick="canviarPinBancs()">Canviar</button>
+        </div>
+        <p style="font-size:.75rem;color:var(--gray-3);margin-top:6px">La nova contrasenya s'aplicarà la propera vegada que accedeixis a Bancs.</p>
       </div>
     </div>
     <div class="modal-peu">
@@ -816,6 +844,11 @@ function canviarTab(tab) {
     document.getElementById('btnNou').textContent = '📸 Nova fotografia';
     document.getElementById('btnNou').onclick = obrirModalFotografia;
     document.getElementById('btnExportCSV').style.display = 'none';
+    // Demanar PIN si no s'ha verificat en aquesta sessió
+    if (!window._bancsPinOk) {
+      obrirPinBancs();
+      return;
+    }
     carregarBancs();
   }
 }
@@ -1143,6 +1176,52 @@ async function eliminarFactura(id) {
   catch(e) { toast('Error eliminant', 'error'); }
 }
 
+// ─── PIN Bancs ────────────────────────────────────────────────────────────────
+window._bancsPinOk = false;
+
+function obrirPinBancs() {
+  document.getElementById('pinBancsInput').value = '';
+  document.getElementById('pinBancsError').textContent = '';
+  document.getElementById('modalPinBancsOverlay').classList.add('actiu');
+  setTimeout(() => document.getElementById('pinBancsInput').focus(), 100);
+}
+
+function tancarPinBancs() {
+  document.getElementById('modalPinBancsOverlay').classList.remove('actiu');
+  // Tornar a despeses si cancel·la
+  canviarTab('despeses');
+}
+
+async function verificarPinBancs() {
+  const pin = document.getElementById('pinBancsInput').value;
+  if (!pin) { document.getElementById('pinBancsError').textContent = 'Introdueix la contrasenya'; return; }
+  try {
+    const r = await fetch('/api/bancs/verificar-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin })
+    });
+    const res = await r.json();
+    if (res.ok) {
+      window._bancsPinOk = true;
+      document.getElementById('modalPinBancsOverlay').classList.remove('actiu');
+      // Activar pestanya bancs
+      document.getElementById('seccioBancs').style.display = 'block';
+      document.getElementById('seccioDespeses').style.display = 'none';
+      document.getElementById('seccioFactures').style.display = 'none';
+      ['tabDespeses','tabFactures','tabBancs'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+      document.getElementById('tabBancs').classList.add('actiu');
+      carregarBancs();
+    } else {
+      document.getElementById('pinBancsError').textContent = 'Contrasenya incorrecta';
+      document.getElementById('pinBancsInput').value = '';
+      document.getElementById('pinBancsInput').focus();
+    }
+  } catch(e) {
+    document.getElementById('pinBancsError').textContent = 'Error de connexió';
+  }
+}
+
 // ─── BANCS ────────────────────────────────────────────────────────────────────
 let bancsCfg = [];
 
@@ -1251,6 +1330,21 @@ function fmtN(v) {
 }
 
 // ─── Modal gestió bancs ───────────────────────────────────────────────────────
+async function canviarPinBancs() {
+  const pin = document.getElementById('nouPinBancs').value.trim();
+  if (!pin) { toast('Introdueix una contrasenya', 'error'); return; }
+  try {
+    const r = await fetch('/api/bancs/pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin })
+    });
+    if (!r.ok) throw new Error();
+    toast('Contrasenya de Bancs actualitzada ✓', 'ok');
+    document.getElementById('nouPinBancs').value = '';
+  } catch(e) { toast('Error canviant la contrasenya', 'error'); }
+}
+
 async function obrirModalGestioBancs() {
   await renderLlistaBancs();
   document.getElementById('nouBancNom').value = '';
