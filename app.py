@@ -39,7 +39,7 @@ class Despesa(db.Model):
     data          = db.Column(db.Date, nullable=False, default=date.today)
     descripcio    = db.Column(db.String(500), nullable=False)
     categoria     = db.Column(db.String(100), nullable=False)
-    tipus         = db.Column(db.String(20), nullable=False, default='professional')  # professional / personal
+    tipus         = db.Column(db.String(20), nullable=False, default='professional')
     import_       = db.Column(db.Numeric(10, 2), nullable=False)
     proveidor     = db.Column(db.String(200))
     notes         = db.Column(db.Text)
@@ -61,10 +61,109 @@ class Despesa(db.Model):
             'document_nom': self.document_nom or '',
         }
 
+
+class Factura(db.Model):
+    __tablename__ = 'factures'
+
+    id            = db.Column(db.Integer, primary_key=True)
+    numero        = db.Column(db.String(20), unique=True, nullable=False)
+    data          = db.Column(db.Date, nullable=False, default=date.today)
+    client_nom    = db.Column(db.String(200), nullable=False)
+    client_nif    = db.Column(db.String(20))
+    client_adreca = db.Column(db.String(300))
+    concepte      = db.Column(db.Text, nullable=False)
+    base          = db.Column(db.Numeric(10, 2), nullable=False)
+    iva_pct       = db.Column(db.Numeric(5, 2), default=21)
+    irpf_pct      = db.Column(db.Numeric(5, 2), default=0)
+    notes         = db.Column(db.Text)
+    estat         = db.Column(db.String(20), default='pendent')
+    document_url  = db.Column(db.String(500))
+    document_nom  = db.Column(db.String(200))
+    creat_el      = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def iva(self):
+        return float(self.base) * float(self.iva_pct) / 100
+
+    @property
+    def irpf(self):
+        return float(self.base) * float(self.irpf_pct) / 100
+
+    @property
+    def total(self):
+        return float(self.base) + self.iva - self.irpf
+
+    def to_dict(self):
+        return {
+            'id':            self.id,
+            'numero':        self.numero,
+            'data':          self.data.isoformat() if self.data else None,
+            'client_nom':    self.client_nom,
+            'client_nif':    self.client_nif or '',
+            'client_adreca': self.client_adreca or '',
+            'concepte':      self.concepte,
+            'base':          float(self.base),
+            'iva_pct':       float(self.iva_pct),
+            'irpf_pct':      float(self.irpf_pct),
+            'iva':           round(self.iva, 2),
+            'irpf':          round(self.irpf, 2),
+            'total':         round(self.total, 2),
+            'notes':         self.notes or '',
+            'estat':         self.estat or 'pendent',
+            'document_url':  self.document_url or '',
+            'document_nom':  self.document_nom or '',
+        }
+
+
+# ─── Models Bancs ─────────────────────────────────────────────────────────────
+
+class BancSaldo(db.Model):
+    __tablename__ = 'bancs_saldo'
+    id        = db.Column(db.Integer, primary_key=True)
+    banc      = db.Column(db.String(50), unique=True, nullable=False)
+    saldo_ini = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    data_ini  = db.Column(db.Date, nullable=False, default=date.today)
+
+    def to_dict(self):
+        return {
+            'id':        self.id,
+            'banc':      self.banc,
+            'saldo_ini': float(self.saldo_ini) if self.saldo_ini else 0,
+            'data_ini':  self.data_ini.isoformat() if self.data_ini else None,
+        }
+
+
+class MovimentBanc(db.Model):
+    __tablename__ = 'moviments_banc'
+    id         = db.Column(db.Integer, primary_key=True)
+    banc       = db.Column(db.String(50), nullable=False)
+    data       = db.Column(db.Date, nullable=False, default=date.today)
+    descripcio = db.Column(db.String(500), nullable=False)
+    import_    = db.Column(db.Numeric(12, 2), nullable=False)
+    tipus      = db.Column(db.String(10), nullable=False)  # 'entrada' / 'sortida'
+    creat_el   = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id':         self.id,
+            'banc':       self.banc,
+            'data':       self.data.isoformat() if self.data else None,
+            'descripcio': self.descripcio,
+            'import_':    float(self.import_) if self.import_ else 0,
+            'tipus':      self.tipus,
+        }
+
+
 # ─── Init DB ──────────────────────────────────────────────────────────────────
 
 with app.app_context():
     db.create_all()
+    # Inserir bancs per defecte si la taula és buida
+    if BancSaldo.query.count() == 0:
+        bancs_defecte = ['TRADE', 'CAIXA GUISONA', 'SANTANDER', 'CETELEM', 'REVOLUT', 'BUNQ', 'CAIXA']
+        for b in bancs_defecte:
+            db.session.add(BancSaldo(banc=b, saldo_ini=0, data_ini=date.today()))
+        db.session.commit()
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
@@ -91,6 +190,7 @@ def login():
 def logout():
     session.pop('auth', None)
     return redirect('/login')
+
 @app.route('/')
 def index():
     if not session.get('auth'):
@@ -207,7 +307,6 @@ def delete_despesa(id):
 def estadistiques():
     any_ = request.args.get('any', datetime.now().year, type=int)
 
-    # Totals per mes
     mensuals = db.session.query(
         extract('month', Despesa.data).label('mes'),
         Despesa.tipus,
@@ -216,7 +315,6 @@ def estadistiques():
         extract('year', Despesa.data) == any_
     ).group_by('mes', Despesa.tipus).all()
 
-    # Totals per categoria
     categories = db.session.query(
         Despesa.categoria,
         func.sum(Despesa.import_).label('total')
@@ -224,7 +322,6 @@ def estadistiques():
         extract('year', Despesa.data) == any_
     ).group_by(Despesa.categoria).all()
 
-    # Any total
     total_any = db.session.query(func.sum(Despesa.import_)).filter(
         extract('year', Despesa.data) == any_
     ).scalar() or 0
@@ -296,59 +393,7 @@ def export_csv():
         download_name=nom_fitxer
     )
 
-# ─── Model Factura ────────────────────────────────────────────────────────────
-
-class Factura(db.Model):
-    __tablename__ = 'factures'
-
-    id            = db.Column(db.Integer, primary_key=True)
-    numero        = db.Column(db.String(20), unique=True, nullable=False)
-    data          = db.Column(db.Date, nullable=False, default=date.today)
-    client_nom    = db.Column(db.String(200), nullable=False)
-    client_nif    = db.Column(db.String(20))
-    client_adreca = db.Column(db.String(300))
-    concepte      = db.Column(db.Text, nullable=False)
-    base          = db.Column(db.Numeric(10, 2), nullable=False)
-    iva_pct       = db.Column(db.Numeric(5, 2), default=21)
-    irpf_pct      = db.Column(db.Numeric(5, 2), default=0)
-    notes         = db.Column(db.Text)
-    estat         = db.Column(db.String(20), default='pendent')  # pendent / pagada / proforma
-    document_url  = db.Column(db.String(500))
-    document_nom  = db.Column(db.String(200))
-    creat_el      = db.Column(db.DateTime, default=datetime.utcnow)
-
-    @property
-    def iva(self):
-        return float(self.base) * float(self.iva_pct) / 100
-
-    @property
-    def irpf(self):
-        return float(self.base) * float(self.irpf_pct) / 100
-
-    @property
-    def total(self):
-        return float(self.base) + self.iva - self.irpf
-
-    def to_dict(self):
-        return {
-            'id':            self.id,
-            'numero':        self.numero,
-            'data':          self.data.isoformat() if self.data else None,
-            'client_nom':    self.client_nom,
-            'client_nif':    self.client_nif or '',
-            'client_adreca': self.client_adreca or '',
-            'concepte':      self.concepte,
-            'base':          float(self.base),
-            'iva_pct':       float(self.iva_pct),
-            'irpf_pct':      float(self.irpf_pct),
-            'iva':           round(self.iva, 2),
-            'irpf':          round(self.irpf, 2),
-            'total':         round(self.total, 2),
-            'notes':         self.notes or '',
-            'estat':         self.estat or 'pendent',
-            'document_url':  self.document_url or '',
-            'document_nom':  self.document_nom or '',
-        }
+# --- Factures ---
 
 def generar_numero_factura(data):
     any_ = data.year
@@ -447,7 +492,111 @@ def get_anys_factures():
     ).distinct().order_by('any').all()
     return jsonify([int(r.any) for r in anys])
 
+# ─── API Bancs ────────────────────────────────────────────────────────────────
 
+@app.route('/api/bancs/saldos', methods=['GET'])
+def get_bancs_saldos():
+    bancs = BancSaldo.query.order_by(BancSaldo.id).all()
+    return jsonify([b.to_dict() for b in bancs])
+
+@app.route('/api/bancs/saldos', methods=['POST'])
+def create_banc_saldo():
+    data = request.get_json()
+    try:
+        # Si ja existeix el banc, actualitzem el saldo inicial
+        existent = BancSaldo.query.filter_by(banc=data['banc']).first()
+        if existent:
+            existent.saldo_ini = float(data['saldo_ini'])
+            existent.data_ini  = datetime.strptime(data['data_ini'], '%Y-%m-%d').date()
+            db.session.commit()
+            return jsonify(existent.to_dict())
+        banc = BancSaldo(
+            banc      = data['banc'],
+            saldo_ini = float(data['saldo_ini']),
+            data_ini  = datetime.strptime(data['data_ini'], '%Y-%m-%d').date(),
+        )
+        db.session.add(banc)
+        db.session.commit()
+        return jsonify(banc.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/bancs/saldos/<int:id>', methods=['PUT'])
+def update_banc_saldo(id):
+    banc = BancSaldo.query.get_or_404(id)
+    data = request.get_json()
+    try:
+        banc.saldo_ini = float(data['saldo_ini'])
+        banc.data_ini  = datetime.strptime(data['data_ini'], '%Y-%m-%d').date()
+        db.session.commit()
+        return jsonify(banc.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/bancs/moviments', methods=['GET'])
+def get_moviments():
+    banc = request.args.get('banc')
+    q = MovimentBanc.query
+    if banc:
+        q = q.filter(MovimentBanc.banc == banc)
+    moviments = q.order_by(MovimentBanc.data.desc(), MovimentBanc.id.desc()).all()
+    return jsonify([m.to_dict() for m in moviments])
+
+@app.route('/api/bancs/moviments', methods=['POST'])
+def create_moviment():
+    data = request.get_json()
+    try:
+        mov = MovimentBanc(
+            banc       = data['banc'],
+            data       = datetime.strptime(data['data'], '%Y-%m-%d').date(),
+            descripcio = data['descripcio'],
+            import_    = float(data['import_']),
+            tipus      = data['tipus'],
+        )
+        db.session.add(mov)
+        db.session.commit()
+        return jsonify(mov.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/bancs/moviments/<int:id>', methods=['DELETE'])
+def delete_moviment(id):
+    mov = MovimentBanc.query.get_or_404(id)
+    db.session.delete(mov)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/bancs/resum', methods=['GET'])
+def get_bancs_resum():
+    """Retorna saldo inicial + moviments calculats per cada banc"""
+    bancs = BancSaldo.query.order_by(BancSaldo.id).all()
+    resultat = []
+    for b in bancs:
+        entrades = db.session.query(func.sum(MovimentBanc.import_)).filter(
+            MovimentBanc.banc == b.banc,
+            MovimentBanc.tipus == 'entrada'
+        ).scalar() or 0
+        sortides = db.session.query(func.sum(MovimentBanc.import_)).filter(
+            MovimentBanc.banc == b.banc,
+            MovimentBanc.tipus == 'sortida'
+        ).scalar() or 0
+        saldo_actual = float(b.saldo_ini) + float(entrades) - float(sortides)
+        resultat.append({
+            'id':           b.id,
+            'banc':         b.banc,
+            'saldo_ini':    float(b.saldo_ini),
+            'data_ini':     b.data_ini.isoformat() if b.data_ini else None,
+            'entrades':     float(entrades),
+            'sortides':     float(sortides),
+            'saldo_actual': round(saldo_actual, 2),
+            'diferencia':   round(saldo_actual - float(b.saldo_ini), 2),
+        })
+    return jsonify(resultat)
+
+# ─── Export / Import JSON ─────────────────────────────────────────────────────
 
 @app.route('/api/exportar-json')
 def exportar_json():
