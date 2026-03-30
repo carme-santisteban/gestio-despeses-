@@ -596,6 +596,36 @@ def get_bancs_resum():
         })
     return jsonify(resultat)
 
+@app.route('/api/bancs/moviments/<int:id>', methods=['PUT'])
+def update_moviment(id):
+    mov = MovimentBanc.query.get_or_404(id)
+    data = request.get_json()
+    try:
+        mov.banc       = data['banc']
+        mov.data       = datetime.strptime(data['data'], '%Y-%m-%d').date()
+        mov.descripcio = data['descripcio']
+        mov.import_    = float(data['import_'])
+        mov.tipus      = data['tipus']
+        db.session.commit()
+        return jsonify(mov.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/bancs/saldos/<int:id>', methods=['DELETE'])
+def delete_banc_saldo(id):
+    banc = BancSaldo.query.get_or_404(id)
+    # Verificar que no té moviments
+    count = MovimentBanc.query.filter_by(banc=banc.banc).count()
+    if count > 0:
+        return jsonify({'error': f'No es pot eliminar: el banc té {count} moviments'}), 400
+    db.session.delete(banc)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+
 
 @app.route('/api/bancs/taula', methods=['GET'])
 def get_bancs_taula():

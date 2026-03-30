@@ -295,6 +295,7 @@
     <div class="page-header">
       <div><div class="page-title">Bancs <span style="color:var(--gold)">· Evolució de saldos</span></div></div>
       <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="obrirModalGestioBancs()">⚙ Gestió bancs</button>
         <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="obrirModalMoviment()">+ Nou moviment</button>
         <button class="btn btn-primary" onclick="obrirModalFotografia()">📸 Nova fotografia</button>
       </div>
@@ -478,6 +479,72 @@
     <div class="modal-peu">
       <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalSaldo()">Cancel·lar</button>
       <button class="btn btn-primary" onclick="guardarSaldo()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal gestió bancs -->
+<div class="modal-overlay" id="modalGestioBancsOverlay" onclick="if(event.target===this)tancarModalGestioBancs()">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-cap">
+      <h3>⚙ Gestió de bancs</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalGestioBancs()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <div id="llistaBancsGestio" style="margin-bottom:1.5rem"></div>
+      <div style="border-top:1px solid var(--gray-1);padding-top:1rem">
+        <p style="font-size:.82rem;font-weight:500;color:var(--gray-4);margin-bottom:8px">AFEGIR NOU BANC</p>
+        <div style="display:flex;gap:8px">
+          <input type="text" class="form-control" id="nouBancNom" placeholder="Nom del banc..." style="flex:1">
+          <button class="btn btn-primary" onclick="afegirBanc()">Afegir</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalGestioBancs()">Tancar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal editar moviment -->
+<div class="modal-overlay" id="modalEditMovOverlay" onclick="if(event.target===this)tancarModalEditMov()">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-cap">
+      <h3>✏️ Editar moviment</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalEditMov()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <input type="hidden" id="editMovId">
+      <div class="form-grid">
+        <div class="form-grup full">
+          <label class="form-label">Tipus <span>*</span></label>
+          <div class="tipus-selector">
+            <div class="tipus-opt entrada seleccionat" id="editOptEntrada" onclick="selTipusEditMov('entrada')">⬆ Entrada (ingrés)</div>
+            <div class="tipus-opt sortida" id="editOptSortida" onclick="selTipusEditMov('sortida')">⬇ Sortida (despesa)</div>
+          </div>
+          <input type="hidden" id="editMovTipus" value="entrada">
+        </div>
+        <div class="form-grup">
+          <label class="form-label">Banc <span>*</span></label>
+          <select class="form-control" id="editMovBanc"></select>
+        </div>
+        <div class="form-grup">
+          <label class="form-label">Data <span>*</span></label>
+          <input type="date" class="form-control" id="editMovData">
+        </div>
+        <div class="form-grup full">
+          <label class="form-label">Descripció <span>*</span></label>
+          <input type="text" class="form-control" id="editMovDescripcio">
+        </div>
+        <div class="form-grup full">
+          <label class="form-label">Import (€) <span>*</span></label>
+          <input type="number" class="form-control" id="editMovImport" step="0.01" min="0" placeholder="0,00">
+        </div>
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalEditMov()">Cancel·lar</button>
+      <button class="btn btn-primary" id="btnGuardarEditMov" onclick="guardarEditMoviment()">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -1055,7 +1122,10 @@ function renderMoviments(llista) {
       <td>${esc(m.descripcio)}</td>
       <td><span class="badge badge-${m.tipus}">${m.tipus === 'entrada' ? '⬆ Entrada' : '⬇ Sortida'}</span></td>
       <td style="text-align:right" class="import-cell import-${m.tipus}">${m.tipus === 'sortida' ? '-' : '+'}${formatImport(m.import_)}</td>
-      <td class="accions"><button class="btn btn-sm btn-danger" onclick="eliminarMoviment(${m.id})" title="Eliminar">🗑</button></td>
+      <td class="accions">
+        <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarMoviment(${m.id})" title="Editar">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminarMoviment(${m.id})" title="Eliminar">🗑</button>
+      </td>
     </tr>`).join('');
 }
 
@@ -1204,6 +1274,118 @@ async function eliminarMoviment(id) {
     toast('Moviment eliminat', 'ok');
     carregarBancs();
   } catch(e) { toast('Error eliminant', 'error'); }
+}
+
+
+// ─── Gestió bancs ─────────────────────────────────────────────────────────────
+async function obrirModalGestioBancs() {
+  await renderLlistaBancs();
+  document.getElementById('nouBancNom').value = '';
+  document.getElementById('modalGestioBancsOverlay').classList.add('actiu');
+}
+
+function tancarModalGestioBancs() {
+  document.getElementById('modalGestioBancsOverlay').classList.remove('actiu');
+}
+
+async function renderLlistaBancs() {
+  const el = document.getElementById('llistaBancsGestio');
+  try {
+    const r = await fetch('/api/bancs/resum');
+    const bancs = await r.json();
+    if (!bancs.length) { el.innerHTML = '<p style="color:var(--gray-3);font-size:.85rem">Cap banc configurat</p>'; return; }
+    el.innerHTML = '<p style="font-size:.82rem;font-weight:500;color:var(--gray-4);margin-bottom:8px">BANCS ACTUALS</p>' +
+      bancs.map(b => {
+        const teMoviments = b.entrades > 0 || b.sortides > 0;
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-1)">
+          <span style="font-weight:500">🏦 ${esc(b.banc)}</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:.8rem;color:var(--gray-3)">${formatImport(b.saldo_actual)}</span>
+            ${teMoviments
+              ? `<span style="font-size:.75rem;color:var(--gray-3);font-style:italic">té moviments</span>`
+              : `<button class="btn btn-sm btn-danger" onclick="eliminarBanc(${b.id},'${esc(b.banc)}')">🗑</button>`
+            }
+          </div>
+        </div>`;
+      }).join('');
+  } catch(e) { el.innerHTML = '<p style="color:var(--red)">Error carregant bancs</p>'; }
+}
+
+async function afegirBanc() {
+  const nom = document.getElementById('nouBancNom').value.trim();
+  if (!nom) { toast('Escriu el nom del banc', 'error'); return; }
+  try {
+    const r = await fetch('/api/bancs/saldos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ banc: nom, saldo_ini: 0, data_ini: new Date().toISOString().slice(0,10) })
+    });
+    if (!r.ok) throw new Error();
+    toast(`Banc "${nom}" afegit ✓`, 'ok');
+    document.getElementById('nouBancNom').value = '';
+    await renderLlistaBancs();
+    carregarBancs();
+  } catch(e) { toast('Error afegint banc', 'error'); }
+}
+
+async function eliminarBanc(id, nom) {
+  if (!confirm(`Eliminar el banc "${nom}"? Només es pot eliminar si no té moviments.`)) return;
+  try {
+    const r = await fetch(`/api/bancs/saldos/${id}`, { method: 'DELETE' });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Error'); }
+    toast(`Banc "${nom}" eliminat ✓`, 'ok');
+    await renderLlistaBancs();
+    carregarBancs();
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ─── Editar moviment ──────────────────────────────────────────────────────────
+function editarMoviment(id) {
+  const m = moviments.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('editMovId').value        = id;
+  document.getElementById('editMovData').value      = m.data;
+  document.getElementById('editMovDescripcio').value= m.descripcio;
+  document.getElementById('editMovImport').value    = m.import_;
+  // Omplir select bancs
+  const sel = document.getElementById('editMovBanc');
+  sel.innerHTML = bancosResum.map(b => `<option value="${esc(b.banc)}"${b.banc===m.banc?' selected':''}>${esc(b.banc)}</option>`).join('');
+  selTipusEditMov(m.tipus);
+  document.getElementById('modalEditMovOverlay').classList.add('actiu');
+}
+
+function tancarModalEditMov() {
+  document.getElementById('modalEditMovOverlay').classList.remove('actiu');
+}
+
+function selTipusEditMov(t) {
+  document.getElementById('editMovTipus').value = t;
+  document.getElementById('editOptEntrada').className = 'tipus-opt entrada' + (t==='entrada'?' seleccionat':'');
+  document.getElementById('editOptSortida').className = 'tipus-opt sortida' + (t==='sortida'?' seleccionat':'');
+}
+
+async function guardarEditMoviment() {
+  const id         = document.getElementById('editMovId').value;
+  const banc       = document.getElementById('editMovBanc').value;
+  const data       = document.getElementById('editMovData').value;
+  const descripcio = document.getElementById('editMovDescripcio').value.trim();
+  const import_    = document.getElementById('editMovImport').value;
+  const tipus      = document.getElementById('editMovTipus').value;
+  if (!banc || !data || !descripcio || !import_) { toast('Omple tots els camps', 'error'); return; }
+  const btn = document.getElementById('btnGuardarEditMov');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
+  try {
+    const r = await fetch(`/api/bancs/moviments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ banc, data, descripcio, import_: parseFloat(import_), tipus })
+    });
+    if (!r.ok) throw new Error();
+    toast('Moviment actualitzat ✓', 'ok');
+    tancarModalEditMov();
+    carregarBancs();
+  } catch(e) { toast('Error guardant', 'error'); }
+  finally { btn.disabled = false; btn.innerHTML = '💾 Guardar'; }
 }
 
 // ─── Utils ─────────────────────────────────────────────────────────────────────
