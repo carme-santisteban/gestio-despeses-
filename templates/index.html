@@ -326,7 +326,7 @@
 
 <!-- Modal despesa -->
 <div class="modal-overlay" id="modalOverlay" onclick="tancarModalFora(event)">
-  <div class="modal" id="modal">
+  <div class="modal" id="modal" onclick="event.stopPropagation()">
     <div class="modal-cap">
       <h3 id="modalTitol">Nova despesa</h3>
       <button class="btn btn-icon" onclick="tancarModal()" style="color:var(--gray-3);font-size:1.2rem;background:none;border:none;cursor:pointer">✕</button>
@@ -393,7 +393,7 @@
 
 <!-- Modal factura -->
 <div class="modal-overlay" id="modalFacturaOverlay" onclick="if(event.target===this)tancarModalFactura()">
-  <div class="modal" id="modalFactura" style="max-width:650px">
+  <div class="modal" id="modalFactura" style="max-width:650px" onclick="event.stopPropagation()">
     <div class="modal-cap">
       <h3 id="modalFacturaTitol">Nova factura</h3>
       <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalFactura()">✕</button>
@@ -554,7 +554,7 @@
 
 <!-- Modal despesa -->
 <div class="modal-overlay" id="modalOverlay" onclick="tancarModalFora(event)">
-  <div class="modal" id="modal">
+  <div class="modal" id="modal" onclick="event.stopPropagation()">
     <div class="modal-cap">
       <h3 id="modalTitol">Nova despesa</h3>
       <button class="btn btn-icon" onclick="tancarModal()" style="color:var(--gray-3);font-size:1.2rem;background:none;border:none;cursor:pointer">✕</button>
@@ -621,7 +621,7 @@
 
 <!-- Modal factura -->
 <div class="modal-overlay" id="modalFacturaOverlay" onclick="if(event.target===this)tancarModalFactura()">
-  <div class="modal" id="modalFactura" style="max-width:650px">
+  <div class="modal" id="modalFactura" style="max-width:650px" onclick="event.stopPropagation()">
     <div class="modal-cap">
       <h3 id="modalFacturaTitol">Nova factura</h3>
       <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalFactura()">✕</button>
@@ -960,12 +960,12 @@ function netejarFiltres() {
 function obrirModal(d = null) {
   despesaEdId = d ? d.id : null;
   document.getElementById('modalTitol').textContent = d ? 'Editar despesa' : 'Nova despesa';
-  document.getElementById('fData').value        = d ? d.data : new Date().toISOString().slice(0,10);
-  document.getElementById('fImport').value      = d ? d.import_ : '';
-  document.getElementById('fDescripcio').value  = d ? d.descripcio : '';
-  document.getElementById('fProveidor').value   = d ? d.proveidor : '';
-  document.getElementById('fNotes').value       = d ? d.notes : '';
-  document.getElementById('fCategoria').value   = d ? d.categoria : 'Taxes i aranzels';
+  document.getElementById('fData').value        = d ? (d.data || new Date().toISOString().slice(0,10)) : new Date().toISOString().slice(0,10);
+  document.getElementById('fImport').value      = d ? (d.import_ || '') : '';
+  document.getElementById('fDescripcio').value  = d ? (d.descripcio || '') : '';
+  document.getElementById('fProveidor').value   = d ? (d.proveidor || '') : '';
+  document.getElementById('fNotes').value       = d ? (d.notes || '') : '';
+  document.getElementById('fCategoria').value   = d ? (d.categoria || 'Taxes i aranzels') : 'Taxes i aranzels';
   document.getElementById('nomDocument').textContent = '';
   document.getElementById('fDocument').value    = '';
   if (d && d.document_url) {
