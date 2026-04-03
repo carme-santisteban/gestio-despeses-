@@ -582,7 +582,7 @@ def delete_banc_config(id):
 
 @app.route('/api/bancs/<int:banc_id>/documents', methods=['GET'])
 def get_banc_documents(banc_id):
-    docs = BancDocument.query.filter_by(banc_id=banc_id).order_by(BancDocument.creat_el.desc()).all()
+    docs = BancDocument.query.filter_by(banc_id=banc_id).order_by(BancDocument.document_data.asc(), BancDocument.creat_el.asc()).all()
     return jsonify([d.to_dict() for d in docs])
 
 @app.route('/api/bancs/<int:banc_id>/documents', methods=['POST'])
