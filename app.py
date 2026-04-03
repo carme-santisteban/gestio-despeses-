@@ -592,7 +592,7 @@ def create_banc_document(banc_id):
     if not fitxer or not fitxer.filename:
         return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
     try:
-        result = cloudinary.uploader.upload(fitxer, resource_type='auto', folder='gestiodespeses/bancs', use_filename=True, unique_filename=True)
+        result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/bancs', use_filename=True, unique_filename=True)
         url = result.get('secure_url')
         doc = BancDocument(
             banc_id=banc_id,
