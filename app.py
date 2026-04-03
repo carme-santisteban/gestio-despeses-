@@ -712,12 +712,12 @@ def get_bancs_taula():
         else:
             variacions.append(round(totals[i] - totals[i-1], 2))
 
-    # Total variació per banc: última - primera fotografia amb valor
+    # Total variació per banc: última - penúltima fotografia amb valor
     total_variacio = {}
     for b in banc_noms:
         valors = [v for v in files[b] if v is not None]
-        total_variacio[b] = round(valors[-1] - valors[0], 2) if len(valors) >= 2 else 0.0
-    total_variacio['__total__'] = round(totals[-1] - totals[0], 2) if len(totals) >= 2 else 0.0
+        total_variacio[b] = round(valors[-1] - valors[-2], 2) if len(valors) >= 2 else 0.0
+    total_variacio['__total__'] = round(totals[-1] - totals[-2], 2) if len(totals) >= 2 else 0.0
 
     return jsonify({
         'bancs':          banc_noms,
