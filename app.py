@@ -117,6 +117,26 @@ class Factura(db.Model):
 
 # ─── Models Bancs ─────────────────────────────────────────────────────────────
 
+class BancDocument(db.Model):
+    __tablename__ = 'banc_documents'
+    id           = db.Column(db.Integer, primary_key=True)
+    banc_id      = db.Column(db.Integer, db.ForeignKey('bancs_config.id'), nullable=False)
+    document_url = db.Column(db.String(500), nullable=False)
+    document_nom = db.Column(db.String(200))
+    document_data= db.Column(db.String(20))
+    notes        = db.Column(db.Text)
+    creat_el     = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'banc_id': self.banc_id,
+            'document_url': self.document_url,
+            'document_nom': self.document_nom or '',
+            'document_data': self.document_data or '',
+            'notes': self.notes or '',
+        }
+
 class BancConfig(db.Model):
     """Llista de bancs configurats"""
     __tablename__ = 'bancs_config'
@@ -557,6 +577,43 @@ def delete_banc_config(id):
     if count > 0:
         return jsonify({'error': f'No es pot eliminar: el banc té {count} registres'}), 400
     db.session.delete(banc)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/bancs/<int:banc_id>/documents', methods=['GET'])
+def get_banc_documents(banc_id):
+    docs = BancDocument.query.filter_by(banc_id=banc_id).order_by(BancDocument.creat_el.desc()).all()
+    return jsonify([d.to_dict() for d in docs])
+
+@app.route('/api/bancs/<int:banc_id>/documents', methods=['POST'])
+def create_banc_document(banc_id):
+    BancConfig.query.get_or_404(banc_id)
+    fitxer = request.files.get('document')
+    if not fitxer or not fitxer.filename:
+        return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
+    try:
+        result = cloudinary.uploader.upload(fitxer, resource_type='auto', folder='gestiodespeses/bancs', use_filename=True, unique_filename=True)
+        url = result.get('secure_url')
+        # Forçar URL visualitzable
+        if '/raw/upload/' in url:
+            url = url.replace('/raw/upload/', '/image/upload/')
+        doc = BancDocument(
+            banc_id=banc_id,
+            document_url=url,
+            document_nom=fitxer.filename,
+            document_data=request.form.get('document_data') or None,
+            notes=request.form.get('notes') or None,
+        )
+        db.session.add(doc)
+        db.session.commit()
+        return jsonify(doc.to_dict()), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/bancs/documents/<int:doc_id>', methods=['DELETE'])
+def delete_banc_document(doc_id):
+    doc = BancDocument.query.get_or_404(doc_id)
+    db.session.delete(doc)
     db.session.commit()
     return jsonify({'ok': True})
 
