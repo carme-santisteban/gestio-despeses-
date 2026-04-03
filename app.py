@@ -594,9 +594,6 @@ def create_banc_document(banc_id):
     try:
         result = cloudinary.uploader.upload(fitxer, resource_type='auto', folder='gestiodespeses/bancs', use_filename=True, unique_filename=True)
         url = result.get('secure_url')
-        # Forçar URL visualitzable
-        if '/raw/upload/' in url:
-            url = url.replace('/raw/upload/', '/image/upload/')
         doc = BancDocument(
             banc_id=banc_id,
             document_url=url,
