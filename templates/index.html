@@ -225,6 +225,7 @@
     <button class="nav-tab actiu" id="tabDespeses" onclick="canviarTab('despeses')">💼 Despeses</button>
     <button class="nav-tab" id="tabFactures" onclick="canviarTab('factures')">🧾 Factures emeses</button>
     <button class="nav-tab" id="tabBancs" onclick="canviarTab('bancs')">🏦 Bancs</button>
+    <button class="nav-tab" id="tabCredencials" onclick="canviarTab('credencials')">🔑 Credencials</button>
   </div>
 
   <!-- ══════════════════════════════════════════════════════════ DESPESES -->
@@ -320,6 +321,18 @@
         </table>
       </div>
     </div>
+  </div>
+
+  <!-- CREDENCIALS -->
+  <div id="seccioCredencials" style="display:none">
+    <div class="page-header">
+      <div><div class="page-title">Credencials <span style="color:var(--gold)">· Accés segur</span></div></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" class="cerca-input" placeholder="Cercar servei..." id="cercaCredencials" oninput="filtrarCredencials()" style="width:220px">
+        <button class="btn btn-primary" onclick="obrirModalCredencial()">+ Nova credencial</button>
+      </div>
+    </div>
+    <div id="credencialsGrid" style="display:grid;gap:1.5rem"></div>
   </div>
 
 </div><!-- fi container -->
@@ -840,6 +853,18 @@ function canviarTab(tab) {
     document.getElementById('btnExportCSV').style.display = 'none';
     carregarFactures();
     carregarAnysFactures();
+  } else if (tab === 'credencials') {
+    document.getElementById('seccioDespeses').style.display = 'none';
+    document.getElementById('seccioFactures').style.display = 'none';
+    document.getElementById('seccioBancs').style.display = 'none';
+    document.getElementById('seccioCredencials').style.display = 'block';
+    ['tabDespeses','tabFactures','tabBancs','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+    document.getElementById('tabCredencials').classList.add('actiu');
+    document.getElementById('btnNou').style.display = 'none';
+    document.getElementById('btnExportCSV').style.display = 'none';
+    if (!window._credencialsPinOk) { obrirPinCredencials(); return; }
+    carregarCredencials();
+    return;
   } else if (tab === 'bancs') {
     document.getElementById('btnNou').textContent = '📸 Nova fotografia';
     document.getElementById('btnNou').onclick = obrirModalFotografia;
@@ -1680,5 +1705,195 @@ async function esborrarDocBanc(docId) {
   else toast('Error esborrant', 'error');
 }
 </script>
+
+<!-- Modal PIN Credencials -->
+<div class="modal-overlay" id="modalPinCredencialsOverlay">
+  <div class="modal" style="max-width:360px" onclick="event.stopPropagation()">
+    <div class="modal-cap"><h3>🔑 Accés a Credencials</h3></div>
+    <div class="modal-cos" style="text-align:center;padding:2rem 1.5rem">
+      <p style="font-size:.9rem;color:var(--gray-3);margin-bottom:1.5rem">Introdueix la contrasenya per accedir</p>
+      <input type="password" class="form-control" id="pinCredencialsInput" placeholder="Contrasenya..." style="text-align:center;font-size:1.1rem;letter-spacing:.1em;margin-bottom:1rem" onkeydown="if(event.key==='Enter')verificarPinCredencials()">
+      <div id="pinCredencialsError" style="color:var(--red);font-size:.85rem;min-height:1.2rem"></div>
+    </div>
+    <div class="modal-peu" style="justify-content:center;gap:12px">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarPinCredencials()">Cancel·lar</button>
+      <button class="btn btn-primary" onclick="verificarPinCredencials()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nova/Editar Credencial -->
+<div class="modal-overlay" id="modalCredencialOverlay" onclick="if(event.target===this)tancarModalCredencial()">
+  <div class="modal" style="max-width:560px" onclick="event.stopPropagation()">
+    <div class="modal-cap">
+      <h3 id="modalCredencialTitol">Nova credencial</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalCredencial()">x</button>
+    </div>
+    <div class="modal-cos">
+      <div class="form-grid">
+        <div class="form-grup">
+          <label class="form-label">Categoria <span>*</span></label>
+          <select class="form-control" id="cCategoria">
+            <option value="Sistema Mac">Sistema Mac</option>
+            <option value="Correus electronics">Correus electronics</option>
+            <option value="Programes del despatx">Programes del despatx</option>
+            <option value="Certificats digitals">Certificats digitals</option>
+            <option value="Bancs i finances">Bancs i finances</option>
+            <option value="Institucions i collegis">Institucions i collegis</option>
+            <option value="Assegurances">Assegurances</option>
+            <option value="Serveis i subministraments">Serveis i subministraments</option>
+            <option value="Tecnologia i apps">Tecnologia i apps</option>
+            <option value="Altres">Altres</option>
+          </select>
+        </div>
+        <div class="form-grup">
+          <label class="form-label">Servei <span>*</span></label>
+          <input type="text" class="form-control" id="cServei" placeholder="Ex: Gmail, La Sirena...">
+        </div>
+        <div class="form-grup">
+          <label class="form-label">Usuari / Email</label>
+          <input type="text" class="form-control" id="cUsuari" placeholder="usuari@exemple.com">
+        </div>
+        <div class="form-grup">
+          <label class="form-label">Contrasenya</label>
+          <div style="position:relative">
+            <input type="password" class="form-control" id="cContrasenya" placeholder="..." style="padding-right:40px">
+            <button onclick="toggleVisibilitatCred()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-3)">o</button>
+          </div>
+        </div>
+        <div class="form-grup full">
+          <label class="form-label">Notes</label>
+          <textarea class="form-control" id="cNotes" placeholder="Informacio addicional..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalCredencial()">Cancel·lar</button>
+      <button class="btn btn-primary" id="btnGuardarCredencial" onclick="guardarCredencial()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window._credencialsPinOk = false;
+let credencials = [];
+let credencialEdId = null;
+
+function obrirPinCredencials() {
+  document.getElementById('pinCredencialsInput').value = '';
+  document.getElementById('pinCredencialsError').textContent = '';
+  document.getElementById('modalPinCredencialsOverlay').classList.add('actiu');
+  setTimeout(() => document.getElementById('pinCredencialsInput').focus(), 100);
+}
+function tancarPinCredencials() {
+  document.getElementById('modalPinCredencialsOverlay').classList.remove('actiu');
+  canviarTab('despeses');
+}
+async function verificarPinCredencials() {
+  const pin = document.getElementById('pinCredencialsInput').value;
+  if (!pin) { document.getElementById('pinCredencialsError').textContent = 'Introdueix la contrasenya'; return; }
+  try {
+    const r = await fetch('/api/credencials/verificar-pin', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({pin}) });
+    const res = await r.json();
+    if (res.ok) {
+      window._credencialsPinOk = true;
+      document.getElementById('modalPinCredencialsOverlay').classList.remove('actiu');
+      document.getElementById('seccioCredencials').style.display = 'block';
+      ['seccioDespeses','seccioFactures','seccioBancs'].forEach(id => document.getElementById(id).style.display = 'none');
+      ['tabDespeses','tabFactures','tabBancs','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+      document.getElementById('tabCredencials').classList.add('actiu');
+      carregarCredencials();
+    } else {
+      document.getElementById('pinCredencialsError').textContent = 'Contrasenya incorrecta';
+      document.getElementById('pinCredencialsInput').value = '';
+      document.getElementById('pinCredencialsInput').focus();
+    }
+  } catch(e) { document.getElementById('pinCredencialsError').textContent = 'Error de connexio'; }
+}
+async function carregarCredencials() {
+  try {
+    const r = await fetch('/api/credencials');
+    credencials = await r.json();
+    renderCredencials(credencials);
+  } catch(e) { toast('Error carregant credencials', 'error'); }
+}
+const CAT_ICONS = {'Sistema Mac':'o','Correus electronics':'e','Programes del despatx':'d','Certificats digitals':'c','Bancs i finances':'b','Institucions i collegis':'i','Assegurances':'a','Serveis i subministraments':'s','Tecnologia i apps':'t','Altres':'?'};
+function renderCredencials(llista) {
+  const grid = document.getElementById('credencialsGrid');
+  if (!llista.length) { grid.innerHTML = '<div class="buit"><div class="buit-icon">🔑</div><div class="buit-text">Cap credencial trobada</div></div>'; return; }
+  const grups = {};
+  llista.forEach(c => { if (!grups[c.categoria]) grups[c.categoria] = []; grups[c.categoria].push(c); });
+  grid.innerHTML = Object.entries(grups).map(([cat, items]) => `
+    <div class="taula-wrapper">
+      <div class="taula-cap"><h2>🔑 ${esc(cat)}</h2><span style="font-size:.8rem;color:var(--gray-3)">${items.length} entrades</span></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Servei</th><th>Usuari / Email</th><th>Contrasenya</th><th>Notes</th><th style="text-align:center">Accions</th></tr></thead>
+        <tbody>${items.map(c => `<tr>
+          <td style="font-weight:600">${esc(c.servei)}</td>
+          <td style="font-size:.85rem;color:var(--gray-4)">${esc(c.usuari)||'—'} ${c.usuari?'<button onclick="copiar(''+esc(c.usuari)+'')" style="background:none;border:none;cursor:pointer;color:var(--gray-3);font-size:.8rem">📋</button>':''}</td>
+          <td><span id="pwd-${c.id}" style="font-family:monospace">••••••••</span> <button onclick="togglePwd(${c.id},'${esc(c.contrasenya)}')" style="background:none;border:none;cursor:pointer;color:var(--gray-3)">👁</button> <button onclick="copiar('${esc(c.contrasenya)}')" style="background:none;border:none;cursor:pointer;color:var(--gray-3)">📋</button></td>
+          <td style="font-size:.8rem;color:var(--gray-3)">${esc(c.notes)||'—'}</td>
+          <td class="accions"><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarCredencial(${c.id})">✏️</button> <button class="btn btn-sm btn-danger" onclick="eliminarCredencial(${c.id})">🗑</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`).join('');
+}
+function filtrarCredencials() {
+  const q = document.getElementById('cercaCredencials').value.toLowerCase();
+  if (!q) { renderCredencials(credencials); return; }
+  renderCredencials(credencials.filter(c => c.servei.toLowerCase().includes(q)||(c.usuari||'').toLowerCase().includes(q)||c.categoria.toLowerCase().includes(q)||(c.notes||'').toLowerCase().includes(q)));
+}
+const pwdVisible = {};
+function togglePwd(id, pwd) {
+  const el = document.getElementById('pwd-'+id);
+  if (!el) return;
+  pwdVisible[id] = !pwdVisible[id];
+  el.textContent = pwdVisible[id] ? pwd : '••••••••';
+}
+function copiar(text) {
+  navigator.clipboard.writeText(text).then(()=>toast('Copiat al portapapers', 'ok')).catch(()=>toast('Error copiant','error'));
+}
+function toggleVisibilitatCred() {
+  const inp = document.getElementById('cContrasenya');
+  inp.type = inp.type==='password'?'text':'password';
+}
+function obrirModalCredencial(c=null) {
+  credencialEdId = c?c.id:null;
+  document.getElementById('modalCredencialTitol').textContent = c?'Editar credencial':'Nova credencial';
+  document.getElementById('cCategoria').value = c?c.categoria:'Altres';
+  document.getElementById('cServei').value = c?c.servei:'';
+  document.getElementById('cUsuari').value = c?c.usuari:'';
+  document.getElementById('cContrasenya').value = c?c.contrasenya:'';
+  document.getElementById('cContrasenya').type = 'password';
+  document.getElementById('cNotes').value = c?c.notes:'';
+  document.getElementById('modalCredencialOverlay').classList.add('actiu');
+}
+function tancarModalCredencial() { document.getElementById('modalCredencialOverlay').classList.remove('actiu'); credencialEdId=null; }
+function editarCredencial(id) { const c=credencials.find(x=>x.id===id); if(c) obrirModalCredencial(c); }
+async function guardarCredencial() {
+  const servei = document.getElementById('cServei').value.trim();
+  if (!servei) { toast('El servei es obligatori','error'); return; }
+  const btn = document.getElementById('btnGuardarCredencial');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Guardant...';
+  const dades = { categoria:document.getElementById('cCategoria').value, servei, usuari:document.getElementById('cUsuari').value, contrasenya:document.getElementById('cContrasenya').value, notes:document.getElementById('cNotes').value };
+  try {
+    const url = credencialEdId?`/api/credencials/${credencialEdId}`:'/api/credencials';
+    const method = credencialEdId?'PUT':'POST';
+    const r = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(dades)});
+    if(!r.ok) throw new Error();
+    toast(credencialEdId?'Credencial actualitzada':'Credencial afegida','ok');
+    tancarModalCredencial();
+    carregarCredencials();
+  } catch(e) { toast('Error guardant','error'); }
+  finally { btn.disabled=false; btn.innerHTML='Guardar'; }
+}
+async function eliminarCredencial(id) {
+  const c=credencials.find(x=>x.id===id);
+  if(!confirm(`Eliminar "${c?.servei}"?`)) return;
+  try { await fetch(`/api/credencials/${id}`,{method:'DELETE'}); toast('Eliminada','ok'); carregarCredencials(); }
+  catch(e) { toast('Error eliminant','error'); }
+}
+</script>
+
 </body>
 </html>
