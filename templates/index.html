@@ -1831,8 +1831,8 @@ function renderCredencials(llista) {
         <thead><tr><th>Servei</th><th>Usuari / Email</th><th>Contrasenya</th><th>Notes</th><th style="text-align:center">Accions</th></tr></thead>
         <tbody>${items.map(c => `<tr>
           <td style="font-weight:600">${esc(c.servei)}</td>
-          <td style="font-size:.85rem;color:var(--gray-4)">${esc(c.usuari)||'—'} ${c.usuari?'<button onclick="copiar(''+esc(c.usuari)+'')" style="background:none;border:none;cursor:pointer;color:var(--gray-3);font-size:.8rem">📋</button>':''}</td>
-          <td><span id="pwd-${c.id}" style="font-family:monospace">••••••••</span> <button onclick="togglePwd(${c.id},'${esc(c.contrasenya)}')" style="background:none;border:none;cursor:pointer;color:var(--gray-3)">👁</button> <button onclick="copiar('${esc(c.contrasenya)}')" style="background:none;border:none;cursor:pointer;color:var(--gray-3)">📋</button></td>
+          <td style="font-size:.85rem;color:var(--gray-4)">${esc(c.usuari)||'—'} ${c.usuari?`<button onclick="copiar(this.dataset.v)" data-v="${esc(c.usuari)}" style="background:none;border:none;cursor:pointer;color:var(--gray-3);font-size:.8rem">📋</button>`:''}</td>
+          <td><span id="pwd-${c.id}" style="font-family:monospace">••••••••</span> <button onclick="togglePwd(${c.id},this.dataset.v)" data-v="${esc(c.contrasenya)}" style="background:none;border:none;cursor:pointer;color:var(--gray-3)">👁</button> <button onclick="copiar(this.dataset.v)" data-v="${esc(c.contrasenya)}" style="background:none;border:none;cursor:pointer;color:var(--gray-3)">📋</button></td>
           <td style="font-size:.8rem;color:var(--gray-3)">${esc(c.notes)||'—'}</td>
           <td class="accions"><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarCredencial(${c.id})">✏️</button> <button class="btn btn-sm btn-danger" onclick="eliminarCredencial(${c.id})">🗑</button></td>
         </tr>`).join('')}</tbody>
