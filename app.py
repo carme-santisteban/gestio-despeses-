@@ -176,15 +176,32 @@ class ConfigApp(db.Model):
 
 # ─── Init DB ──────────────────────────────────────────────────────────────────
 
+
+# ─── Model Credencials ────────────────────────────────────────────────────────
+
+class Credencial(db.Model):
+    __tablename__ = 'credencials'
+    id          = db.Column(db.Integer, primary_key=True)
+    categoria   = db.Column(db.String(100), nullable=False)
+    servei      = db.Column(db.String(200), nullable=False)
+    usuari      = db.Column(db.String(300))
+    contrasenya = db.Column(db.String(500))
+    notes       = db.Column(db.Text)
+    creat_el    = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id':          self.id,
+            'categoria':   self.categoria,
+            'servei':      self.servei,
+            'usuari':      self.usuari or '',
+            'contrasenya': self.contrasenya or '',
+            'notes':       self.notes or '',
+        }
+
 with app.app_context():
     db.create_all()
-    # Assegurar taula credencials
-    try:
-        from sqlalchemy import text
-        db.session.execute(text('SELECT 1 FROM credencials LIMIT 1'))
-    except:
-        db.session.rollback()
-        db.create_all()
+
     # Inserir bancs per defecte si la taula és buida
     if not ConfigApp.query.filter_by(clau='pin_credencials').first():
         db.session.add(ConfigApp(clau='pin_credencials', valor='Css75917591'))
@@ -877,27 +894,6 @@ def importar_dades():
     return jsonify({'ok': True, 'missatge': f'{importats} registres importats, {omesos} omesos'})
 
 
-# ─── Model Credencials ────────────────────────────────────────────────────────
-
-class Credencial(db.Model):
-    __tablename__ = 'credencials'
-    id          = db.Column(db.Integer, primary_key=True)
-    categoria   = db.Column(db.String(100), nullable=False)
-    servei      = db.Column(db.String(200), nullable=False)
-    usuari      = db.Column(db.String(300))
-    contrasenya = db.Column(db.String(500))
-    notes       = db.Column(db.Text)
-    creat_el    = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def to_dict(self):
-        return {
-            'id':          self.id,
-            'categoria':   self.categoria,
-            'servei':      self.servei,
-            'usuari':      self.usuari or '',
-            'contrasenya': self.contrasenya or '',
-            'notes':       self.notes or '',
-        }
 
 @app.route('/api/credencials/verificar-pin', methods=['POST'])
 def verificar_pin_credencials():
