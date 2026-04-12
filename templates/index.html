@@ -225,7 +225,7 @@
     <button class="nav-tab actiu" id="tabDespeses" onclick="canviarTab('despeses')">💼 Despeses</button>
     <button class="nav-tab" id="tabFactures" onclick="canviarTab('factures')">🧾 Factures emeses</button>
     <button class="nav-tab" id="tabBancs" onclick="canviarTab('bancs')">🏦 Bancs</button>
-    <button class="nav-tab" id="tabRecurrents" onclick="canviarTab('recurrents')">🔁 Recurrents</button>
+    <button class="nav-tab" id="tabRecurrents" onclick="canviarTab('recurrents')" style="position:relative">🔁 Recurrents<span id="badgeRecurrents" style="display:none;position:absolute;top:4px;right:4px;background:var(--red,#c0392b);color:white;border-radius:10px;font-size:.65rem;font-weight:700;padding:1px 5px;min-width:16px;text-align:center;line-height:1.4"></span></button>
     <button class="nav-tab" id="tabCredencials" onclick="canviarTab('credencials')">🔑 Credencials</button>
   </div>
 
@@ -233,6 +233,17 @@
   <div id="seccioDespeses" style="display:block">
     <div class="page-header">
       <div><div class="page-title">Despeses <span id="anyActual"></span></div></div>
+    </div>
+    <!-- Avís recurrents -->
+    <div id="avisRecurrents" style="display:none;background:#fff8e1;border:1.5px solid var(--gold,#c8a84b);border-radius:8px;padding:12px 16px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:1.3rem">🔔</span>
+        <span id="avisRecurrentsText" style="font-size:.9rem;color:#5a4a00;font-weight:500"></span>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button onclick="canviarTab('recurrents')" style="background:var(--gold,#c8a84b);color:white;border:none;border-radius:6px;padding:5px 12px;font-size:.82rem;cursor:pointer;font-weight:600">Veure</button>
+        <button onclick="document.getElementById('avisRecurrents').style.display='none'" style="background:none;border:none;font-size:1rem;cursor:pointer;color:#999;padding:0 4px">✕</button>
+      </div>
     </div>
     <div class="filtres-bar">
       <div class="filtre-grup"><label>Any</label><select id="filtreAny" onchange="aplicarFiltres()"><option value="">Tots</option></select></div>
@@ -950,6 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('filtreAny').value = avui.getFullYear();
   carregarAnys();
   carregarDespeses();
+  comprovarAvisosRecurrents();
 });
 
 // ─── Tab navigation ───────────────────────────────────────────────────────────
@@ -2025,6 +2037,41 @@ async function carregarRecurrents() {
     recurrents = await r.json();
     renderRecurrents();
   } catch(e) { toast('Error carregant recurrents','error'); }
+}
+
+async function comprovarAvisosRecurrents() {
+  try {
+    const r = await fetch('/api/recurrents');
+    const dades = await r.json();
+    const avui = new Date(); avui.setHours(0,0,0,0);
+    const d15  = new Date(avui); d15.setDate(d15.getDate()+15);
+
+    const vencudes = dades.filter(r => r.activa && r.proper_pagament && new Date(r.proper_pagament+'T00:00:00') < avui);
+    const proximes = dades.filter(r => r.activa && r.proper_pagament && new Date(r.proper_pagament+'T00:00:00') >= avui && new Date(r.proper_pagament+'T00:00:00') <= d15);
+    const total = vencudes.length + proximes.length;
+
+    // Badge al tab
+    const badge = document.getElementById('badgeRecurrents');
+    if (total > 0) {
+      badge.textContent = total;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    // Avís al dashboard
+    const avis = document.getElementById('avisRecurrents');
+    const text = document.getElementById('avisRecurrentsText');
+    if (total > 0) {
+      let parts = [];
+      if (vencudes.length > 0) parts.push(`<strong>${vencudes.length} pagament${vencudes.length>1?'s':''} vençut${vencudes.length>1?'s':''}</strong>`);
+      if (proximes.length > 0) parts.push(`<strong>${proximes.length} pagament${proximes.length>1?'s':''}</strong> en els pròxims 15 dies`);
+      text.innerHTML = '⚠️ Recurrents: ' + parts.join(' · ');
+      avis.style.display = 'flex';
+    } else {
+      avis.style.display = 'none';
+    }
+  } catch(e) {}
 }
 
 function renderRecurrents() {
