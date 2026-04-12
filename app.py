@@ -179,6 +179,10 @@ class ConfigApp(db.Model):
 with app.app_context():
     db.create_all()
     # Inserir bancs per defecte si la taula és buida
+    if not ConfigApp.query.filter_by(clau='pin_credencials').first():
+        db.session.add(ConfigApp(clau='pin_credencials', valor='Css75917591'))
+        db.session.commit()
+
     if BancConfig.query.count() == 0:
         bancs_defecte = ['TRADE', 'CAIXA GUISONA', 'SANTANDER', 'CETELEM', 'REVOLUT', 'BUNQ', 'CAIXA']
         for i, b in enumerate(bancs_defecte):
@@ -864,6 +868,100 @@ def importar_dades():
             db.session.rollback()
             omesos += 1
     return jsonify({'ok': True, 'missatge': f'{importats} registres importats, {omesos} omesos'})
+
+
+# ─── Model Credencials ────────────────────────────────────────────────────────
+
+class Credencial(db.Model):
+    __tablename__ = 'credencials'
+    id          = db.Column(db.Integer, primary_key=True)
+    categoria   = db.Column(db.String(100), nullable=False)
+    servei      = db.Column(db.String(200), nullable=False)
+    usuari      = db.Column(db.String(300))
+    contrasenya = db.Column(db.String(500))
+    notes       = db.Column(db.Text)
+    creat_el    = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id':          self.id,
+            'categoria':   self.categoria,
+            'servei':      self.servei,
+            'usuari':      self.usuari or '',
+            'contrasenya': self.contrasenya or '',
+            'notes':       self.notes or '',
+        }
+
+@app.route('/api/credencials/verificar-pin', methods=['POST'])
+def verificar_pin_credencials():
+    data = request.get_json()
+    config = ConfigApp.query.filter_by(clau='pin_credencials').first()
+    if not config or config.valor == data.get('pin', ''):
+        return jsonify({'ok': True})
+    return jsonify({'ok': False}), 401
+
+@app.route('/api/credencials/pin', methods=['POST'])
+def set_pin_credencials():
+    if not session.get('auth'):
+        return jsonify({'error': 'No autoritzat'}), 401
+    data = request.get_json()
+    nou_pin = data.get('pin', '').strip()
+    if not nou_pin:
+        return jsonify({'error': 'Cal un PIN'}), 400
+    config = ConfigApp.query.filter_by(clau='pin_credencials').first()
+    if config:
+        config.valor = nou_pin
+    else:
+        config = ConfigApp(clau='pin_credencials', valor=nou_pin)
+        db.session.add(config)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/credencials', methods=['GET'])
+def get_credencials():
+    creds = Credencial.query.order_by(Credencial.categoria, Credencial.servei).all()
+    return jsonify([c.to_dict() for c in creds])
+
+@app.route('/api/credencials', methods=['POST'])
+def create_credencial():
+    data = request.get_json()
+    try:
+        cred = Credencial(
+            categoria   = data['categoria'],
+            servei      = data['servei'],
+            usuari      = data.get('usuari', ''),
+            contrasenya = data.get('contrasenya', ''),
+            notes       = data.get('notes', ''),
+        )
+        db.session.add(cred)
+        db.session.commit()
+        return jsonify(cred.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/credencials/<int:id>', methods=['PUT'])
+def update_credencial(id):
+    cred = Credencial.query.get_or_404(id)
+    data = request.get_json()
+    try:
+        cred.categoria   = data['categoria']
+        cred.servei      = data['servei']
+        cred.usuari      = data.get('usuari', '')
+        cred.contrasenya = data.get('contrasenya', '')
+        cred.notes       = data.get('notes', '')
+        db.session.commit()
+        return jsonify(cred.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/credencials/<int:id>', methods=['DELETE'])
+def delete_credencial(id):
+    cred = Credencial.query.get_or_404(id)
+    db.session.delete(cred)
+    db.session.commit()
+    return jsonify({'ok': True})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
