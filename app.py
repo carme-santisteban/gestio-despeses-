@@ -194,7 +194,7 @@ with app.app_context():
     db.session.commit()
     # Inserir bancs per defecte si la taula és buida
     if not ConfigApp.query.filter_by(clau='pin_credencials').first():
-        db.session.add(ConfigApp(clau='pin_credencials', valor='Css75917591'))
+        db.session.add(ConfigApp(clau='pin_credencials', valor='Cs75917591'))
         db.session.commit()
 
     if BancConfig.query.count() == 0:
@@ -976,6 +976,18 @@ def delete_credencial(id):
     db.session.delete(cred)
     db.session.commit()
     return jsonify({'ok': True})
+
+
+@app.route('/api/setup-pin-credencials')
+def setup_pin_credencials():
+    config = ConfigApp.query.filter_by(clau='pin_credencials').first()
+    if config:
+        config.valor = 'Cs75917591'
+    else:
+        config = ConfigApp(clau='pin_credencials', valor='Cs75917591')
+        db.session.add(config)
+    db.session.commit()
+    return jsonify({'ok': True, 'pin': 'actualitzat'})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
