@@ -840,7 +840,8 @@ function canviarTab(tab) {
   document.getElementById('seccioDespeses').style.display = tab === 'despeses' ? 'block' : 'none';
   document.getElementById('seccioFactures').style.display = tab === 'factures' ? 'block' : 'none';
   document.getElementById('seccioBancs').style.display    = tab === 'bancs'    ? 'block' : 'none';
-  ['tabDespeses','tabFactures','tabBancs'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+  document.getElementById('seccioCredencials').style.display = tab === 'credencials' ? 'block' : 'none';
+  ['tabDespeses','tabFactures','tabBancs','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
   document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('actiu');
 
   if (tab === 'despeses') {
