@@ -978,16 +978,5 @@ def delete_credencial(id):
     return jsonify({'ok': True})
 
 
-@app.route('/api/setup-pin-credencials')
-def setup_pin_credencials():
-    config = ConfigApp.query.filter_by(clau='pin_credencials').first()
-    if config:
-        config.valor = 'Cs75917591'
-    else:
-        config = ConfigApp(clau='pin_credencials', valor='Cs75917591')
-        db.session.add(config)
-    db.session.commit()
-    return jsonify({'ok': True, 'pin': 'actualitzat'})
-
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
