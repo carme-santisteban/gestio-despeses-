@@ -235,7 +235,7 @@
       <div><div class="page-title">Despeses <span id="anyActual"></span></div></div>
     </div>
     <!-- Avís recurrents -->
-    <div id="avisRecurrents" style="display:none;background:#fff8e1;border:1.5px solid var(--gold,#c8a84b);border-radius:8px;padding:12px 16px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <div id="avisRecurrents" style="display:none;background:#fff8e1;border:1.5px solid var(--gold,#c8a84b);border-radius:8px;padding:12px 16px;margin-bottom:1rem;align-items:center;justify-content:space-between;gap:12px">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:1.3rem">🔔</span>
         <span id="avisRecurrentsText" style="font-size:.9rem;color:#5a4a00;font-weight:500"></span>
@@ -2069,8 +2069,7 @@ async function comprovarAvisosRecurrents() {
       text.innerHTML = '⚠️ Recurrents: ' + parts.join(' · ');
       avis.style.display = 'flex';
     } else {
-      avis.style.display = 'none';
-    }
+      avis.style.display = 'none';    }
   } catch(e) {}
 }
 
