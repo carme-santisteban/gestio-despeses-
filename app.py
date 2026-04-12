@@ -174,11 +174,34 @@ class ConfigApp(db.Model):
     clau  = db.Column(db.String(50), unique=True, nullable=False)
     valor = db.Column(db.String(200))
 
+class Recurrent(db.Model):
+    __tablename__ = 'recurrents'
+    id               = db.Column(db.Integer, primary_key=True)
+    nom              = db.Column(db.String(200), nullable=False)
+    categoria        = db.Column(db.String(100), nullable=False, default='Altres')
+    import_          = db.Column(db.Numeric(10, 2), nullable=False)
+    periodicitat     = db.Column(db.String(20), nullable=False, default='mensual')
+    proper_pagament  = db.Column(db.Date)
+    notes            = db.Column(db.Text)
+    activa           = db.Column(db.Boolean, default=True, nullable=False)
+    creat_el         = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id':              self.id,
+            'nom':             self.nom,
+            'categoria':       self.categoria,
+            'import_':         float(self.import_),
+            'periodicitat':    self.periodicitat,
+            'proper_pagament': self.proper_pagament.isoformat() if self.proper_pagament else '',
+            'notes':           self.notes or '',
+            'activa':          self.activa,
+        }
+
 # ─── Init DB ──────────────────────────────────────────────────────────────────
 
 with app.app_context():
     db.create_all()
-    # Crear taula credencials si no existeix
     from sqlalchemy import text
     db.session.execute(text('''
         CREATE TABLE IF NOT EXISTS credencials (
@@ -188,6 +211,19 @@ with app.app_context():
             usuari VARCHAR(300),
             contrasenya VARCHAR(500),
             notes TEXT,
+            creat_el TIMESTAMP DEFAULT NOW()
+        )
+    '''))
+    db.session.execute(text('''
+        CREATE TABLE IF NOT EXISTS recurrents (
+            id SERIAL PRIMARY KEY,
+            nom VARCHAR(200) NOT NULL,
+            categoria VARCHAR(100) NOT NULL DEFAULT 'Altres',
+            import_ NUMERIC(10,2) NOT NULL,
+            periodicitat VARCHAR(20) NOT NULL DEFAULT 'mensual',
+            proper_pagament DATE,
+            notes TEXT,
+            activa BOOLEAN NOT NULL DEFAULT TRUE,
             creat_el TIMESTAMP DEFAULT NOW()
         )
     '''))
@@ -977,49 +1013,6 @@ def delete_credencial(id):
     db.session.commit()
     return jsonify({'ok': True})
 
-
-# ─── RECURRENTS ───────────────────────────────────────────────────────────────
-
-class Recurrent(db.Model):
-    __tablename__ = 'recurrents'
-    id               = db.Column(db.Integer, primary_key=True)
-    nom              = db.Column(db.String(200), nullable=False)
-    categoria        = db.Column(db.String(100), nullable=False, default='Altres')
-    import_          = db.Column(db.Numeric(10, 2), nullable=False)
-    periodicitat     = db.Column(db.String(20), nullable=False, default='mensual')
-    proper_pagament  = db.Column(db.Date)
-    notes            = db.Column(db.Text)
-    activa           = db.Column(db.Boolean, default=True, nullable=False)
-    creat_el         = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def to_dict(self):
-        return {
-            'id':              self.id,
-            'nom':             self.nom,
-            'categoria':       self.categoria,
-            'import_':         float(self.import_),
-            'periodicitat':    self.periodicitat,
-            'proper_pagament': self.proper_pagament.isoformat() if self.proper_pagament else '',
-            'notes':           self.notes or '',
-            'activa':          self.activa,
-        }
-
-with app.app_context():
-    from sqlalchemy import text as sa_text
-    db.session.execute(sa_text('''
-        CREATE TABLE IF NOT EXISTS recurrents (
-            id SERIAL PRIMARY KEY,
-            nom VARCHAR(200) NOT NULL,
-            categoria VARCHAR(100) NOT NULL DEFAULT \'Altres\',
-            import_ NUMERIC(10,2) NOT NULL,
-            periodicitat VARCHAR(20) NOT NULL DEFAULT \'mensual\',
-            proper_pagament DATE,
-            notes TEXT,
-            activa BOOLEAN NOT NULL DEFAULT TRUE,
-            creat_el TIMESTAMP DEFAULT NOW()
-        )
-    '''))
-    db.session.commit()
 
 @app.route('/api/recurrents', methods=['GET'])
 def get_recurrents():
