@@ -178,13 +178,20 @@ class ConfigApp(db.Model):
 
 with app.app_context():
     db.create_all()
-    # Assegurar taula credencials
-    try:
-        from sqlalchemy import text
-        db.session.execute(text('SELECT 1 FROM credencials LIMIT 1'))
-    except:
-        db.session.rollback()
-        db.create_all()
+    # Crear taula credencials si no existeix
+    from sqlalchemy import text
+    db.session.execute(text('''
+        CREATE TABLE IF NOT EXISTS credencials (
+            id SERIAL PRIMARY KEY,
+            categoria VARCHAR(100) NOT NULL,
+            servei VARCHAR(200) NOT NULL,
+            usuari VARCHAR(300),
+            contrasenya VARCHAR(500),
+            notes TEXT,
+            creat_el TIMESTAMP DEFAULT NOW()
+        )
+    '''))
+    db.session.commit()
     # Inserir bancs per defecte si la taula és buida
     if not ConfigApp.query.filter_by(clau='pin_credencials').first():
         db.session.add(ConfigApp(clau='pin_credencials', valor='Css75917591'))
