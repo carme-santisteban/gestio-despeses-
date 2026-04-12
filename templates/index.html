@@ -837,10 +837,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ─── Tab navigation ───────────────────────────────────────────────────────────
 function canviarTab(tab) {
-  document.getElementById('seccioDespeses').style.display = tab === 'despeses' ? 'block' : 'none';
-  document.getElementById('seccioFactures').style.display = tab === 'factures' ? 'block' : 'none';
-  document.getElementById('seccioBancs').style.display    = tab === 'bancs'    ? 'block' : 'none';
-  ['tabDespeses','tabFactures','tabBancs'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+  ['seccioDespeses','seccioFactures','seccioBancs','seccioCredencials'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display='none'; });
+  ['tabDespeses','tabFactures','tabBancs','tabCredencials'].forEach(id => { const el=document.getElementById(id); if(el) el.classList.remove('actiu'); });
   document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('actiu');
 
   if (tab === 'despeses') {
@@ -854,11 +852,7 @@ function canviarTab(tab) {
     carregarFactures();
     carregarAnysFactures();
   } else if (tab === 'credencials') {
-    document.getElementById('seccioDespeses').style.display = 'none';
-    document.getElementById('seccioFactures').style.display = 'none';
-    document.getElementById('seccioBancs').style.display = 'none';
     document.getElementById('seccioCredencials').style.display = 'block';
-    ['tabDespeses','tabFactures','tabBancs','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
     document.getElementById('tabCredencials').classList.add('actiu');
     document.getElementById('btnNou').style.display = 'none';
     document.getElementById('btnExportCSV').style.display = 'none';
