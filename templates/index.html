@@ -960,39 +960,32 @@ function canviarTab(tab) {
   document.getElementById('seccioRecurrents').style.display = tab === 'recurrents' ? 'block' : 'none';
   document.getElementById('seccioCredencials').style.display = tab === 'credencials' ? 'block' : 'none';
   ['tabDespeses','tabFactures','tabBancs','tabRecurrents','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('actiu');
+
+  document.getElementById('btnNou').style.display = '';
+  document.getElementById('btnExportCSV').style.display = 'none';
+
+  if (tab === 'despeses') {
+    document.getElementById('btnNou').textContent = '+ Nova despesa';
     document.getElementById('btnNou').onclick = obrirModal;
     document.getElementById('btnExportCSV').style.display = '';
   } else if (tab === 'factures') {
     document.getElementById('btnNou').textContent = '+ Nova factura';
     document.getElementById('btnNou').onclick = () => obrirModalFactura();
-    document.getElementById('btnExportCSV').style.display = 'none';
     carregarFactures();
     carregarAnysFactures();
   } else if (tab === 'recurrents') {
     document.getElementById('btnNou').style.display = 'none';
-    document.getElementById('btnExportCSV').style.display = 'none';
     carregarRecurrents();
   } else if (tab === 'credencials') {
-    document.getElementById('seccioDespeses').style.display = 'none';
-    document.getElementById('seccioFactures').style.display = 'none';
-    document.getElementById('seccioBancs').style.display = 'none';
-    document.getElementById('seccioCredencials').style.display = 'block';
-    ['tabDespeses','tabFactures','tabBancs','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
-    document.getElementById('tabCredencials').classList.add('actiu');
     document.getElementById('btnNou').style.display = 'none';
-    document.getElementById('btnExportCSV').style.display = 'none';
     if (!window._credencialsPinOk) { obrirPinCredencials(); return; }
     carregarCredencials();
     return;
   } else if (tab === 'bancs') {
     document.getElementById('btnNou').textContent = '📸 Nova fotografia';
     document.getElementById('btnNou').onclick = obrirModalFotografia;
-    document.getElementById('btnExportCSV').style.display = 'none';
-    // Demanar PIN si no s'ha verificat en aquesta sessió
-    if (!window._bancsPinOk) {
-      obrirPinBancs();
-      return;
-    }
+    if (!window._bancsPinOk) { obrirPinBancs(); return; }
     carregarBancs();
   }
 }
