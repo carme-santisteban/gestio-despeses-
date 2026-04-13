@@ -140,20 +140,12 @@ class BancDocument(db.Model):
 class BancConfig(db.Model):
     """Llista de bancs configurats"""
     __tablename__ = 'bancs_config'
-    id      = db.Column(db.Integer, primary_key=True)
-    nom     = db.Column(db.String(50), unique=True, nullable=False)
-    ordre   = db.Column(db.Integer, default=0)
-    iban    = db.Column(db.String(50), default='')
-    entitat = db.Column(db.String(50), default='')
+    id   = db.Column(db.Integer, primary_key=True)
+    nom  = db.Column(db.String(50), unique=True, nullable=False)
+    ordre = db.Column(db.Integer, default=0)
 
     def to_dict(self):
-        return {
-            'id':      self.id,
-            'nom':     self.nom,
-            'ordre':   self.ordre,
-            'iban':    self.iban    or '',
-            'entitat': self.entitat or '',
-        }
+        return {'id': self.id, 'nom': self.nom, 'ordre': self.ordre}
 
 
 class FotografiaBanc(db.Model):
@@ -182,34 +174,11 @@ class ConfigApp(db.Model):
     clau  = db.Column(db.String(50), unique=True, nullable=False)
     valor = db.Column(db.String(200))
 
-class Recurrent(db.Model):
-    __tablename__ = 'recurrents'
-    id               = db.Column(db.Integer, primary_key=True)
-    nom              = db.Column(db.String(200), nullable=False)
-    categoria        = db.Column(db.String(100), nullable=False, default='Altres')
-    import_          = db.Column(db.Numeric(10, 2), nullable=False)
-    periodicitat     = db.Column(db.String(20), nullable=False, default='mensual')
-    proper_pagament  = db.Column(db.Date)
-    notes            = db.Column(db.Text)
-    activa           = db.Column(db.Boolean, default=True, nullable=False)
-    creat_el         = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def to_dict(self):
-        return {
-            'id':              self.id,
-            'nom':             self.nom,
-            'categoria':       self.categoria,
-            'import_':         float(self.import_),
-            'periodicitat':    self.periodicitat,
-            'proper_pagament': self.proper_pagament.isoformat() if self.proper_pagament else '',
-            'notes':           self.notes or '',
-            'activa':          self.activa,
-        }
-
 # ─── Init DB ──────────────────────────────────────────────────────────────────
 
 with app.app_context():
     db.create_all()
+    # Crear taula credencials si no existeix
     from sqlalchemy import text
     db.session.execute(text('''
         CREATE TABLE IF NOT EXISTS credencials (
@@ -219,19 +188,6 @@ with app.app_context():
             usuari VARCHAR(300),
             contrasenya VARCHAR(500),
             notes TEXT,
-            creat_el TIMESTAMP DEFAULT NOW()
-        )
-    '''))
-    db.session.execute(text('''
-        CREATE TABLE IF NOT EXISTS recurrents (
-            id SERIAL PRIMARY KEY,
-            nom VARCHAR(200) NOT NULL,
-            categoria VARCHAR(100) NOT NULL DEFAULT 'Altres',
-            import_ NUMERIC(10,2) NOT NULL,
-            periodicitat VARCHAR(20) NOT NULL DEFAULT 'mensual',
-            proper_pagament DATE,
-            notes TEXT,
-            activa BOOLEAN NOT NULL DEFAULT TRUE,
             creat_el TIMESTAMP DEFAULT NOW()
         )
     '''))
@@ -1018,57 +974,6 @@ def update_credencial(id):
 def delete_credencial(id):
     cred = Credencial.query.get_or_404(id)
     db.session.delete(cred)
-    db.session.commit()
-    return jsonify({'ok': True})
-
-
-@app.route('/api/recurrents', methods=['GET'])
-def get_recurrents():
-    recs = Recurrent.query.order_by(Recurrent.proper_pagament.asc().nullslast(), Recurrent.nom).all()
-    return jsonify([r.to_dict() for r in recs])
-
-@app.route('/api/recurrents', methods=['POST'])
-def create_recurrent():
-    data = request.get_json()
-    try:
-        r = Recurrent(
-            nom             = data['nom'].strip(),
-            categoria       = data.get('categoria', 'Altres'),
-            import_         = float(data['import_']),
-            periodicitat    = data.get('periodicitat', 'mensual'),
-            proper_pagament = date.fromisoformat(data['proper_pagament']) if data.get('proper_pagament') else None,
-            notes           = data.get('notes', ''),
-            activa          = data.get('activa', True),
-        )
-        db.session.add(r)
-        db.session.commit()
-        return jsonify(r.to_dict()), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/api/recurrents/<int:id>', methods=['PUT'])
-def update_recurrent(id):
-    r = Recurrent.query.get_or_404(id)
-    data = request.get_json()
-    try:
-        r.nom             = data['nom'].strip()
-        r.categoria       = data.get('categoria', r.categoria)
-        r.import_         = float(data['import_'])
-        r.periodicitat    = data.get('periodicitat', r.periodicitat)
-        r.proper_pagament = date.fromisoformat(data['proper_pagament']) if data.get('proper_pagament') else None
-        r.notes           = data.get('notes', r.notes)
-        r.activa          = data.get('activa', r.activa)
-        db.session.commit()
-        return jsonify(r.to_dict())
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/api/recurrents/<int:id>', methods=['DELETE'])
-def delete_recurrent(id):
-    r = Recurrent.query.get_or_404(id)
-    db.session.delete(r)
     db.session.commit()
     return jsonify({'ok': True})
 

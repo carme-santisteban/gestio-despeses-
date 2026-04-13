@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestió·CSS — Carme Santisteban</title>
+  <title>GestióDespeses — Carme Santisteban</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
@@ -203,7 +203,7 @@
   <div class="header-brand">
     <div class="header-logo">💼</div>
     <div>
-      <div class="header-title">Gestió·CSS</div>
+      <div class="header-title">GestióDespeses</div>
       <div class="header-sub">Carme Santisteban · ICAB 30907</div>
     </div>
   </div>
@@ -225,7 +225,6 @@
     <button class="nav-tab actiu" id="tabDespeses" onclick="canviarTab('despeses')">💼 Despeses</button>
     <button class="nav-tab" id="tabFactures" onclick="canviarTab('factures')">🧾 Factures emeses</button>
     <button class="nav-tab" id="tabBancs" onclick="canviarTab('bancs')">🏦 Bancs</button>
-    <button class="nav-tab" id="tabRecurrents" onclick="canviarTab('recurrents')" style="position:relative">🔁 Recurrents<span id="badgeRecurrents" style="display:none;position:absolute;top:4px;right:4px;background:var(--red,#c0392b);color:white;border-radius:10px;font-size:.65rem;font-weight:700;padding:1px 5px;min-width:16px;text-align:center;line-height:1.4"></span></button>
     <button class="nav-tab" id="tabCredencials" onclick="canviarTab('credencials')">🔑 Credencials</button>
   </div>
 
@@ -233,17 +232,6 @@
   <div id="seccioDespeses" style="display:block">
     <div class="page-header">
       <div><div class="page-title">Despeses <span id="anyActual"></span></div></div>
-    </div>
-    <!-- Avís recurrents -->
-    <div id="avisRecurrents" style="display:none;background:#fff8e1;border:1.5px solid var(--gold,#c8a84b);border-radius:8px;padding:12px 16px;margin-bottom:1rem;align-items:center;justify-content:space-between;gap:12px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:1.3rem">🔔</span>
-        <span id="avisRecurrentsText" style="font-size:.9rem;color:#5a4a00;font-weight:500"></span>
-      </div>
-      <div style="display:flex;gap:8px;flex-shrink:0">
-        <button onclick="canviarTab('recurrents')" style="background:var(--gold,#c8a84b);color:white;border:none;border-radius:6px;padding:5px 12px;font-size:.82rem;cursor:pointer;font-weight:600">Veure</button>
-        <button onclick="document.getElementById('avisRecurrents').style.display='none'" style="background:none;border:none;font-size:1rem;cursor:pointer;color:#999;padding:0 4px">✕</button>
-      </div>
     </div>
     <div class="filtres-bar">
       <div class="filtre-grup"><label>Any</label><select id="filtreAny" onchange="aplicarFiltres()"><option value="">Tots</option></select></div>
@@ -318,9 +306,6 @@
       <strong>Com funciona:</strong> Clica <em>📸 Nova fotografia</em> per introduir el saldo real de cada banc en una data. La taula mostra l'evolució. La fila groga és la variació entre dates. La columna dreta = diferència entre primera i última fotografia.
     </div>
 
-    <!-- Grid de comptes amb IBAN -->
-    <div id="bancsIbanGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;margin-bottom:1.5rem"></div>
-
     <!-- Taula dinàmica -->
     <div class="taula-wrapper" style="margin-bottom:1.5rem">
       <div class="taula-cap">
@@ -337,122 +322,6 @@
       </div>
     </div>
   </div>
-
-  <!-- ══════════════════════════════════════════════════════════ RECURRENTS -->
-  <div id="seccioRecurrents" style="display:none">
-    <div class="page-header">
-      <div><div class="page-title">Despeses recurrents <span style="color:var(--gold)">· Subscripcions i quotes</span></div></div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <select id="filtreRecurrentsCat" onchange="renderRecurrents()" style="border:1px solid var(--gray-2);border-radius:6px;padding:7px 10px;font-size:.85rem;font-family:inherit;background:var(--white);color:var(--navy)">
-          <option value="">Totes les categories</option>
-          <option>Subscripcions digitals</option>
-          <option>Assegurances</option>
-          <option>Serveis i subministraments</option>
-          <option>Professional</option>
-          <option>Altres</option>
-        </select>
-        <button class="btn btn-primary" onclick="obrirModalRecurrent()">+ Nova recurrent</button>
-      </div>
-    </div>
-
-    <!-- Resum -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem">
-      <div style="background:var(--white);border:1px solid var(--gray-2);border-radius:10px;padding:1rem;text-align:center">
-        <div style="font-size:.75rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Cost mensual</div>
-        <div id="recurrentsTotalMensual" style="font-size:1.6rem;font-weight:700;color:var(--navy)">—</div>
-      </div>
-      <div style="background:var(--white);border:1px solid var(--gray-2);border-radius:10px;padding:1rem;text-align:center">
-        <div style="font-size:.75rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Cost anual</div>
-        <div id="recurrentsTotalAnual" style="font-size:1.6rem;font-weight:700;color:var(--navy)">—</div>
-      </div>
-      <div style="background:var(--white);border:1px solid var(--gray-2);border-radius:10px;padding:1rem;text-align:center">
-        <div style="font-size:.75rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Pròxims 15 dies</div>
-        <div id="recurrentsProxims" style="font-size:1.6rem;font-weight:700;color:var(--gold)">—</div>
-      </div>
-      <div style="background:var(--white);border:1px solid var(--gray-2);border-radius:10px;padding:1rem;text-align:center">
-        <div style="font-size:.75rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Totals actives</div>
-        <div id="recurrentsCount" style="font-size:1.6rem;font-weight:700;color:var(--navy)">—</div>
-      </div>
-    </div>
-
-    <!-- Taula -->
-    <div style="background:var(--white);border:1px solid var(--gray-2);border-radius:10px;overflow:hidden">
-      <table style="width:100%;border-collapse:collapse;font-size:.88rem">
-        <thead>
-          <tr style="background:var(--gray-1);color:var(--gray-3);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em">
-            <th style="padding:10px 14px;text-align:left;font-weight:600">Concepte</th>
-            <th style="padding:10px 14px;text-align:left;font-weight:600">Categoria</th>
-            <th style="padding:10px 14px;text-align:right;font-weight:600">Import</th>
-            <th style="padding:10px 14px;text-align:center;font-weight:600">Periodicitat</th>
-            <th style="padding:10px 14px;text-align:center;font-weight:600">Proper pagament</th>
-            <th style="padding:10px 14px;text-align:center;font-weight:600">Estat</th>
-            <th style="padding:10px 14px;text-align:center;font-weight:600">Accions</th>
-          </tr>
-        </thead>
-        <tbody id="recurrentsBody">
-          <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-3)">Carregant...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-<!-- Modal Nova/Editar Recurrent -->
-<div class="modal-overlay" id="modalRecurrentOverlay" onclick="if(event.target===this)tancarModalRecurrent()">
-  <div class="modal" style="max-width:540px" onclick="event.stopPropagation()">
-    <div class="modal-cap">
-      <h3 id="modalRecurrentTitol">Nova despesa recurrent</h3>
-      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalRecurrent()">✕</button>
-    </div>
-    <div class="modal-cos">
-      <div class="form-grid">
-        <div class="form-grup fg-full">
-          <label class="form-label">Concepte <span style="color:var(--red)">*</span></label>
-          <input type="text" class="form-control" id="rNom" placeholder="Ex: Anthropic Pro, Netflix, Fiatc...">
-        </div>
-        <div class="form-grup">
-          <label class="form-label">Categoria</label>
-          <select class="form-control" id="rCategoria">
-            <option>Subscripcions digitals</option>
-            <option>Assegurances</option>
-            <option>Serveis i subministraments</option>
-            <option>Professional</option>
-            <option>Altres</option>
-          </select>
-        </div>
-        <div class="form-grup">
-          <label class="form-label">Import <span style="color:var(--red)">*</span></label>
-          <input type="number" class="form-control" id="rImport" placeholder="0.00" step="0.01" min="0">
-        </div>
-        <div class="form-grup">
-          <label class="form-label">Periodicitat</label>
-          <select class="form-control" id="rPeriodicitat">
-            <option value="mensual">Mensual</option>
-            <option value="bimestral">Bimestral</option>
-            <option value="trimestral">Trimestral</option>
-            <option value="semestral">Semestral</option>
-            <option value="anual">Anual</option>
-          </select>
-        </div>
-        <div class="form-grup">
-          <label class="form-label">Proper pagament</label>
-          <input type="date" class="form-control" id="rProperPagament">
-        </div>
-        <div class="form-grup fg-full">
-          <label class="form-label">Notes</label>
-          <textarea class="form-control" id="rNotes" rows="2" placeholder="Observacions opcionals..."></textarea>
-        </div>
-        <div class="form-grup fg-full" style="display:flex;align-items:center;gap:10px">
-          <input type="checkbox" id="rActiva" checked style="width:auto;cursor:pointer">
-          <label for="rActiva" style="margin:0;cursor:pointer;font-weight:500">Subscripció activa</label>
-        </div>
-      </div>
-    </div>
-    <div class="modal-peu">
-      <button class="btn btn-outline" onclick="tancarModalRecurrent()">Cancel·lar</button>
-      <button class="btn btn-primary" id="btnGuardarRecurrent" onclick="guardarRecurrent()">💾 Guardar</button>
-    </div>
-  </div>
-</div>
 
   <!-- CREDENCIALS -->
   <div id="seccioCredencials" style="display:none">
@@ -964,21 +833,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('filtreAny').value = avui.getFullYear();
   carregarAnys();
   carregarDespeses();
-  comprovarAvisosRecurrents();
 });
 
 // ─── Tab navigation ───────────────────────────────────────────────────────────
 function canviarTab(tab) {
-  document.getElementById('seccioDespeses').style.display   = tab === 'despeses'   ? 'block' : 'none';
-  document.getElementById('seccioFactures').style.display   = tab === 'factures'   ? 'block' : 'none';
-  document.getElementById('seccioBancs').style.display      = tab === 'bancs'      ? 'block' : 'none';
-  document.getElementById('seccioRecurrents').style.display = tab === 'recurrents' ? 'block' : 'none';
+  document.getElementById('seccioDespeses').style.display = tab === 'despeses' ? 'block' : 'none';
+  document.getElementById('seccioFactures').style.display = tab === 'factures' ? 'block' : 'none';
+  document.getElementById('seccioBancs').style.display    = tab === 'bancs'    ? 'block' : 'none';
   document.getElementById('seccioCredencials').style.display = tab === 'credencials' ? 'block' : 'none';
-  ['tabDespeses','tabFactures','tabBancs','tabRecurrents','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+  ['tabDespeses','tabFactures','tabBancs','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
   document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('actiu');
-
-  document.getElementById('btnNou').style.display = '';
-  document.getElementById('btnExportCSV').style.display = 'none';
 
   if (tab === 'despeses') {
     document.getElementById('btnNou').textContent = '+ Nova despesa';
@@ -987,20 +851,30 @@ function canviarTab(tab) {
   } else if (tab === 'factures') {
     document.getElementById('btnNou').textContent = '+ Nova factura';
     document.getElementById('btnNou').onclick = () => obrirModalFactura();
+    document.getElementById('btnExportCSV').style.display = 'none';
     carregarFactures();
     carregarAnysFactures();
-  } else if (tab === 'recurrents') {
-    document.getElementById('btnNou').style.display = 'none';
-    carregarRecurrents();
   } else if (tab === 'credencials') {
+    document.getElementById('seccioDespeses').style.display = 'none';
+    document.getElementById('seccioFactures').style.display = 'none';
+    document.getElementById('seccioBancs').style.display = 'none';
+    document.getElementById('seccioCredencials').style.display = 'block';
+    ['tabDespeses','tabFactures','tabBancs','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+    document.getElementById('tabCredencials').classList.add('actiu');
     document.getElementById('btnNou').style.display = 'none';
+    document.getElementById('btnExportCSV').style.display = 'none';
     if (!window._credencialsPinOk) { obrirPinCredencials(); return; }
     carregarCredencials();
     return;
   } else if (tab === 'bancs') {
     document.getElementById('btnNou').textContent = '📸 Nova fotografia';
     document.getElementById('btnNou').onclick = obrirModalFotografia;
-    if (!window._bancsPinOk) { obrirPinBancs(); return; }
+    document.getElementById('btnExportCSV').style.display = 'none';
+    // Demanar PIN si no s'ha verificat en aquesta sessió
+    if (!window._bancsPinOk) {
+      obrirPinBancs();
+      return;
+    }
     carregarBancs();
   }
 }
@@ -1382,51 +1256,8 @@ async function carregarBancs() {
     const r = await fetch('/api/bancs/config');
     bancsCfg = await r.json();
     omplirSelectsBancs();
-    renderBancsIban();
     await carregarTaulaBancs();
   } catch(e) { toast('Error carregant bancs', 'error'); }
-}
-
-function formatIban(iban) {
-  if (!iban) return '—';
-  return iban.replace(/(.{4})/g, '$1 ').trim();
-}
-
-function renderBancsIban() {
-  const grid = document.getElementById('bancsIbanGrid');
-  if (!grid) return;
-  const colors = {
-    'CaixaBank':     '#1a5276',
-    'Revolut':       '#0050ff',
-    'Bunq':          '#00b0b0',
-    'Trade Republic':'#1a1a2e',
-    'Santander':     '#cc0000',
-    'ING':           '#ff6200',
-    'N26':           '#1e1e2f',
-    'Cetelem':       '#6c3483',
-  };
-  const entitats = [...new Set(bancsCfg.filter(b => b.iban).map(b => b.entitat || 'Altres'))];
-  grid.innerHTML = entitats.map(entitat => {
-    const comptes = bancsCfg.filter(b => (b.entitat || 'Altres') === entitat && b.iban);
-    if (!comptes.length) return '';
-    const color = colors[entitat] || '#2c3e50';
-    const files = comptes.map(b => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06)">
-        <span style="font-size:.82rem;color:#555;flex:1">${esc(b.nom)}</span>
-        <span style="font-family:monospace;font-size:.85rem;font-weight:600;color:#222;letter-spacing:.5px;cursor:pointer;user-select:all"
-              title="Clica per copiar"
-              onclick="navigator.clipboard.writeText('${esc(b.iban)}').then(()=>toast('IBAN copiat!','success'))"
-        >${formatIban(b.iban)}</span>
-      </div>`).join('');
-    return `
-      <div style="background:#fff;border-radius:10px;padding:1rem 1.25rem;box-shadow:0 2px 8px rgba(0,0,0,.08);border-left:4px solid ${color}">
-        <div style="font-family:var(--font-head);font-size:.9rem;font-weight:700;color:${color};margin-bottom:.5rem;display:flex;align-items:center;gap:6px">
-          🏦 ${esc(entitat)}
-          <span style="font-size:.7rem;font-weight:400;color:#999;margin-left:auto">${comptes.length} compte${comptes.length>1?'s':''}</span>
-        </div>
-        ${files}
-      </div>`;
-  }).join('');
 }
 
 async function carregarTaulaBancs() {
@@ -2066,191 +1897,6 @@ async function eliminarCredencial(id) {
   if(!confirm(`Eliminar "${c?.servei}"?`)) return;
   try { await fetch(`/api/credencials/${id}`,{method:'DELETE'}); toast('Eliminada','ok'); carregarCredencials(); }
   catch(e) { toast('Error eliminant','error'); }
-}
-</script>
-
-<script>
-// ─── RECURRENTS ──────────────────────────────────────────────────────────────
-let recurrents = [];
-let recurrentEditantId = null;
-
-const MULTIPLICADOR = { mensual:1, bimestral:0.5, trimestral:1/3, semestral:1/6, anual:1/12 };
-const BADGE_PERIOD = { mensual:'mensual', bimestral:'bimestral', trimestral:'trimestral', semestral:'semestral', anual:'anual' };
-
-async function carregarRecurrents() {
-  try {
-    const r = await fetch('/api/recurrents');
-    recurrents = await r.json();
-    renderRecurrents();
-  } catch(e) { toast('Error carregant recurrents','error'); }
-}
-
-async function comprovarAvisosRecurrents() {
-  try {
-    const r = await fetch('/api/recurrents');
-    const dades = await r.json();
-    const avui = new Date(); avui.setHours(0,0,0,0);
-    const d15  = new Date(avui); d15.setDate(d15.getDate()+15);
-
-    const vencudes = dades.filter(r => r.activa && r.proper_pagament && new Date(r.proper_pagament+'T00:00:00') < avui);
-    const proximes = dades.filter(r => r.activa && r.proper_pagament && new Date(r.proper_pagament+'T00:00:00') >= avui && new Date(r.proper_pagament+'T00:00:00') <= d15);
-    const total = vencudes.length + proximes.length;
-
-    // Badge al tab
-    const badge = document.getElementById('badgeRecurrents');
-    if (total > 0) {
-      badge.textContent = total;
-      badge.style.display = 'inline-block';
-    } else {
-      badge.style.display = 'none';
-    }
-
-    // Avís al dashboard
-    const avis = document.getElementById('avisRecurrents');
-    const text = document.getElementById('avisRecurrentsText');
-    if (total > 0) {
-      let parts = [];
-      if (vencudes.length > 0) parts.push(`<strong>${vencudes.length} pagament${vencudes.length>1?'s':''} vençut${vencudes.length>1?'s':''}</strong>`);
-      if (proximes.length > 0) parts.push(`<strong>${proximes.length} pagament${proximes.length>1?'s':''}</strong> en els pròxims 15 dies`);
-      text.innerHTML = '⚠️ Recurrents: ' + parts.join(' · ');
-      avis.style.display = 'flex';
-    } else {
-      avis.style.display = 'none';    }
-  } catch(e) {}
-}
-
-function renderRecurrents() {
-  const filtreCat = document.getElementById('filtreRecurrentsCat').value;
-  const avui = new Date(); avui.setHours(0,0,0,0);
-  const d15  = new Date(avui); d15.setDate(d15.getDate()+15);
-
-  let llista = recurrents.filter(r => !filtreCat || r.categoria === filtreCat);
-
-  // Estadístiques (sempre sobre actives)
-  const actives = recurrents.filter(r => r.activa);
-  let totalMensual = 0;
-  actives.forEach(r => { totalMensual += r.import_ * (MULTIPLICADOR[r.periodicitat] || 1); });
-  const proxims = actives.filter(r => {
-    if (!r.proper_pagament) return false;
-    const d = new Date(r.proper_pagament + 'T00:00:00');
-    return d >= avui && d <= d15;
-  }).length;
-
-  document.getElementById('recurrentsTotalMensual').textContent = totalMensual.toFixed(2) + ' €';
-  document.getElementById('recurrentsTotalAnual').textContent   = (totalMensual * 12).toFixed(2) + ' €';
-  document.getElementById('recurrentsProxims').textContent      = proxims;
-  document.getElementById('recurrentsCount').textContent        = actives.length;
-
-  const tbody = document.getElementById('recurrentsBody');
-  if (!llista.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-3)">Cap despesa recurrent. Clica "+ Nova recurrent" per afegir-ne.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = llista.map(r => {
-    let alertaData = '', alertaStyle = '';
-    if (r.proper_pagament) {
-      const dp = new Date(r.proper_pagament + 'T00:00:00');
-      if (dp < avui) {
-        alertaData = ' ⚠️';
-        alertaStyle = 'color:var(--red);font-weight:600';
-      } else if (dp <= d15) {
-        alertaData = ' 🔔';
-        alertaStyle = 'color:var(--gold);font-weight:600';
-      }
-    }
-    const dataFmt = r.proper_pagament
-      ? new Date(r.proper_pagament + 'T00:00:00').toLocaleDateString('ca-ES', {day:'2-digit',month:'2-digit',year:'numeric'}) + alertaData
-      : '—';
-    const rowBg = !r.activa ? 'background:var(--gray-1);opacity:.6' : '';
-
-    return `<tr style="border-top:1px solid var(--gray-2);${rowBg}">
-      <td style="padding:10px 14px;font-weight:500;color:var(--navy)">${esc(r.nom)}<br><small style="color:var(--gray-3);font-weight:400">${r.notes ? esc(r.notes.substring(0,50)) : ''}</small></td>
-      <td style="padding:10px 14px;color:var(--gray-3)">${esc(r.categoria)}</td>
-      <td style="padding:10px 14px;text-align:right;font-weight:600;color:var(--navy)">${r.import_.toFixed(2)} €</td>
-      <td style="padding:10px 14px;text-align:center"><span style="background:var(--gray-1);border-radius:4px;padding:2px 8px;font-size:.78rem">${BADGE_PERIOD[r.periodicitat]||r.periodicitat}</span></td>
-      <td style="padding:10px 14px;text-align:center;${alertaStyle}">${dataFmt}</td>
-      <td style="padding:10px 14px;text-align:center">
-        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${r.activa?'#27ae60':'var(--gray-3)'};margin-right:4px"></span>${r.activa?'Activa':'Inactiva'}
-      </td>
-      <td style="padding:10px 14px;text-align:center;white-space:nowrap">
-        <button onclick="editarRecurrent(${r.id})" style="background:none;border:1px solid var(--gray-2);border-radius:5px;padding:4px 10px;cursor:pointer;font-size:.8rem;margin-right:4px">✏️</button>
-        <button onclick="eliminarRecurrent(${r.id})" style="background:none;border:1px solid var(--gray-2);border-radius:5px;padding:4px 10px;cursor:pointer;font-size:.8rem;color:var(--red)">🗑</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function esc(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
-
-function obrirModalRecurrent(id = null) {
-  recurrentEditantId = id;
-  document.getElementById('modalRecurrentTitol').textContent = id ? 'Editar despesa recurrent' : 'Nova despesa recurrent';
-  if (id) {
-    const r = recurrents.find(x => x.id === id);
-    if (!r) return;
-    document.getElementById('rNom').value             = r.nom;
-    document.getElementById('rCategoria').value       = r.categoria;
-    document.getElementById('rImport').value          = r.import_;
-    document.getElementById('rPeriodicitat').value    = r.periodicitat;
-    document.getElementById('rProperPagament').value  = r.proper_pagament || '';
-    document.getElementById('rNotes').value           = r.notes;
-    document.getElementById('rActiva').checked        = r.activa;
-  } else {
-    document.getElementById('rNom').value             = '';
-    document.getElementById('rCategoria').value       = 'Subscripcions digitals';
-    document.getElementById('rImport').value          = '';
-    document.getElementById('rPeriodicitat').value    = 'mensual';
-    document.getElementById('rProperPagament').value  = '';
-    document.getElementById('rNotes').value           = '';
-    document.getElementById('rActiva').checked        = true;
-  }
-  document.getElementById('modalRecurrentOverlay').style.display = 'flex';
-  document.getElementById('rNom').focus();
-}
-
-function tancarModalRecurrent() {
-  document.getElementById('modalRecurrentOverlay').style.display = 'none';
-  recurrentEditantId = null;
-}
-
-async function guardarRecurrent() {
-  const nom = document.getElementById('rNom').value.trim();
-  const imp = parseFloat(document.getElementById('rImport').value);
-  if (!nom)        { toast('El concepte és obligatori','error'); return; }
-  if (isNaN(imp) || imp < 0) { toast('Import no vàlid','error'); return; }
-
-  const payload = {
-    nom,
-    categoria:       document.getElementById('rCategoria').value,
-    import_:         imp,
-    periodicitat:    document.getElementById('rPeriodicitat').value,
-    proper_pagament: document.getElementById('rProperPagament').value || null,
-    notes:           document.getElementById('rNotes').value.trim(),
-    activa:          document.getElementById('rActiva').checked,
-  };
-
-  try {
-    const url    = recurrentEditantId ? `/api/recurrents/${recurrentEditantId}` : '/api/recurrents';
-    const method = recurrentEditantId ? 'PUT' : 'POST';
-    const r = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-    if (!r.ok) throw new Error();
-    toast(recurrentEditantId ? 'Recurrent actualitzada' : 'Recurrent afegida', 'ok');
-    tancarModalRecurrent();
-    carregarRecurrents();
-  } catch(e) { toast('Error guardant','error'); }
-}
-
-function editarRecurrent(id) { obrirModalRecurrent(id); }
-
-async function eliminarRecurrent(id) {
-  const r = recurrents.find(x => x.id === id);
-  if (!confirm(`Eliminar "${r?.nom}"?`)) return;
-  try {
-    await fetch(`/api/recurrents/${id}`, { method:'DELETE' });
-    toast('Recurrent eliminada','ok');
-    carregarRecurrents();
-  } catch(e) { toast('Error eliminant','error'); }
 }
 </script>
 
