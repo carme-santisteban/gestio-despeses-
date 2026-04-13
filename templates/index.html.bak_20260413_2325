@@ -1902,164 +1902,116 @@ async function eliminarCredencial(id) {
 </script>
 
 
-
 <!-- ══════════════════════════════ MODAL COMPTES ══════════════════════════════ -->
 <div id="modalComptesOverlay"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;overflow-y:auto;padding:2rem 1rem"
      onclick="if(event.target===this)tancarModalComptes()">
-  <div style="background:#fff;border-radius:14px;max-width:700px;margin:0 auto;padding:2rem;position:relative">
+  <div style="background:#fff;border-radius:14px;max-width:680px;margin:0 auto;padding:2rem;position:relative">
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
       <h2 style="font-family:var(--font-head);color:var(--navy);margin:0">💳 Comptes bancaris</h2>
       <button onclick="tancarModalComptes()"
-              style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#999">✕</button>
+              style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#999;line-height:1">✕</button>
     </div>
 
-    <!-- Formulari nou compte -->
-    <details id="detailsNouCompte" style="margin-bottom:1.25rem;background:#f8f9fa;border-radius:8px;padding:.75rem 1rem">
-      <summary style="cursor:pointer;font-weight:600;color:var(--navy);font-size:.9rem">➕ Afegir nou compte</summary>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.75rem">
-        <div>
-          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">Entitat *</label>
-          <input id="ncEntitat" type="text" placeholder="ex: CaixaBank · Guissona"
-                 style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
-        </div>
-        <div>
-          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">Nom compte *</label>
-          <input id="ncNom" type="text" placeholder="ex: Privada Carme"
-                 style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
-        </div>
-        <div>
-          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">IBAN *</label>
-          <input id="ncIban" type="text" placeholder="ES00 0000 ..."
-                 style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;font-family:monospace;box-sizing:border-box">
-        </div>
-        <div>
-          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">Notes (opcional)</label>
-          <input id="ncNotes" type="text" placeholder="ex: CIF H59479113"
-                 style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
-        </div>
-      </div>
-      <button onclick="afegirCompte()"
-              style="margin-top:.75rem;background:var(--navy);color:#fff;border:none;border-radius:6px;padding:.5rem 1.25rem;cursor:pointer;font-size:.85rem;font-weight:600">
-        Guardar compte
-      </button>
-    </details>
+    <div id="comptesContingut"></div>
 
-    <!-- Llistat dinàmic -->
-    <div id="comptesLlistat">
-      <div style="text-align:center;padding:2rem;color:#aaa">Carregant...</div>
-    </div>
-
-    <p style="font-size:.75rem;color:#aaa;margin-top:1rem;text-align:center">
-      Clica qualsevol IBAN per copiar-lo · 🗑 per esborrar
+    <p style="font-size:.75rem;color:#aaa;margin-top:1.5rem;text-align:center">
+      Clica qualsevol IBAN per copiar-lo al porta-retalls
     </p>
   </div>
 </div>
 
 <script>
-const COLORS_ENTITAT = {
-  'CaixaBank · Guissona': '#1a5276',
-  'Revolut':              '#0050ff',
-  'Trade Republic':       '#1a1a2e',
-  'Santander':            '#cc0000',
-  'ING':                  '#ff6200',
-  'N26':                  '#1e1e2f',
-  'Bunq':                 '#00b0b0',
-};
-
-function colorEntitat(e) {
-  return COLORS_ENTITAT[e] || '#2c3e50';
-}
+// ── Dades comptes ─────────────────────────────────────────────────────────────
+const COMPTES_DATA = [
+  {
+    entitat: 'CaixaBank · Guissona',
+    color: '#1a5276',
+    comptes: [
+      { nom: 'Xavi',                              iban: 'ES1531400001920017733001' },
+      { nom: 'Privada Carme',                     iban: 'ES2931400001970016191700' },
+      { nom: 'Conjunta Xavi',                     iban: 'ES2431400001950017732400' },
+      { nom: 'Comunitat Carrer Mas · CIF H59479113',  iban: 'ES6231400001960018561100' },
+      { nom: 'Comunitat Carrer Prim · CIF H59184150', iban: 'ES3931400001980015995200' },
+    ]
+  },
+  {
+    entitat: 'Revolut',
+    color: '#0050ff',
+    comptes: [
+      { nom: 'Privada Carme',       iban: 'ES9815830001179018374221' },
+      { nom: 'Conjunta Teresa',     iban: 'ES8715830001139175804772' },
+    ]
+  },
+  {
+    entitat: 'Trade Republic',
+    color: '#1a1a2e',
+    comptes: [
+      { nom: 'Privada Carme',       iban: 'ES6815860001430277715911' },
+    ]
+  },
+  {
+    entitat: 'Santander',
+    color: '#cc0000',
+    comptes: [
+      { nom: 'Privada Carme',       iban: 'ES6600302021130000720271' },
+      { nom: 'Xavi',                iban: 'ES2600490904122810257134' },
+    ]
+  },
+  {
+    entitat: 'ING',
+    color: '#ff6200',
+    comptes: [
+      { nom: 'Conjunta (marit)',    iban: 'ES6014650120391712648891' },
+    ]
+  },
+  {
+    entitat: 'N26',
+    color: '#1e1e2f',
+    comptes: [
+      { nom: 'Privada Carme',       iban: 'ES5115632626353262914754' },
+    ]
+  },
+  {
+    entitat: 'Bunq',
+    color: '#00b0b0',
+    comptes: [
+      { nom: 'Privada Carme',       iban: 'ES9715761212111010639176' },
+      { nom: 'Conjunta Xavi',       iban: 'ES3315761212171010655166' },
+    ]
+  },
+];
 
 function fmtIban(iban) {
   return iban.replace(/(.{4})/g, '$1 ').trim();
 }
 
-async function carregarComptesIban() {
-  try {
-    const r = await fetch('/api/comptes-iban');
-    const data = await r.json();
-    renderComptesIban(data);
-  } catch(e) {
-    document.getElementById('comptesLlistat').innerHTML =
-      '<p style="color:red;text-align:center">Error carregant comptes</p>';
-  }
-}
-
-function renderComptesIban(comptes) {
-  const div = document.getElementById('comptesLlistat');
-  if (!comptes.length) {
-    div.innerHTML = '<p style="text-align:center;color:#aaa">Cap compte. Afegeix-ne un!</p>';
-    return;
-  }
-  // Agrupar per entitat
-  const grups = {};
-  comptes.forEach(c => {
-    if (!grups[c.entitat]) grups[c.entitat] = [];
-    grups[c.entitat].push(c);
-  });
-  div.innerHTML = Object.entries(grups).map(([entitat, llista]) => `
-    <div style="margin-bottom:1rem;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.1)">
-      <div style="background:${colorEntitat(entitat)};color:#fff;padding:.55rem 1rem;font-weight:700;font-size:.88rem">
-        🏦 ${entitat}
+function renderComptes() {
+  const div = document.getElementById('comptesContingut');
+  if (!div) return;
+  div.innerHTML = COMPTES_DATA.map(grup => `
+    <div style="margin-bottom:1.25rem;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.1)">
+      <div style="background:${grup.color};color:#fff;padding:.6rem 1rem;font-weight:700;font-size:.9rem;font-family:var(--font-head)">
+        🏦 ${grup.entitat}
       </div>
-      ${llista.map(c => `
-        <div style="display:flex;align-items:center;padding:.6rem 1rem;border-bottom:1px solid #f0f0f0;background:#fff;gap:.5rem">
-          <div style="flex:1;min-width:0">
-            <span style="font-size:.82rem;color:#555">${c.nom}</span>
-            ${c.notes ? `<span style="font-size:.74rem;color:#999;margin-left:6px">${c.notes}</span>` : ''}
-          </div>
-          <span style="font-family:monospace;font-size:.86rem;font-weight:600;color:#1a3a5c;cursor:pointer;white-space:nowrap"
-                onclick="navigator.clipboard.writeText('${c.iban}').then(()=>{this.style.color='#27ae60';setTimeout(()=>this.style.color='#1a3a5c',800)})"
-                title="Copiar IBAN">
+      ${grup.comptes.map(c => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 1rem;border-bottom:1px solid #f0f0f0;background:#fff"
+             title="Clica per copiar"
+             onclick="navigator.clipboard.writeText('${c.iban}').then(()=>{ this.style.background='#e8f5e9'; setTimeout(()=>this.style.background='#fff',800) })"
+             style="cursor:pointer">
+          <span style="font-size:.85rem;color:#444;flex:1">${c.nom}</span>
+          <span style="font-family:monospace;font-size:.88rem;font-weight:600;color:#1a3a5c;letter-spacing:.3px;cursor:pointer">
             ${fmtIban(c.iban)}
           </span>
-          <button onclick="esborrarCompte(${c.id})"
-                  style="background:none;border:none;cursor:pointer;color:#ddd;font-size:1rem;padding:0 4px;flex-shrink:0"
-                  onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#ddd'"
-                  title="Esborrar">🗑</button>
         </div>`).join('')}
     </div>`).join('');
 }
 
-async function afegirCompte() {
-  const entitat = document.getElementById('ncEntitat').value.trim();
-  const nom     = document.getElementById('ncNom').value.trim();
-  const iban    = document.getElementById('ncIban').value.trim();
-  const notes   = document.getElementById('ncNotes').value.trim();
-  if (!entitat || !nom || !iban) {
-    alert('Entitat, nom i IBAN són obligatoris');
-    return;
-  }
-  try {
-    const r = await fetch('/api/comptes-iban', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({entitat, nom, iban, notes})
-    });
-    if (!r.ok) throw new Error();
-    document.getElementById('ncEntitat').value = '';
-    document.getElementById('ncNom').value     = '';
-    document.getElementById('ncIban').value    = '';
-    document.getElementById('ncNotes').value   = '';
-    document.getElementById('detailsNouCompte').removeAttribute('open');
-    await carregarComptesIban();
-  } catch(e) { alert('Error afegint compte'); }
-}
-
-async function esborrarCompte(id) {
-  if (!confirm('Esborrar aquest compte?')) return;
-  try {
-    await fetch('/api/comptes-iban/' + id, {method:'DELETE'});
-    await carregarComptesIban();
-  } catch(e) { alert('Error esborrant'); }
-}
-
 function obrirModalComptes() {
+  renderComptes();
   document.getElementById('modalComptesOverlay').style.display = 'block';
   document.body.style.overflow = 'hidden';
-  carregarComptesIban();
 }
 
 function tancarModalComptes() {

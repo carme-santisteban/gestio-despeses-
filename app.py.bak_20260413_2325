@@ -978,47 +978,5 @@ def delete_credencial(id):
     return jsonify({'ok': True})
 
 
-
-# ─── API Comptes IBAN ─────────────────────────────────────────────────────────
-
-class CompteIban(db.Model):
-    __tablename__ = 'comptes_iban'
-    id      = db.Column(db.Integer, primary_key=True)
-    entitat = db.Column(db.Text, nullable=False)
-    nom     = db.Column(db.Text, nullable=False)
-    iban    = db.Column(db.Text, nullable=False)
-    notes   = db.Column(db.Text, default='')
-    ordre   = db.Column(db.Integer, default=0)
-
-    def to_dict(self):
-        return {'id': self.id, 'entitat': self.entitat, 'nom': self.nom,
-                'iban': self.iban, 'notes': self.notes or '', 'ordre': self.ordre}
-
-@app.route('/api/comptes-iban', methods=['GET'])
-def get_comptes_iban():
-    comptes = CompteIban.query.order_by(CompteIban.ordre, CompteIban.id).all()
-    return jsonify([c.to_dict() for c in comptes])
-
-@app.route('/api/comptes-iban', methods=['POST'])
-def create_compte_iban():
-    d = request.get_json()
-    c = CompteIban(
-        entitat = d.get('entitat','').strip(),
-        nom     = d.get('nom','').strip(),
-        iban    = d.get('iban','').replace(' ','').upper(),
-        notes   = d.get('notes','').strip(),
-        ordre   = CompteIban.query.count()
-    )
-    db.session.add(c)
-    db.session.commit()
-    return jsonify(c.to_dict()), 201
-
-@app.route('/api/comptes-iban/<int:id>', methods=['DELETE'])
-def delete_compte_iban(id):
-    c = CompteIban.query.get_or_404(id)
-    db.session.delete(c)
-    db.session.commit()
-    return jsonify({'ok': True})
-
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
