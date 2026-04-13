@@ -298,7 +298,6 @@
       <div><div class="page-title">Bancs <span style="color:var(--gold)">· Evolució de saldos</span></div></div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="obrirModalGestioBancs()">⚙ Gestió bancs</button>
-        <button class="btn btn-outline" style="background:#b8860b;color:white" onclick="obrirModalComptes()">💳 Comptes</button>
         <button class="btn btn-primary" onclick="obrirModalFotografia()">📸 Nova fotografia</button>
       </div>
     </div>
@@ -1899,129 +1898,6 @@ async function eliminarCredencial(id) {
   try { await fetch(`/api/credencials/${id}`,{method:'DELETE'}); toast('Eliminada','ok'); carregarCredencials(); }
   catch(e) { toast('Error eliminant','error'); }
 }
-</script>
-
-
-<!-- ══════════════════════════════ MODAL COMPTES ══════════════════════════════ -->
-<div id="modalComptesOverlay"
-     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;overflow-y:auto;padding:2rem 1rem"
-     onclick="if(event.target===this)tancarModalComptes()">
-  <div style="background:#fff;border-radius:14px;max-width:680px;margin:0 auto;padding:2rem;position:relative">
-
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
-      <h2 style="font-family:var(--font-head);color:var(--navy);margin:0">💳 Comptes bancaris</h2>
-      <button onclick="tancarModalComptes()"
-              style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#999;line-height:1">✕</button>
-    </div>
-
-    <div id="comptesContingut"></div>
-
-    <p style="font-size:.75rem;color:#aaa;margin-top:1.5rem;text-align:center">
-      Clica qualsevol IBAN per copiar-lo al porta-retalls
-    </p>
-  </div>
-</div>
-
-<script>
-// ── Dades comptes ─────────────────────────────────────────────────────────────
-const COMPTES_DATA = [
-  {
-    entitat: 'CaixaBank · Guissona',
-    color: '#1a5276',
-    comptes: [
-      { nom: 'Xavi',                              iban: 'ES1531400001920017733001' },
-      { nom: 'Privada Carme',                     iban: 'ES2931400001970016191700' },
-      { nom: 'Conjunta Xavi',                     iban: 'ES2431400001950017732400' },
-      { nom: 'Comunitat Carrer Mas · CIF H59479113',  iban: 'ES6231400001960018561100' },
-      { nom: 'Comunitat Carrer Prim · CIF H59184150', iban: 'ES3931400001980015995200' },
-    ]
-  },
-  {
-    entitat: 'Revolut',
-    color: '#0050ff',
-    comptes: [
-      { nom: 'Privada Carme',       iban: 'ES9815830001179018374221' },
-      { nom: 'Conjunta Teresa',     iban: 'ES8715830001139175804772' },
-    ]
-  },
-  {
-    entitat: 'Trade Republic',
-    color: '#1a1a2e',
-    comptes: [
-      { nom: 'Privada Carme',       iban: 'ES6815860001430277715911' },
-    ]
-  },
-  {
-    entitat: 'Santander',
-    color: '#cc0000',
-    comptes: [
-      { nom: 'Privada Carme',       iban: 'ES6600302021130000720271' },
-      { nom: 'Xavi',                iban: 'ES2600490904122810257134' },
-    ]
-  },
-  {
-    entitat: 'ING',
-    color: '#ff6200',
-    comptes: [
-      { nom: 'Conjunta (marit)',    iban: 'ES6014650120391712648891' },
-    ]
-  },
-  {
-    entitat: 'N26',
-    color: '#1e1e2f',
-    comptes: [
-      { nom: 'Privada Carme',       iban: 'ES5115632626353262914754' },
-    ]
-  },
-  {
-    entitat: 'Bunq',
-    color: '#00b0b0',
-    comptes: [
-      { nom: 'Privada Carme',       iban: 'ES9715761212111010639176' },
-      { nom: 'Conjunta Xavi',       iban: 'ES3315761212171010655166' },
-    ]
-  },
-];
-
-function fmtIban(iban) {
-  return iban.replace(/(.{4})/g, '$1 ').trim();
-}
-
-function renderComptes() {
-  const div = document.getElementById('comptesContingut');
-  if (!div) return;
-  div.innerHTML = COMPTES_DATA.map(grup => `
-    <div style="margin-bottom:1.25rem;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.1)">
-      <div style="background:${grup.color};color:#fff;padding:.6rem 1rem;font-weight:700;font-size:.9rem;font-family:var(--font-head)">
-        🏦 ${grup.entitat}
-      </div>
-      ${grup.comptes.map(c => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 1rem;border-bottom:1px solid #f0f0f0;background:#fff"
-             title="Clica per copiar"
-             onclick="navigator.clipboard.writeText('${c.iban}').then(()=>{ this.style.background='#e8f5e9'; setTimeout(()=>this.style.background='#fff',800) })"
-             style="cursor:pointer">
-          <span style="font-size:.85rem;color:#444;flex:1">${c.nom}</span>
-          <span style="font-family:monospace;font-size:.88rem;font-weight:600;color:#1a3a5c;letter-spacing:.3px;cursor:pointer">
-            ${fmtIban(c.iban)}
-          </span>
-        </div>`).join('')}
-    </div>`).join('');
-}
-
-function obrirModalComptes() {
-  renderComptes();
-  document.getElementById('modalComptesOverlay').style.display = 'block';
-  document.body.style.overflow = 'hidden';
-}
-
-function tancarModalComptes() {
-  document.getElementById('modalComptesOverlay').style.display = 'none';
-  document.body.style.overflow = '';
-}
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') tancarModalComptes();
-});
 </script>
 
 </body>
