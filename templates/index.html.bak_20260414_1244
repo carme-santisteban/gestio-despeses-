@@ -2000,11 +2000,6 @@ async function eliminarCredencial(id) {
                    style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
           </div>
           <div>
-            <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">PIN (només físiques)</label>
-            <input id="ntPin" type="text" placeholder="1234"
-                   style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
-          </div>
-          <div>
             <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">Xarxa</label>
             <select id="ntXarxa" style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
               <option value="Visa">Visa</option>
@@ -2198,7 +2193,7 @@ function copiarNumero(numero, elemId) {
 let _cvvPendentId = null;
 let _cvvPendentVal = null;
 
-function mostrarCvv(elemId, secret) {
+function mostrarCvv(id, cvv) {
   _cvvPendentId  = elemId;
   _cvvPendentVal = secret;
   document.getElementById('pinCvvInput').value = '';
