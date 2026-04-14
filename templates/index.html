@@ -2180,6 +2180,11 @@ function renderTargetes(targetes) {
                       onclick="mostrarCvv('pin_${t.id}','${t.pin}')"
                       title="Clica per veure">****</strong>
             </span>` : ''}
+            ${t.pin ? `<span style="font-size:.8rem;color:#888;margin-left:8px">PIN:
+              <strong id="pin_${t.id}" style="cursor:pointer;letter-spacing:2px"
+                      onclick="mostrarCvv('pin_${t.id}','${t.pin}')"
+                      title="Clica per veure">****</strong>
+            </span>` : ''}
           </div>
         </div>`).join('')}
     </div>`).join('');
