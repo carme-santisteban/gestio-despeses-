@@ -2043,8 +2043,6 @@ function canviarTabModal(tab) {
 function obrirModalComptes() {
   document.getElementById('modalComptesOverlay').style.display = 'block';
   document.body.style.overflow = 'hidden';
-  // Amagar contingut sensible del fons
-  document.getElementById('seccioBancs').style.filter = 'blur(8px)';
   canviarTabModal('comptes');
   carregarComptesIban();
 }
@@ -2052,7 +2050,6 @@ function obrirModalComptes() {
 function tancarModalComptes() {
   document.getElementById('modalComptesOverlay').style.display = 'none';
   document.body.style.overflow = '';
-  document.getElementById('seccioBancs').style.filter = '';
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') tancarModalComptes(); });
