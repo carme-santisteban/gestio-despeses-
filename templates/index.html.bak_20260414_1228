@@ -1995,11 +1995,6 @@ async function eliminarCredencial(id) {
                    style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
           </div>
           <div>
-            <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">PIN (només físiques)</label>
-            <input id="ntPin" type="text" placeholder="1234"
-                   style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
-          </div>
-          <div>
             <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">Xarxa</label>
             <select id="ntXarxa" style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
               <option value="Visa">Visa</option>
@@ -2167,14 +2162,9 @@ function renderTargetes(targetes) {
             <span style="font-size:.8rem;color:#888">Cad: <strong>${t.caducitat}</strong></span>
             <span style="font-size:.8rem;color:#888">CVV:
               <strong id="cvv_${t.id}" style="cursor:pointer;letter-spacing:2px"
-                      onclick="mostrarCvv('cvv_${t.id}','${t.cvv}')"
+                      onclick="mostrarCvv(${t.id},'${t.cvv}')"
                       title="Clica per veure">***</strong>
             </span>
-            ${t.pin ? `<span style="font-size:.8rem;color:#888;margin-left:8px">PIN:
-              <strong id="pin_${t.id}" style="cursor:pointer;letter-spacing:2px"
-                      onclick="mostrarCvv('pin_${t.id}','${t.pin}')"
-                      title="Clica per veure">****</strong>
-            </span>` : ''}
           </div>
         </div>`).join('')}
     </div>`).join('');
@@ -2194,8 +2184,8 @@ let _cvvPendentId = null;
 let _cvvPendentVal = null;
 
 function mostrarCvv(id, cvv) {
-  _cvvPendentId  = elemId;
-  _cvvPendentVal = secret;
+  _cvvPendentId  = id;
+  _cvvPendentVal = cvv;
   document.getElementById('pinCvvInput').value = '';
   document.getElementById('pinCvvError').style.display = 'none';
   document.getElementById('modalPinCvv').style.display = 'flex';
@@ -2218,7 +2208,7 @@ async function confirmarPinCvv() {
       return;
     }
     document.getElementById('modalPinCvv').style.display = 'none';
-    const el = document.getElementById(_cvvPendentId);
+    const el = document.getElementById('cvv_'+_cvvPendentId);
     el.textContent = _cvvPendentVal;
     el.style.color = '#e74c3c';
     el.style.cursor = 'default';
@@ -2249,7 +2239,7 @@ async function afegirTargeta() {
   if (!entitat||!nom||!numero||!caducitat||!cvv) { alert('Tots els camps marcats amb * són obligatoris'); return; }
   try {
     const r = await fetch('/api/targetes',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({entitat,nom,numero,caducitat,cvv,xarxa,tipus,pin:document.getElementById('ntPin').value.trim()})});
+      body:JSON.stringify({entitat,nom,numero,caducitat,cvv,xarxa,tipus})});
     if (!r.ok) throw new Error();
     ['ntEntitat','ntNom','ntNumero','ntCaducitat','ntCvv'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('detailsNouTargeta').removeAttribute('open');
