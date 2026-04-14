@@ -1020,56 +1020,5 @@ def delete_compte_iban(id):
     db.session.commit()
     return jsonify({'ok': True})
 
-
-# ─── API Targetes ─────────────────────────────────────────────────────────────
-
-class Targeta(db.Model):
-    __tablename__ = 'targetes'
-    id        = db.Column(db.Integer, primary_key=True)
-    entitat   = db.Column(db.Text, nullable=False)
-    nom       = db.Column(db.Text, nullable=False)
-    numero    = db.Column(db.Text, nullable=False)
-    caducitat = db.Column(db.Text, nullable=False)
-    cvv       = db.Column(db.Text, nullable=False)
-    xarxa     = db.Column(db.Text, default='')
-    tipus     = db.Column(db.Text, default='fisica')
-    ordre     = db.Column(db.Integer, default=0)
-
-    def to_dict(self):
-        return {
-            'id': self.id, 'entitat': self.entitat, 'nom': self.nom,
-            'numero': self.numero, 'caducitat': self.caducitat,
-            'cvv': self.cvv, 'xarxa': self.xarxa, 'tipus': self.tipus,
-        }
-
-@app.route('/api/targetes', methods=['GET'])
-def get_targetes():
-    ts = Targeta.query.order_by(Targeta.ordre, Targeta.id).all()
-    return jsonify([t.to_dict() for t in ts])
-
-@app.route('/api/targetes', methods=['POST'])
-def create_targeta():
-    d = request.get_json()
-    t = Targeta(
-        entitat   = d.get('entitat','').strip(),
-        nom       = d.get('nom','').strip(),
-        numero    = d.get('numero','').replace(' ',''),
-        caducitat = d.get('caducitat','').strip(),
-        cvv       = d.get('cvv','').strip(),
-        xarxa     = d.get('xarxa','').strip(),
-        tipus     = d.get('tipus','fisica').strip(),
-        ordre     = Targeta.query.count()
-    )
-    db.session.add(t)
-    db.session.commit()
-    return jsonify(t.to_dict()), 201
-
-@app.route('/api/targetes/<int:id>', methods=['DELETE'])
-def delete_targeta(id):
-    t = Targeta.query.get_or_404(id)
-    db.session.delete(t)
-    db.session.commit()
-    return jsonify({'ok': True})
-
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
