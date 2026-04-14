@@ -1039,7 +1039,7 @@ class Targeta(db.Model):
         return {
             'id': self.id, 'entitat': self.entitat, 'nom': self.nom,
             'numero': self.numero, 'caducitat': self.caducitat,
-            'cvv': self.cvv, 'xarxa': self.xarxa, 'tipus': self.tipus,
+            'cvv': self.cvv, 'xarxa': self.xarxa, 'tipus': self.tipus, 'pin': self.pin or '',
         }
 
 @app.route('/api/targetes', methods=['GET'])
