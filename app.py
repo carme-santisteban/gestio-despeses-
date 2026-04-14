@@ -1034,6 +1034,7 @@ class Targeta(db.Model):
     xarxa     = db.Column(db.Text, default='')
     tipus     = db.Column(db.Text, default='fisica')
     ordre     = db.Column(db.Integer, default=0)
+    pin       = db.Column(db.Text, default='')
 
     def to_dict(self):
         return {
