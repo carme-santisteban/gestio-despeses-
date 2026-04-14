@@ -2176,37 +2176,20 @@ function copiarNumero(numero, elemId) {
   });
 }
 
-// Mini-modal PIN ocult
-let _cvvPendentId = null;
-let _cvvPendentVal = null;
-
-function mostrarCvv(id, cvv) {
-  _cvvPendentId  = id;
-  _cvvPendentVal = cvv;
-  document.getElementById('pinCvvInput').value = '';
-  document.getElementById('pinCvvError').style.display = 'none';
-  document.getElementById('modalPinCvv').style.display = 'flex';
-  setTimeout(()=>document.getElementById('pinCvvInput').focus(), 100);
-}
-
-async function confirmarPinCvv() {
-  const pin = document.getElementById('pinCvvInput').value;
+async function mostrarCvv(id, cvv) {
+  // Demanar PIN de Bancs
+  const pin = prompt('Introdueix el PIN per veure el CVV:');
   if (!pin) return;
   try {
     const r = await fetch('/api/bancs/verificar-pin', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({pin})
     });
     const d = await r.json();
-    if (!d.ok) {
-      document.getElementById('pinCvvError').style.display = 'block';
-      document.getElementById('pinCvvInput').value = '';
-      document.getElementById('pinCvvInput').focus();
-      return;
-    }
-    document.getElementById('modalPinCvv').style.display = 'none';
-    const el = document.getElementById('cvv_'+_cvvPendentId);
-    el.textContent = _cvvPendentVal;
+    if (!d.ok) { alert('PIN incorrecte'); return; }
+    const el = document.getElementById('cvv_'+id);
+    el.textContent = cvv;
     el.style.color = '#e74c3c';
     el.style.cursor = 'default';
     setTimeout(() => {
@@ -2216,14 +2199,6 @@ async function confirmarPinCvv() {
     }, 8000);
   } catch(e) { alert('Error verificant PIN'); }
 }
-
-function tancarPinCvv() {
-  document.getElementById('modalPinCvv').style.display = 'none';
-}
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.getElementById('modalPinCvv').style.display === 'flex') confirmarPinCvv();
-});
 
 async function afegirTargeta() {
   const entitat   = document.getElementById('ntEntitat').value.trim();
@@ -2250,23 +2225,6 @@ async function esborrarTargeta(id) {
   await carregarTargetes();
 }
 </script>
-
-
-<!-- Mini-modal PIN CVV -->
-<div id="modalPinCvv" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:12px;padding:1.5rem 2rem;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.3)">
-    <h3 style="margin:0 0 1rem;font-size:1rem;color:#1a3a5c">🔒 Introdueix el PIN</h3>
-    <input id="pinCvvInput" type="password" placeholder="PIN..."
-           style="width:100%;padding:.5rem .75rem;border:1px solid #ddd;border-radius:6px;font-size:1rem;box-sizing:border-box;letter-spacing:4px;text-align:center">
-    <p id="pinCvvError" style="display:none;color:#e74c3c;font-size:.8rem;margin:.5rem 0 0;text-align:center">PIN incorrecte</p>
-    <div style="display:flex;gap:.75rem;margin-top:1rem;justify-content:flex-end">
-      <button onclick="tancarPinCvv()"
-              style="padding:.45rem 1rem;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;color:#666">Cancel·lar</button>
-      <button onclick="confirmarPinCvv()"
-              style="padding:.45rem 1rem;border:none;border-radius:6px;background:#1a3a5c;color:#fff;cursor:pointer;font-weight:600">Veure CVV</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
