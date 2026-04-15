@@ -2326,31 +2326,81 @@ async function esborrarTargeta(id) {
 
 <!-- Modal Asseguranca -->
 <div class="modal-overlay" id="modalAssegurancaOverlay" onclick="if(event.target===this)tancarModalAsseguranca()">
-  <div class="modal" style="max-width:680px" onclick="event.stopPropagation()">
+  <div class="modal" style="max-width:600px" onclick="event.stopPropagation()">
     <div class="modal-cap">
       <h3 id="modalAssegurancaTitol">Nova assegurança</h3>
-      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalAsseguranca()">&#x2715;</button>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalAsseguranca()">×</button>
     </div>
     <div class="modal-cos">
       <div class="form-grid">
-        <div class="form-grup full"><label class="form-label">Nom <span>*</span></label><input type="text" class="form-control" id="afNom" placeholder="Ex: Asseguran&#xE7;a cotxe Mapfre"></div>
-        <div class="form-grup"><label class="form-label">Companyia</label><input type="text" class="form-control" id="afCompanyia" placeholder="Ex: Mapfre, Axa..."></div>
-        <div class="form-grup"><label class="form-label">N&#xFA;m. p&#xF2;lissa</label><input type="text" class="form-control" id="afPolissa" placeholder="Numero de polissa"></div>
-        <div class="form-grup"><label class="form-label">Tipus <span>*</span></label>
+
+        <div class="form-grup full">
+          <label class="form-label">Tipus <span>*</span></label>
           <select class="form-control" id="afTipus" onchange="ajustarCampsAsseguranca()">
-            <option value="Vehicle">Vehicle</option>
-            <option value="Llar">Llar</option>
-            <option value="Altres">Altres</option>
+            <option value="">-- Selecciona tipus --</option>
+            <option value="Cotxe">&#x1F697; Cotxe</option>
+            <option value="Moto">&#x1F3CD; Moto</option>
+            <option value="Llar">&#x1F3E0; Llar</option>
+            <option value="Salut">&#x2764; Salut</option>
+            <option value="Vida">&#x1F9E1; Vida</option>
+            <option value="RC">&#x2696; Responsabilitat Civil</option>
+            <option value="Embarcacio">&#x26F5; Embarcació</option>
+            <option value="Altres">&#x1F4CB; Altres</option>
           </select>
         </div>
-        <div class="form-grup"><label class="form-label">Titular</label><input type="text" class="form-control" id="afTitular" placeholder="Nom del titular"></div>
-        <div class="form-grup" id="campMatricula" style="display:none"><label class="form-label">Matr&#xED;cula</label><input type="text" class="form-control" id="afMatricula" placeholder="Ex: 1234 ABC"></div>
-        <div class="form-grup full" id="campAdreca" style="display:none"><label class="form-label">Adre&#xE7;a del pis</label><input type="text" class="form-control" id="afAdreca" placeholder="Adre&#xE7;a completa"></div>
-        <div class="form-grup full" id="campSubtipus" style="display:none"><label class="form-label">Tipus d'asseguran&#xE7;a</label><input type="text" class="form-control" id="afSubtipus" placeholder="Ex: Salut, Vida, RC, Embarcaci&#xF3;..."></div>
-        <div class="form-grup"><label class="form-label">Data inici</label><input type="date" class="form-control" id="afDataInici"></div>
-        <div class="form-grup"><label class="form-label">Data venciment <span>*</span></label><input type="date" class="form-control" id="afDataVenciment"></div>
-        <div class="form-grup"><label class="form-label">Data pagament</label><input type="date" class="form-control" id="afDataPagament"></div>
-        <div class="form-grup"><label class="form-label">Periodicitat</label>
+
+        <div class="form-grup" id="campMatricula" style="display:none">
+          <label class="form-label">Matrícula</label>
+          <input type="text" class="form-control" id="afMatricula" placeholder="Ex: 1234 ABC">
+        </div>
+
+        <div class="form-grup full" id="campAdreca" style="display:none">
+          <label class="form-label">Domicili assegurat</label>
+          <input type="text" class="form-control" id="afAdreca" placeholder="Adreça completa del pis">
+        </div>
+
+        <div class="form-grup full" id="campSubtipus" style="display:none">
+          <label class="form-label">Descripció de la pòlissa</label>
+          <input type="text" class="form-control" id="afSubtipus" placeholder="Ex: Salut, Vida, RC professional...">
+        </div>
+
+        <div class="form-grup full">
+          <label class="form-label">Nom / Descripció <span>*</span></label>
+          <input type="text" class="form-control" id="afNom" placeholder="Ex: Assegurança cotxe Mapfre">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Companyia</label>
+          <input type="text" class="form-control" id="afCompanyia" placeholder="Ex: Mapfre, Axa, Mutua...">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Núm. pòlissa</label>
+          <input type="text" class="form-control" id="afPolissa" placeholder="Número de pòlissa">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Titular</label>
+          <input type="text" class="form-control" id="afTitular" placeholder="Nom del titular">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Import prima (€)</label>
+          <input type="number" class="form-control" id="afImport" step="0.01" min="0" placeholder="0,00">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Data inici</label>
+          <input type="date" class="form-control" id="afDataInici">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Data venciment <span>*</span></label>
+          <input type="date" class="form-control" id="afDataVenciment">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Periodicitat</label>
           <select class="form-control" id="afPeriodicitat">
             <option value="">-</option>
             <option value="Mensual">Mensual</option>
@@ -2358,27 +2408,33 @@ async function esborrarTargeta(id) {
             <option value="Anual">Anual</option>
           </select>
         </div>
-        <div class="form-grup"><label class="form-label">Import prima (EUR)</label><input type="number" class="form-control" id="afImport" step="0.01" min="0" placeholder="0,00"></div>
+
         <div class="form-grup" style="display:flex;align-items:center;gap:10px;padding-top:22px">
           <label style="display:flex;align-items:center;gap:6px;font-size:.9rem;cursor:pointer">
-            <input type="checkbox" id="afActiva" checked> Asseguran&#xE7;a activa
+            <input type="checkbox" id="afActiva" checked> Assegurança activa
           </label>
         </div>
-        <div class="form-grup full"><label class="form-label">Notes</label><textarea class="form-control" id="afNotes" placeholder="Observacions..."></textarea></div>
+
         <div class="form-grup full">
-          <label class="form-label">Document (polissa PDF)</label>
+          <label class="form-label">Notes</label>
+          <textarea class="form-control" id="afNotes" placeholder="Observacions..."></textarea>
+        </div>
+
+        <div class="form-grup full">
+          <label class="form-label">Document (pòlissa PDF)</label>
           <div class="upload-zona" onclick="document.getElementById('afDocument').click()">
-            <div>&#x1F4CE; Fes clic per adjuntar la polissa</div>
+            <div>&#x1F4CE; Fes clic per adjuntar la pòlissa</div>
             <div class="upload-text">PDF fins a 10 MB</div>
             <div class="upload-nom" id="afNomDocument"></div>
           </div>
           <input type="file" id="afDocument" accept=".pdf,.jpg,.jpeg,.png" onchange="document.getElementById('afNomDocument').textContent = this.files[0]?.name || ''">
           <div id="afDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
         </div>
+
       </div>
     </div>
     <div class="modal-peu">
-      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalAsseguranca()">Cancel.lar</button>
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalAsseguranca()">Cancel·lar</button>
       <button class="btn btn-primary" id="btnGuardarAsseguranca" onclick="guardarAsseguranca()">Guardar</button>
     </div>
   </div>
@@ -2463,9 +2519,9 @@ function renderAssegurances() {
 
 function ajustarCampsAsseguranca() {
   const tipus = document.getElementById('afTipus').value;
-  document.getElementById('campMatricula').style.display = tipus === 'Vehicle' ? '' : 'none';
-  document.getElementById('campAdreca').style.display    = tipus === 'Llar'    ? '' : 'none';
-  document.getElementById('campSubtipus').style.display  = tipus === 'Altres'  ? '' : 'none';
+  document.getElementById('campMatricula').style.display = (tipus === 'Cotxe' || tipus === 'Moto') ? '' : 'none';
+  document.getElementById('campAdreca').style.display    = tipus === 'Llar' ? '' : 'none';
+  document.getElementById('campSubtipus').style.display  = (tipus === 'Altres' || tipus === 'Embarcacio') ? '' : 'none';
 }
 
 function obrirModalAsseguranca(a) {
@@ -2475,7 +2531,7 @@ function obrirModalAsseguranca(a) {
   document.getElementById('afNom').value           = a ? a.nom : '';
   document.getElementById('afCompanyia').value     = a ? a.companyia : '';
   document.getElementById('afPolissa').value       = a ? a.numero_polissa : '';
-  document.getElementById('afTipus').value         = a ? a.tipus : 'Vehicle';
+  document.getElementById('afTipus').value         = a ? a.tipus : '';
   document.getElementById('afTitular').value       = a ? a.titular : '';
   document.getElementById('afMatricula').value     = a ? a.matricula : '';
   document.getElementById('afAdreca').value        = a ? a.adreca : '';
