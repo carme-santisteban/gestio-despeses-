@@ -1122,6 +1122,9 @@ class Asseguranca(db.Model):
 
 # ─── API Assegurances ───────────────────────────────────────────────────────────────────────────────
 
+with app.app_context():
+    db.create_all()
+
 @app.route('/api/assegurances/alertes', methods=['GET'])
 def get_alertes_assegurances():
     from datetime import timedelta
