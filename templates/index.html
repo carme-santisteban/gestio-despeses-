@@ -2338,17 +2338,15 @@ async function esborrarTargeta(id) {
         <div class="form-grup"><label class="form-label">N&#xFA;m. p&#xF2;lissa</label><input type="text" class="form-control" id="afPolissa" placeholder="Numero de polissa"></div>
         <div class="form-grup"><label class="form-label">Tipus <span>*</span></label>
           <select class="form-control" id="afTipus" onchange="ajustarCampsAsseguranca()">
-            <option value="Salut">Salut</option>
-            <option value="Vehicle">Vehicle</option>
-            <option value="Llar">Llar</option>
-            <option value="Vida">Vida</option>
-            <option value="RC">Responsabilitat Civil</option>
-            <option value="Altres">Altres</option>
+            <option value="Vehicle">&#x1F697; Vehicle</option>
+            <option value="Llar">&#x1F3E0; Llar</option>
+            <option value="Altres">&#x1F4CB; Altres</option>
           </select>
         </div>
         <div class="form-grup"><label class="form-label">Titular</label><input type="text" class="form-control" id="afTitular" placeholder="Nom del titular"></div>
         <div class="form-grup" id="campMatricula" style="display:none"><label class="form-label">Matr&#xED;cula</label><input type="text" class="form-control" id="afMatricula" placeholder="Ex: 1234 ABC"></div>
         <div class="form-grup full" id="campAdreca" style="display:none"><label class="form-label">Adre&#xE7;a del pis</label><input type="text" class="form-control" id="afAdreca" placeholder="Adre&#xE7;a completa"></div>
+        <div class="form-grup full" id="campSubtipus" style="display:none"><label class="form-label">Tipus d'asseguran&#xE7;a</label><input type="text" class="form-control" id="afSubtipus" placeholder="Ex: Salut, Vida, RC, Embarcaci&#xF3;..."></div>
         <div class="form-grup"><label class="form-label">Data inici</label><input type="date" class="form-control" id="afDataInici"></div>
         <div class="form-grup"><label class="form-label">Data venciment <span>*</span></label><input type="date" class="form-control" id="afDataVenciment"></div>
         <div class="form-grup"><label class="form-label">Data pagament</label><input type="date" class="form-control" id="afDataPagament"></div>
@@ -2419,11 +2417,8 @@ async function carregarAlertesAssegurances() {
 }
 
 const TIPUS_BADGE = {
-  'Salut':   'background:#e6f4ee;color:#1a6b4a',
   'Vehicle': 'background:#e8f0fb;color:#1a4a7a',
   'Llar':    'background:#fff3e0;color:#e65100',
-  'Vida':    'background:#f3e8ff;color:#6b1a7a',
-  'RC':      'background:#fde8e6;color:#c0392b',
   'Altres':  'background:#f0f0f0;color:#555',
 };
 
@@ -2470,12 +2465,13 @@ function ajustarCampsAsseguranca() {
   const tipus = document.getElementById('afTipus').value;
   document.getElementById('campMatricula').style.display = tipus === 'Vehicle' ? '' : 'none';
   document.getElementById('campAdreca').style.display    = tipus === 'Llar'    ? '' : 'none';
+  document.getElementById('campSubtipus').style.display  = tipus === 'Altres'  ? '' : 'none';
 }
 
 function obrirModalAsseguranca(a) {
   a = a || null;
   assegurancaEdId = a ? a.id : null;
-  document.getElementById('modalAssegurancaTitol').textContent = a ? 'Editar asseguranca' : 'Nova asseguranca';
+  document.getElementById('modalAssegurancaTitol').textContent = a ? 'Editar asseguran&#xE7;a' : 'Nova asseguran&#xE7;a';
   document.getElementById('afNom').value           = a ? a.nom : '';
   document.getElementById('afCompanyia').value     = a ? a.companyia : '';
   document.getElementById('afPolissa').value       = a ? a.numero_polissa : '';
@@ -2490,6 +2486,7 @@ function obrirModalAsseguranca(a) {
   document.getElementById('afImport').value        = a ? (a.import_prima || '') : '';
   document.getElementById('afActiva').checked      = a ? a.activa : true;
   document.getElementById('afNotes').value         = a ? a.notes : '';
+  if(document.getElementById('afSubtipus')) document.getElementById('afSubtipus').value = '';
   document.getElementById('afNomDocument').textContent = '';
   document.getElementById('afDocument').value = '';
   document.getElementById('afDocActual').innerHTML = a && a.document_url ? 'Document actual: <a href="' + a.document_url + '" target="_blank" style="color:var(--blue)">' + esc(a.document_nom || 'veure') + '</a>' : '';
@@ -2516,6 +2513,7 @@ async function guardarAsseguranca() {
   fd.append('titular', document.getElementById('afTitular').value);
   fd.append('matricula', document.getElementById('afMatricula').value);
   fd.append('adreca', document.getElementById('afAdreca').value);
+  fd.append('notes', (document.getElementById('afSubtipus') && document.getElementById('afSubtipus').value ? 'Tipus: ' + document.getElementById('afSubtipus').value + '\n' : '') + document.getElementById('afNotes').value);
   fd.append('data_inici', document.getElementById('afDataInici').value);
   fd.append('data_venciment', venc);
   fd.append('data_pagament', document.getElementById('afDataPagament').value);
