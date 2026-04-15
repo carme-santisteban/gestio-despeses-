@@ -2537,7 +2537,7 @@ function obrirModalAsseguranca(a) {
   document.getElementById('afAdreca').value        = a ? a.adreca : '';
   document.getElementById('afDataInici').value     = a ? a.data_inici : '';
   document.getElementById('afDataVenciment').value = a ? a.data_venciment : '';
-  document.getElementById('afDataPagament').value  = a ? a.data_pagament : '';
+  if(document.getElementById('afDataPagament')) document.getElementById('afDataPagament').value = a ? a.data_pagament : '';
   document.getElementById('afPeriodicitat').value  = a ? a.periodicitat : '';
   document.getElementById('afImport').value        = a ? (a.import_prima || '') : '';
   document.getElementById('afActiva').checked      = a ? a.activa : true;
