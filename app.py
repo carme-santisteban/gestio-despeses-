@@ -1072,5 +1072,155 @@ def delete_targeta(id):
     db.session.commit()
     return jsonify({'ok': True})
 
+
+
+# ─── Model Assegurances ───────────────────────────────────────────────────────────────────────────────
+
+class Asseguranca(db.Model):
+    __tablename__ = 'assegurances'
+
+    id             = db.Column(db.Integer, primary_key=True)
+    nom            = db.Column(db.String(200), nullable=False)
+    companyia      = db.Column(db.String(200))
+    numero_polissa = db.Column(db.String(100))
+    tipus          = db.Column(db.String(50), nullable=False, default='Altres')
+    titular        = db.Column(db.String(200))
+    matricula      = db.Column(db.String(20))
+    adreca         = db.Column(db.String(300))
+    data_inici     = db.Column(db.Date)
+    data_venciment = db.Column(db.Date)
+    data_pagament  = db.Column(db.Date)
+    periodicitat   = db.Column(db.String(20))
+    import_prima   = db.Column(db.Numeric(10, 2))
+    activa         = db.Column(db.Boolean, default=True)
+    document_url   = db.Column(db.String(500))
+    document_nom   = db.Column(db.String(200))
+    notes          = db.Column(db.Text)
+    creat_el       = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id':             self.id,
+            'nom':            self.nom,
+            'companyia':      self.companyia or '',
+            'numero_polissa': self.numero_polissa or '',
+            'tipus':          self.tipus or 'Altres',
+            'titular':        self.titular or '',
+            'matricula':      self.matricula or '',
+            'adreca':         self.adreca or '',
+            'data_inici':     self.data_inici.isoformat() if self.data_inici else '',
+            'data_venciment': self.data_venciment.isoformat() if self.data_venciment else '',
+            'data_pagament':  self.data_pagament.isoformat() if self.data_pagament else '',
+            'periodicitat':   self.periodicitat or '',
+            'import_prima':   float(self.import_prima) if self.import_prima else 0,
+            'activa':         self.activa if self.activa is not None else True,
+            'document_url':   self.document_url or '',
+            'document_nom':   self.document_nom or '',
+            'notes':          self.notes or '',
+        }
+
+
+# ─── API Assegurances ───────────────────────────────────────────────────────────────────────────────
+
+@app.route('/api/assegurances/alertes', methods=['GET'])
+def get_alertes_assegurances():
+    from datetime import timedelta
+    avui = date.today()
+    limit = avui + timedelta(days=30)
+    alertes = Asseguranca.query.filter(
+        Asseguranca.activa == True,
+        Asseguranca.data_venciment != None,
+        Asseguranca.data_venciment <= limit
+    ).order_by(Asseguranca.data_venciment).all()
+    return jsonify([a.to_dict() for a in alertes])
+
+@app.route('/api/assegurances', methods=['GET'])
+def get_assegurances():
+    assegurances = Asseguranca.query.order_by(Asseguranca.nom).all()
+    return jsonify([a.to_dict() for a in assegurances])
+
+@app.route('/api/assegurances', methods=['POST'])
+def create_asseguranca():
+    data = request.form
+    fitxer = request.files.get('document')
+    document_url = None
+    document_nom = None
+    if fitxer and fitxer.filename:
+        try:
+            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/assegurances')
+            document_url = result.get('secure_url')
+            document_nom = fitxer.filename
+        except Exception as e:
+            pass
+    try:
+        def parse_d(s):
+            return datetime.strptime(s, '%Y-%m-%d').date() if s else None
+        a = Asseguranca(
+            nom            = data['nom'],
+            companyia      = data.get('companyia', ''),
+            numero_polissa = data.get('numero_polissa', ''),
+            tipus          = data.get('tipus', 'Altres'),
+            titular        = data.get('titular', ''),
+            matricula      = data.get('matricula', ''),
+            adreca         = data.get('adreca', ''),
+            data_inici     = parse_d(data.get('data_inici', '')),
+            data_venciment = parse_d(data.get('data_venciment', '')),
+            data_pagament  = parse_d(data.get('data_pagament', '')),
+            periodicitat   = data.get('periodicitat', ''),
+            import_prima   = float(data['import_prima']) if data.get('import_prima') else None,
+            activa         = data.get('activa', 'true').lower() == 'true',
+            notes          = data.get('notes', ''),
+            document_url   = document_url,
+            document_nom   = document_nom,
+        )
+        db.session.add(a)
+        db.session.commit()
+        return jsonify(a.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/assegurances/<int:id>', methods=['PUT'])
+def update_asseguranca(id):
+    a = Asseguranca.query.get_or_404(id)
+    data = request.form
+    fitxer = request.files.get('document')
+    if fitxer and fitxer.filename:
+        try:
+            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/assegurances')
+            a.document_url = result.get('secure_url')
+            a.document_nom = fitxer.filename
+        except:
+            pass
+    try:
+        def parse_d(s):
+            return datetime.strptime(s, '%Y-%m-%d').date() if s else None
+        a.nom            = data['nom']
+        a.companyia      = data.get('companyia', '')
+        a.numero_polissa = data.get('numero_polissa', '')
+        a.tipus          = data.get('tipus', 'Altres')
+        a.titular        = data.get('titular', '')
+        a.matricula      = data.get('matricula', '')
+        a.adreca         = data.get('adreca', '')
+        a.data_inici     = parse_d(data.get('data_inici', ''))
+        a.data_venciment = parse_d(data.get('data_venciment', ''))
+        a.data_pagament  = parse_d(data.get('data_pagament', ''))
+        a.periodicitat   = data.get('periodicitat', '')
+        a.import_prima   = float(data['import_prima']) if data.get('import_prima') else None
+        a.activa         = data.get('activa', 'true').lower() == 'true'
+        a.notes          = data.get('notes', '')
+        db.session.commit()
+        return jsonify(a.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/assegurances/<int:id>', methods=['DELETE'])
+def delete_asseguranca(id):
+    a = Asseguranca.query.get_or_404(id)
+    db.session.delete(a)
+    db.session.commit()
+    return jsonify({'ok': True})
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
