@@ -2572,7 +2572,7 @@ async function guardarAsseguranca() {
   fd.append('notes', (document.getElementById('afSubtipus') && document.getElementById('afSubtipus').value ? 'Tipus: ' + document.getElementById('afSubtipus').value + '\n' : '') + document.getElementById('afNotes').value);
   fd.append('data_inici', document.getElementById('afDataInici').value);
   fd.append('data_venciment', venc);
-  fd.append('data_pagament', document.getElementById('afDataPagament').value);
+  if(document.getElementById('afDataPagament')) fd.append('data_pagament', document.getElementById('afDataPagament').value);
   fd.append('periodicitat', document.getElementById('afPeriodicitat').value);
   const imp = document.getElementById('afImport').value;
   if (imp) fd.append('import_prima', imp);
