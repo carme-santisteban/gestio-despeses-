@@ -2328,7 +2328,7 @@ async function esborrarTargeta(id) {
 <div class="modal-overlay" id="modalAssegurancaOverlay" onclick="if(event.target===this)tancarModalAsseguranca()">
   <div class="modal" style="max-width:680px" onclick="event.stopPropagation()">
     <div class="modal-cap">
-      <h3 id="modalAssegurancaTitol">Nova asseguran&#xE7;a</h3>
+      <h3 id="modalAssegurancaTitol">Nova assegurança</h3>
       <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalAsseguranca()">&#x2715;</button>
     </div>
     <div class="modal-cos">
@@ -2338,9 +2338,9 @@ async function esborrarTargeta(id) {
         <div class="form-grup"><label class="form-label">N&#xFA;m. p&#xF2;lissa</label><input type="text" class="form-control" id="afPolissa" placeholder="Numero de polissa"></div>
         <div class="form-grup"><label class="form-label">Tipus <span>*</span></label>
           <select class="form-control" id="afTipus" onchange="ajustarCampsAsseguranca()">
-            <option value="Vehicle">&#x1F697; Vehicle</option>
-            <option value="Llar">&#x1F3E0; Llar</option>
-            <option value="Altres">&#x1F4CB; Altres</option>
+            <option value="Vehicle">Vehicle</option>
+            <option value="Llar">Llar</option>
+            <option value="Altres">Altres</option>
           </select>
         </div>
         <div class="form-grup"><label class="form-label">Titular</label><input type="text" class="form-control" id="afTitular" placeholder="Nom del titular"></div>
@@ -2471,7 +2471,7 @@ function ajustarCampsAsseguranca() {
 function obrirModalAsseguranca(a) {
   a = a || null;
   assegurancaEdId = a ? a.id : null;
-  document.getElementById('modalAssegurancaTitol').textContent = a ? 'Editar asseguran&#xE7;a' : 'Nova asseguran&#xE7;a';
+  document.getElementById('modalAssegurancaTitol').textContent = a ? 'Editar assegurança' : 'Nova assegurança';
   document.getElementById('afNom').value           = a ? a.nom : '';
   document.getElementById('afCompanyia').value     = a ? a.companyia : '';
   document.getElementById('afPolissa').value       = a ? a.numero_polissa : '';
