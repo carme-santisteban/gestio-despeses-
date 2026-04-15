@@ -218,6 +218,7 @@
 </header>
 
 <div class="toast-container" id="toasts"></div>
+<div id="bannerAssegurances" style="display:none;background:#7f1d1d;color:#fecaca;padding:.75rem 1.5rem;font-size:.88rem;cursor:pointer;text-align:center;border-bottom:2px solid #ef4444" onclick="canviarTab('assegurances')">&#x26A0; <span id="bannerAssegurancesText"></span> - Clica per veure</div>
 
 <div class="container">
 
@@ -226,6 +227,7 @@
     <button class="nav-tab" id="tabFactures" onclick="canviarTab('factures')">🧾 Factures emeses</button>
     <button class="nav-tab" id="tabBancs" onclick="canviarTab('bancs')">🏦 Bancs</button>
     <button class="nav-tab" id="tabCredencials" onclick="canviarTab('credencials')">🔑 Credencials</button>
+    <button class="nav-tab" id="tabAssegurances" onclick="canviarTab('assegurances')">&#x1F6E1;&#xFE0F; Assegurances</button>
   </div>
 
   <!-- ══════════════════════════════════════════════════════════ DESPESES -->
@@ -336,6 +338,34 @@
     <div id="credencialsGrid" style="display:grid;gap:1.5rem"></div>
   </div>
 
+
+  <!-- ASSEGURANCES -->
+  <div id="seccioAssegurances" style="display:none">
+    <div class="page-header">
+      <div><div class="page-title">Assegurances <span style="color:var(--gold)">&#xB7; Vigents i venciments</span></div></div>
+      <button class="btn btn-primary" onclick="obrirModalAsseguranca()">+ Nova asseguran&#xE7;a</button>
+    </div>
+    <div class="taula-wrapper">
+      <div class="taula-cap">
+        <h2>Llistat d'assegurances</h2>
+        <label style="font-size:.8rem;color:var(--gray-3)">
+          <input type="checkbox" id="filtreSolsActives" checked onchange="renderAssegurances()"> Nom&#xE9;s actives
+        </label>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>Nom</th><th>Tipus</th><th>Companyia</th><th>P&#xF2;lissa</th>
+            <th>Vehicle/Adre&#xE7;a</th><th>Venciment</th><th>Prima</th><th>Doc.</th>
+            <th style="text-align:center">Accions</th>
+          </tr></thead>
+          <tbody id="taulaAssegurancesCos">
+            <tr><td colspan="9" class="buit"><div class="buit-icon">&#x1F6E1;</div><div class="buit-text">Carregant...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div><!-- fi container -->
 
 <!-- Modal despesa -->
@@ -834,6 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('filtreAny').value = avui.getFullYear();
   carregarAnys();
   carregarDespeses();
+  carregarAlertesAssegurances();
 });
 
 // ─── Tab navigation ───────────────────────────────────────────────────────────
@@ -842,7 +873,8 @@ function canviarTab(tab) {
   document.getElementById('seccioFactures').style.display = tab === 'factures' ? 'block' : 'none';
   document.getElementById('seccioBancs').style.display    = tab === 'bancs'    ? 'block' : 'none';
   document.getElementById('seccioCredencials').style.display = tab === 'credencials' ? 'block' : 'none';
-  ['tabDespeses','tabFactures','tabBancs','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+  document.getElementById('seccioAssegurances').style.display = tab === 'assegurances' ? 'block' : 'none';
+  ['tabDespeses','tabFactures','tabBancs','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
   document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('actiu');
 
   if (tab === 'despeses') {
@@ -860,13 +892,18 @@ function canviarTab(tab) {
     document.getElementById('seccioFactures').style.display = 'none';
     document.getElementById('seccioBancs').style.display = 'none';
     document.getElementById('seccioCredencials').style.display = 'block';
-    ['tabDespeses','tabFactures','tabBancs','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+    ['tabDespeses','tabFactures','tabBancs','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
     document.getElementById('tabCredencials').classList.add('actiu');
     document.getElementById('btnNou').style.display = 'none';
     document.getElementById('btnExportCSV').style.display = 'none';
     if (!window._credencialsPinOk) { obrirPinCredencials(); return; }
     carregarCredencials();
     return;
+  } else if (tab === 'assegurances') {
+    document.getElementById('btnNou').textContent = '+ Nova asseguranca';
+    document.getElementById('btnNou').onclick = function(){ obrirModalAsseguranca(); };
+    document.getElementById('btnExportCSV').style.display = 'none';
+    carregarAssegurances();
   } else if (tab === 'bancs') {
     document.getElementById('btnNou').textContent = '📸 Nova fotografia';
     document.getElementById('btnNou').onclick = obrirModalFotografia;
@@ -1806,7 +1843,7 @@ async function verificarPinCredencials() {
       document.getElementById('modalPinCredencialsOverlay').classList.remove('actiu');
       document.getElementById('seccioCredencials').style.display = 'block';
       ['seccioDespeses','seccioFactures','seccioBancs'].forEach(id => document.getElementById(id).style.display = 'none');
-      ['tabDespeses','tabFactures','tabBancs','tabCredencials'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+      ['tabDespeses','tabFactures','tabBancs','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
       document.getElementById('tabCredencials').classList.add('actiu');
       carregarCredencials();
     } else {
@@ -2285,6 +2322,239 @@ async function esborrarTargeta(id) {
     </div>
   </div>
 </div>
+
+
+<!-- Modal Asseguranca -->
+<div class="modal-overlay" id="modalAssegurancaOverlay" onclick="if(event.target===this)tancarModalAsseguranca()">
+  <div class="modal" style="max-width:680px" onclick="event.stopPropagation()">
+    <div class="modal-cap">
+      <h3 id="modalAssegurancaTitol">Nova asseguran&#xE7;a</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalAsseguranca()">&#x2715;</button>
+    </div>
+    <div class="modal-cos">
+      <div class="form-grid">
+        <div class="form-grup full"><label class="form-label">Nom <span>*</span></label><input type="text" class="form-control" id="afNom" placeholder="Ex: Asseguran&#xE7;a cotxe Mapfre"></div>
+        <div class="form-grup"><label class="form-label">Companyia</label><input type="text" class="form-control" id="afCompanyia" placeholder="Ex: Mapfre, Axa..."></div>
+        <div class="form-grup"><label class="form-label">N&#xFA;m. p&#xF2;lissa</label><input type="text" class="form-control" id="afPolissa" placeholder="Numero de polissa"></div>
+        <div class="form-grup"><label class="form-label">Tipus <span>*</span></label>
+          <select class="form-control" id="afTipus" onchange="ajustarCampsAsseguranca()">
+            <option value="Salut">Salut</option>
+            <option value="Vehicle">Vehicle</option>
+            <option value="Llar">Llar</option>
+            <option value="Vida">Vida</option>
+            <option value="RC">Responsabilitat Civil</option>
+            <option value="Altres">Altres</option>
+          </select>
+        </div>
+        <div class="form-grup"><label class="form-label">Titular</label><input type="text" class="form-control" id="afTitular" placeholder="Nom del titular"></div>
+        <div class="form-grup" id="campMatricula" style="display:none"><label class="form-label">Matr&#xED;cula</label><input type="text" class="form-control" id="afMatricula" placeholder="Ex: 1234 ABC"></div>
+        <div class="form-grup full" id="campAdreca" style="display:none"><label class="form-label">Adre&#xE7;a del pis</label><input type="text" class="form-control" id="afAdreca" placeholder="Adre&#xE7;a completa"></div>
+        <div class="form-grup"><label class="form-label">Data inici</label><input type="date" class="form-control" id="afDataInici"></div>
+        <div class="form-grup"><label class="form-label">Data venciment <span>*</span></label><input type="date" class="form-control" id="afDataVenciment"></div>
+        <div class="form-grup"><label class="form-label">Data pagament</label><input type="date" class="form-control" id="afDataPagament"></div>
+        <div class="form-grup"><label class="form-label">Periodicitat</label>
+          <select class="form-control" id="afPeriodicitat">
+            <option value="">-</option>
+            <option value="Mensual">Mensual</option>
+            <option value="Trimestral">Trimestral</option>
+            <option value="Anual">Anual</option>
+          </select>
+        </div>
+        <div class="form-grup"><label class="form-label">Import prima (EUR)</label><input type="number" class="form-control" id="afImport" step="0.01" min="0" placeholder="0,00"></div>
+        <div class="form-grup" style="display:flex;align-items:center;gap:10px;padding-top:22px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:.9rem;cursor:pointer">
+            <input type="checkbox" id="afActiva" checked> Asseguran&#xE7;a activa
+          </label>
+        </div>
+        <div class="form-grup full"><label class="form-label">Notes</label><textarea class="form-control" id="afNotes" placeholder="Observacions..."></textarea></div>
+        <div class="form-grup full">
+          <label class="form-label">Document (polissa PDF)</label>
+          <div class="upload-zona" onclick="document.getElementById('afDocument').click()">
+            <div>&#x1F4CE; Fes clic per adjuntar la polissa</div>
+            <div class="upload-text">PDF fins a 10 MB</div>
+            <div class="upload-nom" id="afNomDocument"></div>
+          </div>
+          <input type="file" id="afDocument" accept=".pdf,.jpg,.jpeg,.png" onchange="document.getElementById('afNomDocument').textContent = this.files[0]?.name || ''">
+          <div id="afDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalAsseguranca()">Cancel.lar</button>
+      <button class="btn btn-primary" id="btnGuardarAsseguranca" onclick="guardarAsseguranca()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+let assegurances = [];
+let assegurancaEdId = null;
+
+async function carregarAssegurances() {
+  try {
+    const r = await fetch('/api/assegurances');
+    assegurances = await r.json();
+    renderAssegurances();
+  } catch(e) { toast('Error carregant assegurances', 'error'); }
+}
+
+async function carregarAlertesAssegurances() {
+  try {
+    const r = await fetch('/api/assegurances/alertes');
+    const alertes = await r.json();
+    const banner = document.getElementById('bannerAssegurances');
+    const text   = document.getElementById('bannerAssegurancesText');
+    if (alertes.length > 0) {
+      const noms = alertes.map(function(a) {
+        const dies = Math.ceil((new Date(a.data_venciment) - new Date()) / 86400000);
+        return a.nom + (dies <= 0 ? ' (VENCUDA)' : ' (' + dies + ' dies)');
+      }).join(' | ');
+      text.textContent = alertes.length + ' asseguranca(es) amb venciment proper: ' + noms;
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+const TIPUS_BADGE = {
+  'Salut':   'background:#e6f4ee;color:#1a6b4a',
+  'Vehicle': 'background:#e8f0fb;color:#1a4a7a',
+  'Llar':    'background:#fff3e0;color:#e65100',
+  'Vida':    'background:#f3e8ff;color:#6b1a7a',
+  'RC':      'background:#fde8e6;color:#c0392b',
+  'Altres':  'background:#f0f0f0;color:#555',
+};
+
+function renderAssegurances() {
+  const cos = document.getElementById('taulaAssegurancesCos');
+  const solsActives = document.getElementById('filtreSolsActives').checked;
+  let llista = solsActives ? assegurances.filter(function(a){ return a.activa; }) : assegurances;
+  if (!llista.length) {
+    cos.innerHTML = '<tr><td colspan="9" class="buit"><div class="buit-icon">&#x1F6E1;</div><div class="buit-text">Cap asseguran&#xE7;a registrada</div></td></tr>';
+    return;
+  }
+  const avui = new Date();
+  cos.innerHTML = llista.map(function(a) {
+    const stBadge = TIPUS_BADGE[a.tipus] || TIPUS_BADGE['Altres'];
+    const venc = a.data_venciment ? new Date(a.data_venciment) : null;
+    const dies = venc ? Math.ceil((venc - avui) / 86400000) : null;
+    let vencHtml = '-';
+    if (venc) {
+      let color = 'color:var(--gray-4)';
+      if (dies <= 0) color = 'color:var(--red);font-weight:700';
+      else if (dies <= 30) color = 'color:#e65100;font-weight:700';
+      else if (dies <= 60) color = 'color:#d4a017;font-weight:600';
+      vencHtml = '<span style="' + color + '">' + formatData(a.data_venciment) + (dies !== null ? '<br><small>' + (dies <= 0 ? 'VENCUDA' : dies + ' dies') + '</small>' : '') + '</span>';
+    }
+    const contextual = a.matricula ? '<small style="color:var(--gray-3)">' + esc(a.matricula) + '</small>' :
+                       a.adreca    ? '<small style="color:var(--gray-3)">' + esc(a.adreca.substring(0,30)) + '</small>' : '-';
+    return '<tr>' +
+      '<td><div style="font-weight:500">' + esc(a.nom) + '</div>' + (a.titular ? '<small style="color:var(--gray-3)">' + esc(a.titular) + '</small>' : '') + '</td>' +
+      '<td><span style="padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600;' + stBadge + '">' + esc(a.tipus) + '</span></td>' +
+      '<td style="font-size:.85rem">' + esc(a.companyia || '-') + '</td>' +
+      '<td style="font-size:.8rem;font-family:monospace;color:var(--gray-4)">' + esc(a.numero_polissa || '-') + '</td>' +
+      '<td>' + contextual + '</td>' +
+      '<td>' + vencHtml + '</td>' +
+      '<td class="import-cell" style="font-size:.9rem">' + (a.import_prima ? formatImport(a.import_prima) + (a.periodicitat ? '<br><small style="color:var(--gray-3)">' + a.periodicitat + '</small>' : '') : '-') + '</td>' +
+      '<td>' + (a.document_url ? '<a href="' + a.document_url + '" target="_blank" class="doc-link">&#x1F4CE; ' + esc(a.document_nom || 'Doc') + '</a>' : '-') + '</td>' +
+      '<td class="accions">' +
+        '<button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarAsseguranca(' + a.id + ')">Edit</button>' +
+        '<button class="btn btn-sm btn-danger" onclick="eliminarAsseguranca(' + a.id + ')">Esborrar</button>' +
+      '</td></tr>';
+  }).join('');
+}
+
+function ajustarCampsAsseguranca() {
+  const tipus = document.getElementById('afTipus').value;
+  document.getElementById('campMatricula').style.display = tipus === 'Vehicle' ? '' : 'none';
+  document.getElementById('campAdreca').style.display    = tipus === 'Llar'    ? '' : 'none';
+}
+
+function obrirModalAsseguranca(a) {
+  a = a || null;
+  assegurancaEdId = a ? a.id : null;
+  document.getElementById('modalAssegurancaTitol').textContent = a ? 'Editar asseguranca' : 'Nova asseguranca';
+  document.getElementById('afNom').value           = a ? a.nom : '';
+  document.getElementById('afCompanyia').value     = a ? a.companyia : '';
+  document.getElementById('afPolissa').value       = a ? a.numero_polissa : '';
+  document.getElementById('afTipus').value         = a ? a.tipus : 'Salut';
+  document.getElementById('afTitular').value       = a ? a.titular : '';
+  document.getElementById('afMatricula').value     = a ? a.matricula : '';
+  document.getElementById('afAdreca').value        = a ? a.adreca : '';
+  document.getElementById('afDataInici').value     = a ? a.data_inici : '';
+  document.getElementById('afDataVenciment').value = a ? a.data_venciment : '';
+  document.getElementById('afDataPagament').value  = a ? a.data_pagament : '';
+  document.getElementById('afPeriodicitat').value  = a ? a.periodicitat : '';
+  document.getElementById('afImport').value        = a ? (a.import_prima || '') : '';
+  document.getElementById('afActiva').checked      = a ? a.activa : true;
+  document.getElementById('afNotes').value         = a ? a.notes : '';
+  document.getElementById('afNomDocument').textContent = '';
+  document.getElementById('afDocument').value = '';
+  document.getElementById('afDocActual').innerHTML = a && a.document_url ? 'Document actual: <a href="' + a.document_url + '" target="_blank" style="color:var(--blue)">' + esc(a.document_nom || 'veure') + '</a>' : '';
+  ajustarCampsAsseguranca();
+  document.getElementById('modalAssegurancaOverlay').classList.add('actiu');
+}
+
+function tancarModalAsseguranca() {
+  document.getElementById('modalAssegurancaOverlay').classList.remove('actiu');
+  assegurancaEdId = null;
+}
+
+async function guardarAsseguranca() {
+  const nom  = document.getElementById('afNom').value.trim();
+  const venc = document.getElementById('afDataVenciment').value;
+  if (!nom || !venc) { toast('Nom i data de venciment son obligatoris', 'error'); return; }
+  const btn = document.getElementById('btnGuardarAsseguranca');
+  btn.disabled = true; btn.textContent = 'Guardant...';
+  const fd = new FormData();
+  fd.append('nom', nom);
+  fd.append('companyia', document.getElementById('afCompanyia').value);
+  fd.append('numero_polissa', document.getElementById('afPolissa').value);
+  fd.append('tipus', document.getElementById('afTipus').value);
+  fd.append('titular', document.getElementById('afTitular').value);
+  fd.append('matricula', document.getElementById('afMatricula').value);
+  fd.append('adreca', document.getElementById('afAdreca').value);
+  fd.append('data_inici', document.getElementById('afDataInici').value);
+  fd.append('data_venciment', venc);
+  fd.append('data_pagament', document.getElementById('afDataPagament').value);
+  fd.append('periodicitat', document.getElementById('afPeriodicitat').value);
+  const imp = document.getElementById('afImport').value;
+  if (imp) fd.append('import_prima', imp);
+  fd.append('activa', document.getElementById('afActiva').checked ? 'true' : 'false');
+  fd.append('notes', document.getElementById('afNotes').value);
+  const fitxer = document.getElementById('afDocument').files[0];
+  if (fitxer) fd.append('document', fitxer);
+  try {
+    const url    = assegurancaEdId ? '/api/assegurances/' + assegurancaEdId : '/api/assegurances';
+    const method = assegurancaEdId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method: method, body: fd });
+    if (!r.ok) throw new Error();
+    toast(assegurancaEdId ? 'Actualitzada' : 'Afegida', 'ok');
+    tancarModalAsseguranca();
+    carregarAssegurances();
+    carregarAlertesAssegurances();
+  } catch(e) { toast('Error guardant', 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Guardar'; }
+}
+
+function editarAsseguranca(id) {
+  const a = assegurances.find(function(x){ return x.id === id; });
+  if (a) obrirModalAsseguranca(a);
+}
+
+async function eliminarAsseguranca(id) {
+  const a = assegurances.find(function(x){ return x.id === id; });
+  if (!confirm('Eliminar "' + (a ? a.nom : '') + '"?')) return;
+  try {
+    await fetch('/api/assegurances/' + id, { method: 'DELETE' });
+    toast('Eliminada', 'ok');
+    carregarAssegurances();
+    carregarAlertesAssegurances();
+  } catch(e) { toast('Error eliminant', 'error'); }
+}
+</script>
 
 </body>
 </html>
