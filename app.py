@@ -178,6 +178,12 @@ class ConfigApp(db.Model):
 
 with app.app_context():
     db.create_all()
+    try:
+        from sqlalchemy import text as _text
+        db.session.execute(_text('ALTER TABLE assegurances ADD COLUMN IF NOT EXISTS data_itv DATE'))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
     # Crear taula credencials si no existeix
     from sqlalchemy import text
     db.session.execute(text('''
@@ -1095,6 +1101,7 @@ class Asseguranca(db.Model):
     activa         = db.Column(db.Boolean, default=True)
     document_url   = db.Column(db.String(500))
     document_nom   = db.Column(db.String(200))
+    data_itv       = db.Column(db.Date)
     notes          = db.Column(db.Text)
     creat_el       = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -1116,6 +1123,7 @@ class Asseguranca(db.Model):
             'activa':         self.activa if self.activa is not None else True,
             'document_url':   self.document_url or '',
             'document_nom':   self.document_nom or '',
+            'data_itv':       self.data_itv.isoformat() if self.data_itv else '',
             'notes':          self.notes or '',
         }
 
@@ -1124,6 +1132,12 @@ class Asseguranca(db.Model):
 
 with app.app_context():
     db.create_all()
+    try:
+        from sqlalchemy import text as _text
+        db.session.execute(_text('ALTER TABLE assegurances ADD COLUMN IF NOT EXISTS data_itv DATE'))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 @app.route('/api/assegurances/alertes', methods=['GET'])
 def get_alertes_assegurances():
@@ -1172,6 +1186,7 @@ def create_asseguranca():
             periodicitat   = data.get('periodicitat', ''),
             import_prima   = float(data['import_prima']) if data.get('import_prima') else None,
             activa         = data.get('activa', 'true').lower() == 'true',
+            data_itv       = parse_d(data.get('data_itv', '')),
             notes          = data.get('notes', ''),
             document_url   = document_url,
             document_nom   = document_nom,
@@ -1211,6 +1226,7 @@ def update_asseguranca(id):
         a.periodicitat   = data.get('periodicitat', '')
         a.import_prima   = float(data['import_prima']) if data.get('import_prima') else None
         a.activa         = data.get('activa', 'true').lower() == 'true'
+        a.data_itv       = parse_d(data.get('data_itv', ''))
         a.notes          = data.get('notes', '')
         db.session.commit()
         return jsonify(a.to_dict())

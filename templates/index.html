@@ -356,7 +356,7 @@
         <table>
           <thead><tr>
             <th>Nom</th><th>Tipus</th><th>Companyia</th><th>P&#xF2;lissa</th>
-            <th>Vehicle/Adre&#xE7;a</th><th>Venciment</th><th>Prima</th><th>Doc.</th>
+            <th>Vehicle/Adre&#xE7;a</th><th>Venciment</th><th>ITV</th><th>Prima</th><th>Doc.</th>
             <th style="text-align:center">Accions</th>
           </tr></thead>
           <tbody id="taulaAssegurancesCos">
@@ -2354,6 +2354,11 @@ async function esborrarTargeta(id) {
           <input type="text" class="form-control" id="afMatricula" placeholder="Ex: 1234 ABC">
         </div>
 
+        <div class="form-grup" id="campITV" style="display:none">
+          <label class="form-label" style="color:#d97706">&#128663; Data ITV</label>
+          <input type="date" class="form-control" id="afDataITV" style="border-color:#f59e0b">
+        </div>
+
         <div class="form-grup full" id="campAdreca" style="display:none">
           <label class="form-label">Domicili assegurat</label>
           <input type="text" class="form-control" id="afAdreca" placeholder="Adreça completa del pis">
@@ -2483,7 +2488,7 @@ function renderAssegurances() {
   const solsActives = document.getElementById('filtreSolsActives').checked;
   let llista = solsActives ? assegurances.filter(function(a){ return a.activa; }) : assegurances;
   if (!llista.length) {
-    cos.innerHTML = '<tr><td colspan="9" class="buit"><div class="buit-icon">&#x1F6E1;</div><div class="buit-text">Cap asseguran&#xE7;a registrada</div></td></tr>';
+    cos.innerHTML = '<tr><td colspan="10" class="buit"><div class="buit-icon">&#x1F6E1;</div><div class="buit-text">Cap asseguran&#xE7;a registrada</div></td></tr>';
     return;
   }
   const avui = new Date();
@@ -2508,6 +2513,17 @@ function renderAssegurances() {
       '<td style="font-size:.8rem;font-family:monospace;color:var(--gray-4)">' + esc(a.numero_polissa || '-') + '</td>' +
       '<td>' + contextual + '</td>' +
       '<td>' + vencHtml + '</td>' +
+      '<td>' + (function(){
+        if (a.tipus !== 'Cotxe' && a.tipus !== 'Moto') return '<span style="color:#ddd">—</span>';
+        if (!a.data_itv) return '<span style="color:#aaa;font-size:.8rem">— <small>(sense data)</small></span>';
+        const dItv = new Date(a.data_itv);
+        const diesItv = Math.ceil((dItv - avui) / 86400000);
+        let col = 'color:var(--gray-4)';
+        if (diesItv <= 0) col = 'color:var(--red);font-weight:700';
+        else if (diesItv <= 30) col = 'color:#e65100;font-weight:700';
+        else if (diesItv <= 60) col = 'color:#d4a017;font-weight:600';
+        return '<span style="' + col + '">' + formatData(a.data_itv) + '<br><small>' + (diesItv <= 0 ? 'CADUCADA' : diesItv + ' dies') + '</small></span>';
+      })() + '</td>' +
       '<td class="import-cell" style="font-size:.9rem">' + (a.import_prima ? formatImport(a.import_prima) + (a.periodicitat ? '<br><small style="color:var(--gray-3)">' + a.periodicitat + '</small>' : '') : '-') + '</td>' +
       '<td>' + (a.document_url ? '<a href="' + a.document_url + '" target="_blank" class="doc-link">&#x1F4CE; ' + esc(a.document_nom || 'Doc') + '</a>' : '-') + '</td>' +
       '<td class="accions">' +
@@ -2520,6 +2536,7 @@ function renderAssegurances() {
 function ajustarCampsAsseguranca() {
   const tipus = document.getElementById('afTipus').value;
   document.getElementById('campMatricula').style.display = (tipus === 'Cotxe' || tipus === 'Moto') ? '' : 'none';
+  document.getElementById('campITV').style.display       = (tipus === 'Cotxe' || tipus === 'Moto') ? '' : 'none';
   document.getElementById('campAdreca').style.display    = tipus === 'Llar' ? '' : 'none';
   document.getElementById('campSubtipus').style.display  = (tipus === 'Altres' || tipus === 'Embarcacio') ? '' : 'none';
 }
@@ -2534,6 +2551,7 @@ function obrirModalAsseguranca(a) {
   document.getElementById('afTipus').value         = a ? a.tipus : '';
   document.getElementById('afTitular').value       = a ? a.titular : '';
   document.getElementById('afMatricula').value     = a ? a.matricula : '';
+  if(document.getElementById('afDataITV')) document.getElementById('afDataITV').value = a ? (a.data_itv || '') : '';
   document.getElementById('afAdreca').value        = a ? a.adreca : '';
   document.getElementById('afDataInici').value     = a ? a.data_inici : '';
   document.getElementById('afDataVenciment').value = a ? a.data_venciment : '';
@@ -2568,6 +2586,7 @@ async function guardarAsseguranca() {
   fd.append('tipus', document.getElementById('afTipus').value);
   fd.append('titular', document.getElementById('afTitular').value);
   fd.append('matricula', document.getElementById('afMatricula').value);
+  if(document.getElementById('afDataITV')) fd.append('data_itv', document.getElementById('afDataITV').value || '');
   fd.append('adreca', document.getElementById('afAdreca').value);
   fd.append('notes', (document.getElementById('afSubtipus') && document.getElementById('afSubtipus').value ? 'Tipus: ' + document.getElementById('afSubtipus').value + '\n' : '') + document.getElementById('afNotes').value);
   fd.append('data_inici', document.getElementById('afDataInici').value);
