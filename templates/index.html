@@ -225,6 +225,7 @@
   <div class="nav-tabs">
     <button class="nav-tab actiu" id="tabDespeses" onclick="canviarTab('despeses')">💼 Despeses</button>
     <button class="nav-tab" id="tabFactures" onclick="canviarTab('factures')">🧾 Factures emeses</button>
+    <button class="nav-tab" id="tabTornOfici" onclick="canviarTab('tornOfici')">⚖️ Torn d'ofici</button>
     <button class="nav-tab" id="tabBancs" onclick="canviarTab('bancs')">🏦 Bancs</button>
     <button class="nav-tab" id="tabCredencials" onclick="canviarTab('credencials')">🔑 Credencials</button>
     <button class="nav-tab" id="tabAssegurances" onclick="canviarTab('assegurances')">&#x1F6E1;&#xFE0F; Assegurances</button>
@@ -289,6 +290,47 @@
         <table>
           <thead><tr><th>Número</th><th>Data</th><th>Client</th><th>Concepte</th><th>Base</th><th>IVA</th><th>IRPF</th><th>Total</th><th>Estat</th><th>Doc.</th><th style="text-align:center">Accions</th></tr></thead>
           <tbody id="taulaFacturesCos"><tr><td colspan="9" class="buit"><div class="buit-icon">🧾</div><div class="buit-text">Carregant…</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ TORN D'OFICI -->
+  <div class="seccio" id="seccioTornOfici" style="display:none">
+    <div class="page-header"><div class="page-title">Torn d'ofici <span id="anyTornActual"></span></div></div>
+    <div class="filtres-bar">
+      <div class="filtre-grup"><label>Any</label><select id="filtreAnyTorn" onchange="carregarTornOfici()"><option value="">Tots</option></select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1rem">
+      <div style="background:white;border-radius:10px;padding:1.25rem 1.5rem;box-shadow:var(--shadow);border-left:4px solid var(--navy)"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-3);font-weight:500;margin-bottom:6px">Total brut torn ofici</div><div style="font-family:var(--font-head);font-size:1.6rem;font-weight:700;color:var(--navy)" id="tornTotalBrut">—</div></div>
+      <div style="background:white;border-radius:10px;padding:1.25rem 1.5rem;box-shadow:var(--shadow);border-left:4px solid var(--navy)"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-3);font-weight:500;margin-bottom:6px">IRPF retingut</div><div style="font-family:var(--font-head);font-size:1.6rem;font-weight:700;color:var(--navy)" id="tornTotalIrpf">—</div></div>
+      <div style="background:white;border-radius:10px;padding:1.25rem 1.5rem;box-shadow:var(--shadow);border-left:4px solid var(--navy)"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-3);font-weight:500;margin-bottom:6px">Total líquid cobrat</div><div style="font-family:var(--font-head);font-size:1.6rem;font-weight:700;color:var(--navy)" id="tornTotalLiquid">—</div></div>
+      <div style="background:white;border-radius:10px;padding:1.25rem 1.5rem;box-shadow:var(--shadow);border-left:4px solid var(--navy)"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-3);font-weight:500;margin-bottom:6px">Pagaments</div><div style="font-family:var(--font-head);font-size:1.6rem;font-weight:700;color:var(--navy)" id="tornCount">—</div></div>
+    </div>
+    <!-- Targeta SMI -->
+    <div id="smiCard" style="background:white;border-radius:10px;padding:1.5rem;box-shadow:var(--shadow);margin-bottom:1.5rem;border-left:4px solid var(--gold)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+        <div>
+          <div style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-3);font-weight:600;margin-bottom:4px">Límit SMI anual (art. 213.4 LGSS)</div>
+          <div style="font-size:.78rem;color:var(--gray-3)">Factures emeses (base) + torn d'ofici (brut) · Límit per compatibilitat jubilació + compte propi</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--navy)"><span id="smiTotalIng">—</span> / <span id="smiLimit">—</span></div>
+          <div style="font-size:.85rem;color:var(--gray-3)">Resta: <span id="smiRestant" style="font-weight:600">—</span></div>
+        </div>
+      </div>
+      <div style="margin-top:1rem;background:#f1f5f9;border-radius:8px;height:24px;overflow:hidden;position:relative">
+        <div id="smiBar" style="height:100%;width:0%;background:#10b981;transition:width .4s,background .4s"></div>
+        <div id="smiPercentLabel" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:600;color:var(--navy)">—</div>
+      </div>
+      <div id="smiDetall" style="margin-top:.75rem;font-size:.82rem;color:var(--gray-3)"></div>
+    </div>
+    <div class="taula-wrapper">
+      <div class="taula-cap"><h2>Llistat de pagaments ICAB</h2></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Descripció</th><th>Data pagament</th><th>Brut (Total general)</th><th>IRPF</th><th>Líquid</th><th>Doc.</th><th style="text-align:center">Accions</th></tr></thead>
+          <tbody id="taulaTornCos"><tr><td colspan="7" class="buit"><div class="buit-icon">⚖️</div><div class="buit-text">Carregant…</div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -467,6 +509,37 @@
     <div class="modal-peu">
       <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalFactura()">Cancel·lar</button>
       <button class="btn btn-primary" id="btnGuardarFactura" onclick="guardarFactura()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Torn d'Ofici -->
+<div class="modal-overlay" id="modalTornOverlay" onclick="if(event.target===this)tancarModalTorn()">
+  <div class="modal" id="modalTorn" style="max-width:600px" onclick="event.stopPropagation()">
+    <div class="modal-cap">
+      <h3 id="modalTornTitol">Nou pagament torn d'ofici</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalTorn()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <div class="form-grid">
+        <div class="form-grup full"><label class="form-label">Descripció <span>*</span></label><input type="text" class="form-control" id="ftDescripcio" placeholder="Ex: 100% ASSISTENCIA i 100% OFICI Febrer 2026"></div>
+        <div class="form-grup"><label class="form-label">Data pagament <span>*</span></label><input type="date" class="form-control" id="ftDataPagament"></div>
+        <div class="form-grup"><label class="form-label">Total general brut (€) <span>*</span></label><input type="number" class="form-control" id="ftImportBrut" step="0.01" min="0" placeholder="0,00" oninput="calcularTotalsTorn()"></div>
+        <div class="form-grup"><label class="form-label">IRPF (%)</label><input type="number" class="form-control" id="ftIrpfPct" value="15" step="0.1" min="0" oninput="calcularTotalsTorn()"></div>
+        <div class="form-grup"><label class="form-label">IRPF retingut</label><div class="form-control" id="ftIrpfCalc" style="background:#f1f5f9;color:var(--gray-3);font-weight:600">0,00 €</div></div>
+        <div class="form-grup full"><label class="form-label">Total líquid (al compte)</label><div class="form-control" id="ftLiquid" style="background:var(--navy);color:var(--gold);font-family:var(--font-head);font-size:1.1rem;font-weight:700">0,00 €</div></div>
+        <div class="form-grup full">
+          <label class="form-label">Document adjunt (PDF liquidació ICAB)</label>
+          <div class="upload-zona" onclick="document.getElementById('ftDocument').click()"><div>📎 Fes clic per adjuntar el PDF</div><div class="upload-text">PDF fins a 10 MB</div><div class="upload-nom" id="ftNomDocument"></div></div>
+          <input type="file" id="ftDocument" accept=".pdf" onchange="document.getElementById('ftNomDocument').textContent = this.files[0]?.name || ''">
+          <div id="ftDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
+        </div>
+        <div class="form-grup full"><label class="form-label">Notes</label><textarea class="form-control" id="ftNotes" placeholder="Observacions, detall de procediments…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalTorn()">Cancel·lar</button>
+      <button class="btn btn-primary" id="btnGuardarTorn" onclick="guardarTorn()">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -871,10 +944,11 @@ document.addEventListener('DOMContentLoaded', () => {
 function canviarTab(tab) {
   document.getElementById('seccioDespeses').style.display = tab === 'despeses' ? 'block' : 'none';
   document.getElementById('seccioFactures').style.display = tab === 'factures' ? 'block' : 'none';
+  document.getElementById('seccioTornOfici').style.display = tab === 'tornOfici' ? 'block' : 'none';
   document.getElementById('seccioBancs').style.display    = tab === 'bancs'    ? 'block' : 'none';
   document.getElementById('seccioCredencials').style.display = tab === 'credencials' ? 'block' : 'none';
   document.getElementById('seccioAssegurances').style.display = tab === 'assegurances' ? 'block' : 'none';
-  ['tabDespeses','tabFactures','tabBancs','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+  ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
   document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('actiu');
 
   if (tab === 'despeses') {
@@ -887,12 +961,19 @@ function canviarTab(tab) {
     document.getElementById('btnExportCSV').style.display = 'none';
     carregarFactures();
     carregarAnysFactures();
+  } else if (tab === 'tornOfici') {
+    document.getElementById('btnNou').textContent = '+ Nou pagament torn';
+    document.getElementById('btnNou').onclick = () => obrirModalTornOfici();
+    document.getElementById('btnNou').style.display = '';
+    document.getElementById('btnExportCSV').style.display = 'none';
+    carregarTornOfici();
+    carregarAnysTornOfici();
   } else if (tab === 'credencials') {
     document.getElementById('seccioDespeses').style.display = 'none';
     document.getElementById('seccioFactures').style.display = 'none';
     document.getElementById('seccioBancs').style.display = 'none';
     document.getElementById('seccioCredencials').style.display = 'block';
-    ['tabDespeses','tabFactures','tabBancs','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+    ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
     document.getElementById('tabCredencials').classList.add('actiu');
     document.getElementById('btnNou').style.display = 'none';
     document.getElementById('btnExportCSV').style.display = 'none';
@@ -1248,6 +1329,156 @@ async function eliminarFactura(id) {
   const f = factures.find(x=>x.id===id);
   if (!confirm(`Eliminar factura ${f?.numero}?`)) return;
   try { await fetch(`/api/factures/${id}`, {method:'DELETE'}); toast('Factura eliminada', 'ok'); carregarFactures(); }
+  catch(e) { toast('Error eliminant', 'error'); }
+}
+
+// ─── Torn d'Ofici ─────────────────────────────────────────────────────────────
+let tornsOfici = [];
+let tornEdId = null;
+
+async function carregarAnysTornOfici() {
+  try {
+    const r = await fetch('/api/torn-ofici/anys');
+    const anys = await r.json();
+    const sel = document.getElementById('filtreAnyTorn');
+    const anyActual = new Date().getFullYear().toString();
+    sel.innerHTML = '<option value="">Tots</option>';
+    const tots = new Set([...anys.map(String), anyActual]);
+    [...tots].sort((a,b)=>b-a).forEach(a => {
+      const o = document.createElement('option');
+      o.value = a; o.textContent = a;
+      if (a === anyActual) o.selected = true;
+      sel.appendChild(o);
+    });
+  } catch(e) {}
+}
+
+async function carregarTornOfici() {
+  const any_ = document.getElementById('filtreAnyTorn').value;
+  document.getElementById('anyTornActual').textContent = any_ || '';
+  const params = new URLSearchParams();
+  if (any_) params.set('any', any_);
+  try {
+    const r = await fetch('/api/torn-ofici?' + params);
+    tornsOfici = await r.json();
+    renderTornOfici(tornsOfici);
+    carregarResumSMI(any_ || new Date().getFullYear());
+  } catch(e) { toast('Error carregant torn ofici', 'error'); }
+}
+
+function renderTornOfici(llista) {
+  const cos = document.getElementById('taulaTornCos');
+  const totalBrut   = llista.reduce((s,t) => s + t.import_brut, 0);
+  const totalIrpf   = llista.reduce((s,t) => s + t.import_irpf, 0);
+  const totalLiquid = llista.reduce((s,t) => s + t.import_liquid, 0);
+  document.getElementById('tornTotalBrut').textContent   = formatImport(totalBrut);
+  document.getElementById('tornTotalIrpf').textContent   = formatImport(totalIrpf);
+  document.getElementById('tornTotalLiquid').textContent = formatImport(totalLiquid);
+  document.getElementById('tornCount').textContent       = llista.length;
+  if (!llista.length) { cos.innerHTML = `<tr><td colspan="7" class="buit"><div class="buit-icon">⚖️</div><div class="buit-text">Cap pagament registrat</div></td></tr>`; return; }
+  cos.innerHTML = llista.map(t => `
+    <tr>
+      <td style="font-weight:500">${esc(t.descripcio)}</td>
+      <td style="color:var(--gray-3);white-space:nowrap">${formatData(t.data_pagament)}</td>
+      <td class="import-cell">${formatImport(t.import_brut)}</td>
+      <td style="font-size:.85rem;color:var(--red)">-${formatImport(t.import_irpf)} <span style="color:var(--gray-3)">(${t.irpf_pct}%)</span></td>
+      <td class="import-cell" style="color:var(--blue)">${formatImport(t.import_liquid)}</td>
+      <td>${t.document_url ? `<a href="${t.document_url}" target="_blank" style="color:var(--blue);font-size:.8rem">📎 ${esc(t.document_nom||'Doc')}</a>` : '—'}</td>
+      <td class="accions">
+        <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarTorn(${t.id})" title="Editar">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminarTorn(${t.id})" title="Eliminar">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function carregarResumSMI(any_) {
+  try {
+    const r = await fetch(`/api/resum-smi?any=${any_}`);
+    const d = await r.json();
+    document.getElementById('smiTotalIng').textContent = formatImport(d.total_general);
+    document.getElementById('smiLimit').textContent    = d.smi_anual ? formatImport(d.smi_anual) : 'n/d';
+    document.getElementById('smiRestant').textContent  = d.restant !== null ? formatImport(d.restant) : '—';
+    document.getElementById('smiDetall').textContent   = `Factures (base): ${formatImport(d.total_factures)} + Torn ofici (brut): ${formatImport(d.total_torn)} · Art. 213.4 LGSS — Any ${d.any}`;
+    const pct = Math.min(d.percent_smi, 100);
+    const bar = document.getElementById('smiBar');
+    bar.style.width = pct + '%';
+    document.getElementById('smiPercentLabel').textContent = d.percent_smi.toFixed(1) + '% del SMI';
+    if (d.percent_smi < 80) {
+      bar.style.background = '#10b981';
+    } else if (d.percent_smi < 95) {
+      bar.style.background = '#f59e0b';
+    } else {
+      bar.style.background = '#ef4444';
+    }
+    document.getElementById('smiRestant').style.color = d.restant !== null && d.restant < 0 ? '#ef4444' : 'inherit';
+  } catch(e) {}
+}
+
+function calcularTotalsTorn() {
+  const brut = parseFloat(document.getElementById('ftImportBrut').value) || 0;
+  const pct  = parseFloat(document.getElementById('ftIrpfPct').value) || 0;
+  const irpf = brut * pct / 100;
+  const liq  = brut - irpf;
+  document.getElementById('ftIrpfCalc').textContent = formatImport(irpf);
+  document.getElementById('ftLiquid').textContent   = formatImport(liq);
+}
+
+function obrirModalTornOfici(t = null) {
+  tornEdId = t ? t.id : null;
+  document.getElementById('modalTornTitol').textContent = t ? 'Editar pagament torn' : `Nou pagament torn d'ofici`;
+  document.getElementById('ftDescripcio').value  = t ? t.descripcio : '';
+  document.getElementById('ftDataPagament').value = t ? t.data_pagament : new Date().toISOString().slice(0,10);
+  document.getElementById('ftImportBrut').value  = t ? t.import_brut : '';
+  document.getElementById('ftIrpfPct').value     = t ? t.irpf_pct : 15;
+  document.getElementById('ftNotes').value       = t ? t.notes : '';
+  document.getElementById('ftNomDocument').textContent = '';
+  document.getElementById('ftDocument').value = '';
+  document.getElementById('ftDocActual').innerHTML = t && t.document_url ? `Document actual: <a href="${t.document_url}" target="_blank" style="color:var(--blue)">${t.document_nom||'veure'}</a>` : '';
+  calcularTotalsTorn();
+  document.getElementById('modalTornOverlay').classList.add('actiu');
+}
+
+function tancarModalTorn() {
+  document.getElementById('modalTornOverlay').classList.remove('actiu');
+  tornEdId = null;
+}
+
+async function guardarTorn() {
+  const descripcio    = document.getElementById('ftDescripcio').value.trim();
+  const dataPagament  = document.getElementById('ftDataPagament').value;
+  const importBrut    = document.getElementById('ftImportBrut').value;
+  if (!descripcio || !dataPagament || !importBrut) { toast('Omple els camps obligatoris', 'error'); return; }
+  const btn = document.getElementById('btnGuardarTorn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
+  const fd = new FormData();
+  fd.append('descripcio', descripcio);
+  fd.append('data_pagament', dataPagament);
+  fd.append('import_brut', parseFloat(importBrut));
+  fd.append('irpf_pct', parseFloat(document.getElementById('ftIrpfPct').value) || 0);
+  fd.append('notes', document.getElementById('ftNotes').value);
+  const fitxer = document.getElementById('ftDocument').files[0];
+  if (fitxer) fd.append('document', fitxer);
+  try {
+    const url = tornEdId ? `/api/torn-ofici/${tornEdId}` : '/api/torn-ofici';
+    const method = tornEdId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, body: fd });
+    if (!r.ok) throw new Error('Error');
+    toast(tornEdId ? 'Pagament actualitzat' : 'Pagament guardat', 'ok');
+    tancarModalTorn();
+    carregarTornOfici();
+  } catch(e) {
+    toast('Error guardant el pagament', 'error');
+  } finally {
+    btn.disabled = false; btn.innerHTML = '💾 Guardar';
+  }
+}
+
+function editarTorn(id) { const t = tornsOfici.find(x=>x.id===id); if (t) obrirModalTornOfici(t); }
+
+async function eliminarTorn(id) {
+  const t = tornsOfici.find(x=>x.id===id);
+  if (!confirm(`Eliminar el pagament "${t?.descripcio}"?`)) return;
+  try { await fetch(`/api/torn-ofici/${id}`, {method:'DELETE'}); toast('Pagament eliminat', 'ok'); carregarTornOfici(); }
   catch(e) { toast('Error eliminant', 'error'); }
 }
 

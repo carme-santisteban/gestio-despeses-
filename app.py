@@ -115,6 +115,53 @@ class Factura(db.Model):
         }
 
 
+# ─── Model Torn d'Ofici ───────────────────────────────────────────────────────
+
+class TornOfici(db.Model):
+    __tablename__ = 'torn_ofici'
+
+    id             = db.Column(db.Integer, primary_key=True)
+    descripcio     = db.Column(db.String(255), nullable=False)
+    data_pagament  = db.Column(db.Date, nullable=False, default=date.today)
+    import_brut    = db.Column(db.Numeric(10, 2), nullable=False)  # Total general ICAB
+    irpf_pct       = db.Column(db.Numeric(5, 2), default=15)
+    notes          = db.Column(db.Text)
+    document_url   = db.Column(db.String(500))
+    document_nom   = db.Column(db.String(200))
+    creat_el       = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def import_irpf(self):
+        return float(self.import_brut) * float(self.irpf_pct) / 100
+
+    @property
+    def import_liquid(self):
+        return float(self.import_brut) - self.import_irpf
+
+    def to_dict(self):
+        return {
+            'id':            self.id,
+            'descripcio':    self.descripcio,
+            'data_pagament': self.data_pagament.isoformat() if self.data_pagament else None,
+            'import_brut':   float(self.import_brut),
+            'irpf_pct':      float(self.irpf_pct),
+            'import_irpf':   round(self.import_irpf, 2),
+            'import_liquid': round(self.import_liquid, 2),
+            'notes':         self.notes or '',
+            'document_url':  self.document_url or '',
+            'document_nom':  self.document_nom or '',
+        }
+
+
+# SMI (Salari Mínim Interprofessional) anual — art. 213.4 LGSS
+# Font: RD que fixa el SMI cada any. Actualitzar cada any al BOE.
+SMI_ANUAL = {
+    2024: 15876.00,   # RD 145/2024 — 1.134 € × 14
+    2025: 16576.00,   # 1.184 € × 14
+    2026: 17094.00,   # RD 126/2026 — 1.221 € × 14
+}
+
+
 # ─── Models Bancs ─────────────────────────────────────────────────────────────
 
 class BancDocument(db.Model):
@@ -570,6 +617,111 @@ def get_anys_factures():
         extract('year', Factura.data).label('any')
     ).distinct().order_by('any').all()
     return jsonify([int(r.any) for r in anys])
+
+# ─── Torn d'Ofici ─────────────────────────────────────────────────────────────
+
+@app.route('/api/torn-ofici', methods=['GET'])
+def get_torn_ofici():
+    any_ = request.args.get('any', type=int)
+    q = TornOfici.query
+    if any_:
+        q = q.filter(extract('year', TornOfici.data_pagament) == any_)
+    return jsonify([t.to_dict() for t in q.order_by(TornOfici.data_pagament.desc()).all()])
+
+@app.route('/api/torn-ofici', methods=['POST'])
+def create_torn_ofici():
+    fitxer = request.files.get('document')
+    data = request.form if fitxer else (request.json or request.form)
+    document_url = None
+    document_nom = None
+    if fitxer and fitxer.filename:
+        try:
+            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/torn_ofici')
+            document_url = result.get('secure_url')
+            document_nom = fitxer.filename
+        except Exception:
+            pass
+    try:
+        torn = TornOfici(
+            descripcio    = data['descripcio'],
+            data_pagament = datetime.strptime(data['data_pagament'], '%Y-%m-%d').date(),
+            import_brut   = float(data['import_brut']),
+            irpf_pct      = float(data.get('irpf_pct', 15)),
+            notes         = data.get('notes', ''),
+            document_url  = document_url,
+            document_nom  = document_nom,
+        )
+        db.session.add(torn)
+        db.session.commit()
+        return jsonify(torn.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/torn-ofici/<int:id>', methods=['PUT'])
+def update_torn_ofici(id):
+    torn = TornOfici.query.get_or_404(id)
+    fitxer = request.files.get('document')
+    data = request.form
+    if fitxer and fitxer.filename:
+        try:
+            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/torn_ofici')
+            torn.document_url = result.get('secure_url')
+            torn.document_nom = fitxer.filename
+        except Exception:
+            pass
+    try:
+        torn.descripcio    = data['descripcio']
+        torn.data_pagament = datetime.strptime(data['data_pagament'], '%Y-%m-%d').date()
+        torn.import_brut   = float(data['import_brut'])
+        torn.irpf_pct      = float(data.get('irpf_pct', 15))
+        torn.notes         = data.get('notes', '')
+        db.session.commit()
+        return jsonify(torn.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/torn-ofici/<int:id>', methods=['DELETE'])
+def delete_torn_ofici(id):
+    torn = TornOfici.query.get_or_404(id)
+    db.session.delete(torn)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/torn-ofici/anys')
+def get_anys_torn_ofici():
+    anys = db.session.query(
+        extract('year', TornOfici.data_pagament).label('any')
+    ).distinct().order_by('any').all()
+    return jsonify([int(r.any) for r in anys])
+
+@app.route('/api/resum-smi')
+def resum_smi():
+    """
+    Retorna el resum d'ingressos anuals per comparar amb el SMI
+    segons art. 213.4 LGSS (compatibilitat jubilació amb activitat per compte propi).
+    Suma: base imposable factures emeses + import brut torn d'ofici.
+    """
+    any_ = request.args.get('any', type=int, default=datetime.now().year)
+    # Base imposable de les factures emeses l'any indicat
+    factures = Factura.query.filter(extract('year', Factura.data) == any_).all()
+    total_factures = sum(float(f.base) for f in factures)
+    # Import brut del torn d'ofici l'any indicat (per data de pagament)
+    torns = TornOfici.query.filter(extract('year', TornOfici.data_pagament) == any_).all()
+    total_torn = sum(float(t.import_brut) for t in torns)
+    total_general = total_factures + total_torn
+    smi = SMI_ANUAL.get(any_, 0)
+    percent = (total_general / smi * 100) if smi else 0
+    return jsonify({
+        'any':            any_,
+        'total_factures': round(total_factures, 2),
+        'total_torn':     round(total_torn, 2),
+        'total_general':  round(total_general, 2),
+        'smi_anual':      smi,
+        'percent_smi':    round(percent, 2),
+        'restant':        round(smi - total_general, 2) if smi else None,
+    })
 
 # ─── PIN Bancs ────────────────────────────────────────────────────────────────
 
