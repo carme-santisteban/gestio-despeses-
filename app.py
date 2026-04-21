@@ -527,6 +527,9 @@ def update_factura(id):
             pass
     try:
         factura.data          = datetime.strptime(data['data'], '%Y-%m-%d').date()
+        numero_edit = (data.get('numero') or '').strip()
+        if numero_edit:
+            factura.numero = numero_edit
         factura.client_nom    = data['client_nom']
         factura.client_nif    = data.get('client_nif', '')
         factura.client_adreca = data.get('client_adreca', '')

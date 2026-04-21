@@ -1219,10 +1219,8 @@ async function guardarFactura() {
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
   const fd = new FormData();
   fd.append('data', data); fd.append('client_nom', client_nom);
-  if (!facturaEdId) {
-    const numManual = (document.getElementById('ffNumero').value || '').trim();
-    if (numManual && numManual !== '…') fd.append('numero', numManual);
-  }
+  const numManual = (document.getElementById('ffNumero').value || '').trim();
+  if (numManual && numManual !== '…') fd.append('numero', numManual);
   fd.append('client_nif', document.getElementById('ffClientNif').value);
   fd.append('client_adreca', document.getElementById('ffClientAdreca').value);
   fd.append('concepte', concepte); fd.append('base', parseFloat(base));
