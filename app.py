@@ -245,6 +245,24 @@ with app.app_context():
         )
     '''))
     db.session.commit()
+    # Failsafe: crear taula torn_ofici si db.create_all() no ho va fer
+    try:
+        db.session.execute(text('''
+            CREATE TABLE IF NOT EXISTS torn_ofici (
+                id SERIAL PRIMARY KEY,
+                descripcio VARCHAR(255) NOT NULL,
+                data_pagament DATE NOT NULL,
+                import_brut NUMERIC(10, 2) NOT NULL,
+                irpf_pct NUMERIC(5, 2) DEFAULT 15,
+                notes TEXT,
+                document_url VARCHAR(500),
+                document_nom VARCHAR(200),
+                creat_el TIMESTAMP DEFAULT NOW()
+            )
+        '''))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
     # Inserir bancs per defecte si la taula és buida
     if not ConfigApp.query.filter_by(clau='pin_credencials').first():
         db.session.add(ConfigApp(clau='pin_credencials', valor='Cs75917591'))

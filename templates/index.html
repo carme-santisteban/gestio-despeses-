@@ -1462,12 +1462,17 @@ async function guardarTorn() {
     const url = tornEdId ? `/api/torn-ofici/${tornEdId}` : '/api/torn-ofici';
     const method = tornEdId ? 'PUT' : 'POST';
     const r = await fetch(url, { method, body: fd });
-    if (!r.ok) throw new Error('Error');
+    if (!r.ok) {
+      let msg = 'Error guardant el pagament';
+      try { const errJson = await r.json(); if (errJson && errJson.error) msg = 'Error: ' + errJson.error; } catch(_) {}
+      toast(msg, 'error');
+      return;
+    }
     toast(tornEdId ? 'Pagament actualitzat' : 'Pagament guardat', 'ok');
     tancarModalTorn();
     carregarTornOfici();
   } catch(e) {
-    toast('Error guardant el pagament', 'error');
+    toast('Error de connexió: ' + (e.message || 'desconegut'), 'error');
   } finally {
     btn.disabled = false; btn.innerHTML = '💾 Guardar';
   }
