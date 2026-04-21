@@ -440,13 +440,31 @@ def export_csv():
 # --- Factures ---
 
 def generar_numero_factura(data):
-    any_ = data.year
-    mes  = data.month
-    prefix = f"{any_}{mes:02d}"
-    count = Factura.query.filter(
-        Factura.numero.like(f"{prefix}%")
-    ).count()
-    return f"{prefix}{count+1:02d}"
+    """
+    Format: NNMMAA (6 dígits)
+      NN = número correlatiu dins de l'any (01, 02, ...)
+      MM = mes de la factura
+      AA = any (2 dígits)
+    Reinicia a 01 cada any natural. No reassigna números de factures
+    esborrades (els forats es mantenen) conforme art. 6 RD 1619/2012.
+    """
+    any_2d = data.year % 100
+    mes_2d = data.month
+    max_nn = 0
+    factures_any = Factura.query.filter(
+        extract('year', Factura.data) == data.year
+    ).all()
+    for f in factures_any:
+        num = (f.numero or '').strip()
+        if len(num) == 6 and num.isdigit():
+            try:
+                nn = int(num[:2])
+                if nn > max_nn:
+                    max_nn = nn
+            except ValueError:
+                pass
+    proper_nn = max_nn + 1
+    return f"{proper_nn:02d}{mes_2d:02d}{any_2d:02d}"
 
 @app.route('/api/factures', methods=['GET'])
 def get_factures():
@@ -471,8 +489,10 @@ def create_factura():
             pass
     try:
         data_factura = datetime.strptime(data['data'], '%Y-%m-%d').date()
+        numero_manual = (data.get('numero') or '').strip()
+        numero_final = numero_manual if numero_manual else generar_numero_factura(data_factura)
         factura = Factura(
-            numero        = generar_numero_factura(data_factura),
+            numero        = numero_final,
             data          = data_factura,
             client_nom    = data['client_nom'],
             client_nif    = data.get('client_nif', ''),
@@ -528,6 +548,18 @@ def delete_factura(id):
     db.session.delete(factura)
     db.session.commit()
     return jsonify({'ok': True})
+
+@app.route('/api/factures/proper-numero')
+def proper_numero_factura():
+    data_str = request.args.get('data')
+    try:
+        if data_str:
+            data_ref = datetime.strptime(data_str, '%Y-%m-%d').date()
+        else:
+            data_ref = datetime.now().date()
+    except ValueError:
+        data_ref = datetime.now().date()
+    return jsonify({'numero': generar_numero_factura(data_ref)})
 
 @app.route('/api/factures/anys')
 def get_anys_factures():

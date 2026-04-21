@@ -445,7 +445,7 @@
     <div class="modal-cos">
       <div class="form-grid">
         <div class="form-grup"><label class="form-label">Data <span>*</span></label><input type="date" class="form-control" id="ffData"></div>
-        <div class="form-grup"><label class="form-label">Núm. factura</label><input type="text" class="form-control" id="ffNumero" placeholder="Automàtic" disabled style="opacity:.6"></div>
+        <div class="form-grup"><label class="form-label">Núm. factura</label><input type="text" class="form-control" id="ffNumero" placeholder="Automàtic" title="Generat automàticament, pots editar-lo si cal"></div>
         <div class="form-grup"><label class="form-label">Client <span>*</span></label><input type="text" class="form-control" id="ffClientNom" placeholder="Nom del client"></div>
         <div class="form-grup"><label class="form-label">NIF/CIF client</label><input type="text" class="form-control" id="ffClientNif" placeholder="NIF o CIF"></div>
         <div class="form-grup full"><label class="form-label">Adreça client</label><input type="text" class="form-control" id="ffClientAdreca" placeholder="Adreça completa"></div>
@@ -673,7 +673,7 @@
     <div class="modal-cos">
       <div class="form-grid">
         <div class="form-grup"><label class="form-label">Data <span>*</span></label><input type="date" class="form-control" id="ffData"></div>
-        <div class="form-grup"><label class="form-label">Núm. factura</label><input type="text" class="form-control" id="ffNumero" placeholder="Automàtic" disabled style="opacity:.6"></div>
+        <div class="form-grup"><label class="form-label">Núm. factura</label><input type="text" class="form-control" id="ffNumero" placeholder="Automàtic" title="Generat automàticament, pots editar-lo si cal"></div>
         <div class="form-grup"><label class="form-label">Client <span>*</span></label><input type="text" class="form-control" id="ffClientNom" placeholder="Nom del client"></div>
         <div class="form-grup"><label class="form-label">NIF/CIF client</label><input type="text" class="form-control" id="ffClientNif" placeholder="NIF o CIF"></div>
         <div class="form-grup full"><label class="form-label">Adreça client</label><input type="text" class="form-control" id="ffClientAdreca" placeholder="Adreça completa"></div>
@@ -1180,8 +1180,17 @@ function calcularTotals() {
 function obrirModalFactura(f = null) {
   facturaEdId = f ? f.id : null;
   document.getElementById('modalFacturaTitol').textContent = f ? 'Editar factura' : 'Nova factura';
-  document.getElementById('ffData').value = f ? f.data : new Date().toISOString().slice(0,10);
-  document.getElementById('ffNumero').value = f ? f.numero : '(automàtic)';
+  const dataIni = f ? f.data : new Date().toISOString().slice(0,10);
+  document.getElementById('ffData').value = dataIni;
+  if (f) {
+    document.getElementById('ffNumero').value = f.numero;
+  } else {
+    document.getElementById('ffNumero').value = '…';
+    fetch(`/api/factures/proper-numero?data=${dataIni}`)
+      .then(r => r.json())
+      .then(d => { if (!facturaEdId) document.getElementById('ffNumero').value = d.numero || ''; })
+      .catch(() => { document.getElementById('ffNumero').value = ''; });
+  }
   document.getElementById('ffClientNom').value = f ? f.client_nom : '';
   document.getElementById('ffClientNif').value = f ? f.client_nif : '';
   document.getElementById('ffClientAdreca').value = f ? f.client_adreca : '';
@@ -1210,6 +1219,10 @@ async function guardarFactura() {
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
   const fd = new FormData();
   fd.append('data', data); fd.append('client_nom', client_nom);
+  if (!facturaEdId) {
+    const numManual = (document.getElementById('ffNumero').value || '').trim();
+    if (numManual && numManual !== '…') fd.append('numero', numManual);
+  }
   fd.append('client_nif', document.getElementById('ffClientNif').value);
   fd.append('client_adreca', document.getElementById('ffClientAdreca').value);
   fd.append('concepte', concepte); fd.append('base', parseFloat(base));
