@@ -2034,7 +2034,7 @@ async function carregarDocsDespesa(id) {
 }
 
 async function pujarDocDespesa() {
-  if (!_despesaDocsId) return;
+  if (!_despesaDocsId) { toast('Desa la despesa primer abans de pujar documents addicionals', 'error'); return; }
   const fitxer = document.getElementById('ndocDespesaFitxer').files[0];
   if (!fitxer) { toast('Cal seleccionar un fitxer', 'error'); return; }
   const fd = new FormData();
