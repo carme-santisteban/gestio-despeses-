@@ -468,6 +468,15 @@
           <input type="file" id="fDocument" accept=".pdf,.jpg,.jpeg,.png" onchange="mostrarNomFitxer()">
           <div id="docActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
         </div>
+        <!-- Multi-documents despesa -->
+        <div class="form-grup full" id="seccioDocsDespesa" style="display:none">
+          <label class="form-label">📎 Documents adjunts addicionals</label>
+          <div id="llistaDocsDespesa" style="margin-bottom:.5rem"></div>
+          <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+            <input type="file" id="ndocDespesaFitxer" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="font-size:.8rem;flex:1;min-width:180px">
+            <button type="button" class="btn btn-sm btn-primary" onclick="pujarDocDespesa()" style="white-space:nowrap">⬆️ Pujar</button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-peu">
@@ -504,6 +513,15 @@
           <div id="ffDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
         </div>
         <div class="form-grup full"><label class="form-label">Notes</label><input type="text" class="form-control" id="ffNotes" placeholder="Observacions"></div>
+        <!-- Multi-documents factura -->
+        <div class="form-grup full" id="seccioDocsFactura" style="display:none">
+          <label class="form-label">📎 Documents adjunts addicionals</label>
+          <div id="llistaDocsFactura" style="margin-bottom:.5rem"></div>
+          <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+            <input type="file" id="ndocFacturaFitxer" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="font-size:.8rem;flex:1;min-width:180px">
+            <button type="button" class="btn btn-sm btn-primary" onclick="pujarDocFactura()" style="white-space:nowrap">⬆️ Pujar</button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-peu">
@@ -1120,6 +1138,7 @@ function obrirModal(d = null) {
   }
   selTipus(d ? d.tipus : 'professional');
   document.getElementById('modalOverlay').classList.add('actiu');
+  carregarDocsDespesa(d ? d.id : null);
 }
 
 function tancarModal() { document.getElementById('modalOverlay').classList.remove('actiu'); despesaEdId = null; }
@@ -1286,6 +1305,7 @@ function obrirModalFactura(f = null) {
   document.getElementById('ffDocActual').innerHTML = f && f.document_url ? `Document actual: <a href="${f.document_url}" target="_blank" style="color:var(--blue)">${f.document_nom||'veure'}</a>` : '';
   calcularTotals();
   document.getElementById('modalFacturaOverlay').classList.add('actiu');
+  carregarDocsFactura(f ? f.id : null);
 }
 
 function tancarModalFactura() { document.getElementById('modalFacturaOverlay').classList.remove('actiu'); facturaEdId = null; }
@@ -1988,6 +2008,90 @@ async function esborrarDocBanc(docId) {
   if (!confirm('Esborrar aquest document?')) return;
   const r = await fetch('/api/bancs/documents/' + docId, { method: 'DELETE' });
   if (r.ok) { toast('Document esborrat', 'ok'); carregarDocsBanc(_docsBancId); }
+  else toast('Error esborrant', 'error');
+}
+
+// ── Multi-documents Despeses ──────────────────────────────────────────────────
+let _despesaDocsId = null;
+
+async function carregarDocsDespesa(id) {
+  _despesaDocsId = id;
+  const el = document.getElementById('llistaDocsDespesa');
+  if (!el) return;
+  document.getElementById('seccioDocsDespesa').style.display = id ? '' : 'none';
+  if (!id) return;
+  el.innerHTML = '<p style="color:var(--gray-3);font-size:.85rem">Carregant...</p>';
+  try {
+    const r = await fetch('/api/despeses/' + id + '/documents');
+    const docs = await r.json();
+    if (docs.length === 0) { el.innerHTML = '<p style="color:var(--gray-3);font-size:.85rem">Cap document addicional.</p>'; return; }
+    el.innerHTML = docs.map(d => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.4rem .6rem;background:var(--gray-0);border-radius:6px;margin-bottom:.3rem">
+        <a href="${d.document_url}" target="_blank" style="color:var(--blue);font-size:.83rem;font-weight:500">📄 ${esc(d.document_nom||'Document')}</a>
+        <button onclick="esborrarDocDespesa(${d.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.9rem" title="Esborrar">🗑</button>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = '<p style="color:var(--red)">Error</p>'; }
+}
+
+async function pujarDocDespesa() {
+  if (!_despesaDocsId) return;
+  const fitxer = document.getElementById('ndocDespesaFitxer').files[0];
+  if (!fitxer) { toast('Cal seleccionar un fitxer', 'error'); return; }
+  const fd = new FormData();
+  fd.append('document', fitxer);
+  try {
+    const r = await fetch('/api/despeses/' + _despesaDocsId + '/documents', { method: 'POST', body: fd });
+    if (r.ok) { toast('Document pujat', 'ok'); document.getElementById('ndocDespesaFitxer').value = ''; carregarDocsDespesa(_despesaDocsId); }
+    else { const err = await r.json(); toast('Error: ' + (err.error||'desconegut'), 'error'); }
+  } catch(e) { toast('Error pujant document', 'error'); }
+}
+
+async function esborrarDocDespesa(docId) {
+  if (!confirm('Esborrar aquest document?')) return;
+  const r = await fetch('/api/despeses/documents/' + docId, { method: 'DELETE' });
+  if (r.ok) { toast('Document esborrat', 'ok'); carregarDocsDespesa(_despesaDocsId); }
+  else toast('Error esborrant', 'error');
+}
+
+// ── Multi-documents Factures ──────────────────────────────────────────────────
+let _facturaDocsId = null;
+
+async function carregarDocsFactura(id) {
+  _facturaDocsId = id;
+  const el = document.getElementById('llistaDocsFactura');
+  if (!el) return;
+  document.getElementById('seccioDocsFactura').style.display = id ? '' : 'none';
+  if (!id) return;
+  el.innerHTML = '<p style="color:var(--gray-3);font-size:.85rem">Carregant...</p>';
+  try {
+    const r = await fetch('/api/factures/' + id + '/documents');
+    const docs = await r.json();
+    if (docs.length === 0) { el.innerHTML = '<p style="color:var(--gray-3);font-size:.85rem">Cap document addicional.</p>'; return; }
+    el.innerHTML = docs.map(d => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.4rem .6rem;background:var(--gray-0);border-radius:6px;margin-bottom:.3rem">
+        <a href="${d.document_url}" target="_blank" style="color:var(--blue);font-size:.83rem;font-weight:500">📄 ${esc(d.document_nom||'Document')}</a>
+        <button onclick="esborrarDocFactura(${d.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.9rem" title="Esborrar">🗑</button>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = '<p style="color:var(--red)">Error</p>'; }
+}
+
+async function pujarDocFactura() {
+  if (!_facturaDocsId) return;
+  const fitxer = document.getElementById('ndocFacturaFitxer').files[0];
+  if (!fitxer) { toast('Cal seleccionar un fitxer', 'error'); return; }
+  const fd = new FormData();
+  fd.append('document', fitxer);
+  try {
+    const r = await fetch('/api/factures/' + _facturaDocsId + '/documents', { method: 'POST', body: fd });
+    if (r.ok) { toast('Document pujat', 'ok'); document.getElementById('ndocFacturaFitxer').value = ''; carregarDocsFactura(_facturaDocsId); }
+    else { const err = await r.json(); toast('Error: ' + (err.error||'desconegut'), 'error'); }
+  } catch(e) { toast('Error pujant document', 'error'); }
+}
+
+async function esborrarDocFactura(docId) {
+  if (!confirm('Esborrar aquest document?')) return;
+  const r = await fetch('/api/factures/documents/' + docId, { method: 'DELETE' });
+  if (r.ok) { toast('Document esborrat', 'ok'); carregarDocsFactura(_facturaDocsId); }
   else toast('Error esborrant', 'error');
 }
 </script>

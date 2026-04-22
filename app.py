@@ -195,6 +195,44 @@ class BancConfig(db.Model):
         return {'id': self.id, 'nom': self.nom, 'ordre': self.ordre}
 
 
+class DespesaDocument(db.Model):
+    __tablename__ = 'despesa_documents'
+    id           = db.Column(db.Integer, primary_key=True)
+    despesa_id   = db.Column(db.Integer, db.ForeignKey('despeses.id'), nullable=False)
+    document_url = db.Column(db.String(500), nullable=False)
+    document_nom = db.Column(db.String(200))
+    notes        = db.Column(db.Text)
+    creat_el     = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'despesa_id': self.despesa_id,
+            'document_url': self.document_url,
+            'document_nom': self.document_nom or '',
+            'notes': self.notes or '',
+        }
+
+
+class FacturaDocument(db.Model):
+    __tablename__ = 'factura_documents'
+    id           = db.Column(db.Integer, primary_key=True)
+    factura_id   = db.Column(db.Integer, db.ForeignKey('factures.id'), nullable=False)
+    document_url = db.Column(db.String(500), nullable=False)
+    document_nom = db.Column(db.String(200))
+    notes        = db.Column(db.Text)
+    creat_el     = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'factura_id': self.factura_id,
+            'document_url': self.document_url,
+            'document_nom': self.document_nom or '',
+            'notes': self.notes or '',
+        }
+
+
 class FotografiaBanc(db.Model):
     """Saldo real d'un banc en una data concreta"""
     __tablename__ = 'fotografies_banc'
@@ -839,6 +877,70 @@ def create_banc_document(banc_id):
 @app.route('/api/bancs/documents/<int:doc_id>', methods=['DELETE'])
 def delete_banc_document(doc_id):
     doc = BancDocument.query.get_or_404(doc_id)
+    db.session.delete(doc)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/despeses/<int:despesa_id>/documents', methods=['GET'])
+def get_despesa_documents(despesa_id):
+    docs = DespesaDocument.query.filter_by(despesa_id=despesa_id).order_by(DespesaDocument.creat_el.asc()).all()
+    return jsonify([d.to_dict() for d in docs])
+
+@app.route('/api/despeses/<int:despesa_id>/documents', methods=['POST'])
+def create_despesa_document(despesa_id):
+    Despesa.query.get_or_404(despesa_id)
+    fitxer = request.files.get('document')
+    if not fitxer or not fitxer.filename:
+        return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
+    try:
+        result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/despeses', use_filename=True, unique_filename=True)
+        doc = DespesaDocument(
+            despesa_id=despesa_id,
+            document_url=result.get('secure_url'),
+            document_nom=fitxer.filename,
+            notes=request.form.get('notes') or None,
+        )
+        db.session.add(doc)
+        db.session.commit()
+        return jsonify(doc.to_dict()), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/despeses/documents/<int:doc_id>', methods=['DELETE'])
+def delete_despesa_document(doc_id):
+    doc = DespesaDocument.query.get_or_404(doc_id)
+    db.session.delete(doc)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/factures/<int:factura_id>/documents', methods=['GET'])
+def get_factura_documents(factura_id):
+    docs = FacturaDocument.query.filter_by(factura_id=factura_id).order_by(FacturaDocument.creat_el.asc()).all()
+    return jsonify([d.to_dict() for d in docs])
+
+@app.route('/api/factures/<int:factura_id>/documents', methods=['POST'])
+def create_factura_document(factura_id):
+    Factura.query.get_or_404(factura_id)
+    fitxer = request.files.get('document')
+    if not fitxer or not fitxer.filename:
+        return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
+    try:
+        result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/factures', use_filename=True, unique_filename=True)
+        doc = FacturaDocument(
+            factura_id=factura_id,
+            document_url=result.get('secure_url'),
+            document_nom=fitxer.filename,
+            notes=request.form.get('notes') or None,
+        )
+        db.session.add(doc)
+        db.session.commit()
+        return jsonify(doc.to_dict()), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/factures/documents/<int:doc_id>', methods=['DELETE'])
+def delete_factura_document(doc_id):
+    doc = FacturaDocument.query.get_or_404(doc_id)
     db.session.delete(doc)
     db.session.commit()
     return jsonify({'ok': True})
