@@ -2378,16 +2378,6 @@ async function eliminarCredencial(id) {
                    style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
           </div>
           <div>
-            <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">CVV *</label>
-            <input id="ntCvv" type="text" placeholder="123"
-                   style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
-          </div>
-          <div>
-            <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">PIN (només físiques)</label>
-            <input id="ntPin" type="text" placeholder="1234"
-                   style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
-          </div>
-          <div>
             <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">PIN (només físiques)</label>
             <input id="ntPin" type="text" placeholder="1234"
                    style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
@@ -2413,7 +2403,7 @@ async function eliminarCredencial(id) {
         </button>
       </details>
       <div id="targetesLlistat"><div style="text-align:center;padding:2rem;color:#aaa">Carregant...</div></div>
-      <p style="font-size:.75rem;color:#aaa;margin-top:1rem;text-align:center">Clica el número per copiar-lo · Clica *** per veure CVV · 🗑 per esborrar</p>
+      <p style="font-size:.75rem;color:#aaa;margin-top:1rem;text-align:center">Clica el número per copiar-lo · Clica PIN **** per veure'l · 🗑 per esborrar</p>
     </div>
 
   </div>
@@ -2558,7 +2548,7 @@ function renderTargetes(targetes) {
                   onclick="copiarNumero('${t.numero}', 'num_${t.id}')"
                   title="Clica per copiar">${fmtNumero(t.numero)}</span>
             <span style="font-size:.8rem;color:#888">Cad: <strong>${t.caducitat}</strong></span>
-            <span style="font-size:.8rem;color:#888">CVV:
+            <span style="font-size:.8rem;color:#888;display:none">CVV:
               <strong id="cvv_${t.id}" style="cursor:pointer;letter-spacing:2px"
                       onclick="mostrarCvv('cvv_${t.id}','${t.cvv}')"
                       title="Clica per veure">***</strong>
@@ -2636,10 +2626,10 @@ async function afegirTargeta() {
   const nom       = document.getElementById('ntNom').value.trim();
   const numero    = document.getElementById('ntNumero').value.trim();
   const caducitat = document.getElementById('ntCaducitat').value.trim();
-  const cvv       = document.getElementById('ntCvv').value.trim();
+  const cvv       = '';  // Ja no es guarda CVV
   const xarxa     = document.getElementById('ntXarxa').value;
   const tipus     = document.getElementById('ntTipus').value;
-  if (!entitat||!nom||!numero||!caducitat||!cvv) { alert('Tots els camps marcats amb * són obligatoris'); return; }
+  if (!entitat||!nom||!numero||!caducitat) { alert('Tots els camps marcats amb * són obligatoris'); return; }
   try {
     const r = await fetch('/api/targetes',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({entitat,nom,numero,caducitat,cvv,xarxa,tipus,pin:document.getElementById('ntPin').value.trim()})});

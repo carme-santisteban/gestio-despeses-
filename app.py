@@ -1343,7 +1343,7 @@ class Targeta(db.Model):
     nom       = db.Column(db.Text, nullable=False)
     numero    = db.Column(db.Text, nullable=False)
     caducitat = db.Column(db.Text, nullable=False)
-    cvv       = db.Column(db.Text, nullable=False)
+    cvv       = db.Column(db.Text, nullable=True, default='')  # Camp desactivat per seguretat PCI DSS
     xarxa     = db.Column(db.Text, default='')
     tipus     = db.Column(db.Text, default='fisica')
     ordre     = db.Column(db.Integer, default=0)
@@ -1369,7 +1369,7 @@ def create_targeta():
         nom       = d.get('nom','').strip(),
         numero    = d.get('numero','').replace(' ',''),
         caducitat = d.get('caducitat','').strip(),
-        cvv       = d.get('cvv','').strip(),
+        cvv       = '',  # Camp desactivat per seguretat PCI DSS - no es guarda CVV
         xarxa     = d.get('xarxa','').strip(),
         tipus     = d.get('tipus','fisica').strip(),
         ordre     = Targeta.query.count()
@@ -1384,6 +1384,20 @@ def delete_targeta(id):
     db.session.delete(t)
     db.session.commit()
     return jsonify({'ok': True})
+
+
+
+@app.route('/api/targetes/esborrar-tots-cvv', methods=['POST'])
+def esborrar_tots_cvv():
+    """Esborra tots els CVV de totes les targetes. Operació one-shot per PCI DSS."""
+    targetes = Targeta.query.all()
+    n = 0
+    for t in targetes:
+        if t.cvv:
+            t.cvv = ''
+            n += 1
+    db.session.commit()
+    return jsonify({'ok': True, 'targetes_modificades': n})
 
 
 
