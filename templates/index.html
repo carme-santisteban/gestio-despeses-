@@ -2378,6 +2378,11 @@ async function eliminarCredencial(id) {
                    style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
           </div>
           <div>
+            <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">CVV</label>
+            <input id="ntCvv" type="text" placeholder="123"
+                   style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
+          </div>
+          <div>
             <label style="font-size:.78rem;color:#666;display:block;margin-bottom:3px">PIN (només físiques)</label>
             <input id="ntPin" type="text" placeholder="1234"
                    style="width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;box-sizing:border-box">
@@ -2539,6 +2544,9 @@ function renderTargetes(targetes) {
             <span style="font-size:.82rem;color:#333;font-weight:600;flex:1">${t.nom}</span>
             <span style="font-size:.72rem;background:${t.xarxa==='Visa'?'#1a3a8c':'#1a1a2e'};color:#fff;padding:2px 7px;border-radius:4px">${t.xarxa}</span>
             <span style="font-size:.72rem;background:#eee;color:#666;padding:2px 7px;border-radius:4px">${t.tipus}</span>
+            <button onclick="editarTargeta(${t.id})"
+                    style="background:none;border:none;cursor:pointer;color:#ddd;font-size:1rem;padding:0 4px"
+                    onmouseover="this.style.color='#3498db'" onmouseout="this.style.color='#ddd'" title="Editar">✏️</button>
             <button onclick="esborrarTargeta(${t.id})"
                     style="background:none;border:none;cursor:pointer;color:#ddd;font-size:1rem;padding:0 4px"
                     onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#ddd'">🗑</button>
@@ -2548,7 +2556,7 @@ function renderTargetes(targetes) {
                   onclick="copiarNumero('${t.numero}', 'num_${t.id}')"
                   title="Clica per copiar">${fmtNumero(t.numero)}</span>
             <span style="font-size:.8rem;color:#888">Cad: <strong>${t.caducitat}</strong></span>
-            <span style="font-size:.8rem;color:#888;display:none">CVV:
+            <span style="font-size:.8rem;color:#888">CVV:
               <strong id="cvv_${t.id}" style="cursor:pointer;letter-spacing:2px"
                       onclick="mostrarCvv('cvv_${t.id}','${t.cvv}')"
                       title="Clica per veure">***</strong>
@@ -2626,7 +2634,7 @@ async function afegirTargeta() {
   const nom       = document.getElementById('ntNom').value.trim();
   const numero    = document.getElementById('ntNumero').value.trim();
   const caducitat = document.getElementById('ntCaducitat').value.trim();
-  const cvv       = '';  // Ja no es guarda CVV
+  const cvv       = document.getElementById('ntCvv').value.trim();
   const xarxa     = document.getElementById('ntXarxa').value;
   const tipus     = document.getElementById('ntTipus').value;
   if (!entitat||!nom||!numero||!caducitat) { alert('Tots els camps marcats amb * són obligatoris'); return; }
@@ -2644,6 +2652,39 @@ async function esborrarTargeta(id) {
   if (!confirm('Esborrar aquesta targeta?')) return;
   await fetch('/api/targetes/'+id,{method:'DELETE'});
   await carregarTargetes();
+}
+
+async function editarTargeta(id) {
+  // Verificar PIN primer
+  const pin = prompt('Introdueix el PIN de bancs per editar la targeta:');
+  if (!pin) return;
+  const verif = await fetch('/api/bancs/verificar-pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})});
+  const vr = await verif.json();
+  if (!vr.ok) { alert('PIN incorrecte'); return; }
+
+  // Buscar la targeta actual
+  const tr = await fetch('/api/targetes');
+  const targetes = await tr.json();
+  const t = targetes.find(x => x.id === id);
+  if (!t) { alert('Targeta no trobada'); return; }
+
+  // Editar camp per camp amb prompt
+  const entitat = prompt('Entitat:', t.entitat); if (entitat === null) return;
+  const nom = prompt('Nom / descripció:', t.nom); if (nom === null) return;
+  const numero = prompt('Número (sense espais):', t.numero); if (numero === null) return;
+  const caducitat = prompt('Caducitat (MM/AA):', t.caducitat); if (caducitat === null) return;
+  const cvv = prompt('CVV (deixa buit si no el vols canviar):', t.cvv || ''); if (cvv === null) return;
+  const pinTarjeta = prompt('PIN targeta (deixa buit si no el vols canviar):', t.pin || ''); if (pinTarjeta === null) return;
+
+  try {
+    const r = await fetch('/api/targetes/'+id, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({entitat, nom, numero, caducitat, cvv, pin:pinTarjeta})
+    });
+    if (r.ok) { alert('✅ Targeta actualitzada'); await carregarTargetes(); }
+    else alert('Error guardant');
+  } catch(e) { alert('Error de xarxa'); }
 }
 </script>
 

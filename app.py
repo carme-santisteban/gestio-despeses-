@@ -1369,14 +1369,30 @@ def create_targeta():
         nom       = d.get('nom','').strip(),
         numero    = d.get('numero','').replace(' ',''),
         caducitat = d.get('caducitat','').strip(),
-        cvv       = '',  # Camp desactivat per seguretat PCI DSS - no es guarda CVV
+        cvv       = d.get('cvv','').strip(),
         xarxa     = d.get('xarxa','').strip(),
         tipus     = d.get('tipus','fisica').strip(),
+        pin       = d.get('pin','').strip(),
         ordre     = Targeta.query.count()
     )
     db.session.add(t)
     db.session.commit()
     return jsonify(t.to_dict()), 201
+
+@app.route('/api/targetes/<int:id>', methods=['PUT'])
+def update_targeta(id):
+    t = Targeta.query.get_or_404(id)
+    d = request.get_json() or {}
+    if 'entitat' in d: t.entitat = d['entitat'].strip()
+    if 'nom' in d: t.nom = d['nom'].strip()
+    if 'numero' in d: t.numero = d['numero'].replace(' ','')
+    if 'caducitat' in d: t.caducitat = d['caducitat'].strip()
+    if 'cvv' in d: t.cvv = d['cvv'].strip()
+    if 'xarxa' in d: t.xarxa = d['xarxa'].strip()
+    if 'tipus' in d: t.tipus = d['tipus'].strip()
+    if 'pin' in d: t.pin = d['pin'].strip()
+    db.session.commit()
+    return jsonify(t.to_dict())
 
 @app.route('/api/targetes/<int:id>', methods=['DELETE'])
 def delete_targeta(id):
