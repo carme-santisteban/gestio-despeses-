@@ -2354,6 +2354,10 @@ async function eliminarCredencial(id) {
 
     <!-- ── SECCIÓ TARGETES ── -->
     <div id="seccioTargetesModal" style="display:none">
+      <div style="margin-bottom:1rem;padding:.6rem .9rem;background:#fff8e1;border-left:3px solid #f39c12;border-radius:4px;font-size:.78rem;color:#7d5a00;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+        <span>🔒 Per seguretat, ja no es guarden els CVV. Si tens CVV antics emmagatzemats pots esborrar-los ara:</span>
+        <button onclick="esborrarTotsCvv()" style="padding:.35rem .8rem;background:#c0392b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.78rem;font-weight:600;white-space:nowrap">🗑 Esborrar tots els CVV</button>
+      </div>
       <details id="detailsNouTargeta" style="margin-bottom:1.25rem;background:#f8f9fa;border-radius:8px;padding:.75rem 1rem">
         <summary style="cursor:pointer;font-weight:600;color:var(--navy);font-size:.9rem">➕ Afegir nova targeta</summary>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.75rem">
@@ -2644,6 +2648,20 @@ async function esborrarTargeta(id) {
   if (!confirm('Esborrar aquesta targeta?')) return;
   await fetch('/api/targetes/'+id,{method:'DELETE'});
   await carregarTargetes();
+}
+
+async function esborrarTotsCvv() {
+  if (!confirm('Vols esborrar TOTS els CVV emmagatzemats de totes les targetes?\n\nAixò és una operació de seguretat recomanada (PCI DSS). Els altres camps (número, caducitat, PIN) es mantindran.')) return;
+  try {
+    const r = await fetch('/api/targetes/esborrar-tots-cvv', {method:'POST'});
+    const d = await r.json();
+    if (d.ok) {
+      alert('✅ Fet!\n\nCVV esborrats de ' + (d.targetes_modificades || 0) + ' targetes.');
+      await carregarTargetes();
+    } else {
+      alert('Error: ' + (d.error || 'desconegut'));
+    }
+  } catch(e) { alert('Error de xarxa'); }
 }
 </script>
 
