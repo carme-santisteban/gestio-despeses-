@@ -366,6 +366,34 @@
         </table>
       </div>
     </div>
+
+    <!-- Comparador de variacions entre dates -->
+    <div class="taula-wrapper" id="comparadorBancs" style="margin-bottom:1.5rem;display:none">
+      <div class="taula-cap">
+        <h2>🔍 Comparador entre dates</h2>
+        <span style="font-size:.82rem;color:var(--gray-3)">Variació de saldo entre dues fotografies</span>
+      </div>
+      <div style="padding:1.25rem 1.5rem">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;align-items:end">
+          <div class="form-grup">
+            <label class="form-label">Banc</label>
+            <select class="form-control" id="cmpBanc"></select>
+          </div>
+          <div class="form-grup">
+            <label class="form-label">Data inicial</label>
+            <select class="form-control" id="cmpDataInici"></select>
+          </div>
+          <div class="form-grup">
+            <label class="form-label">Data final</label>
+            <select class="form-control" id="cmpDataFi"></select>
+          </div>
+          <div class="form-grup">
+            <button class="btn btn-primary" style="width:100%" onclick="calcularComparacio()">Calcular</button>
+          </div>
+        </div>
+        <div id="cmpResultat" style="margin-top:1.25rem"></div>
+      </div>
+    </div>
   </div>
 
   <!-- CREDENCIALS -->
@@ -1685,6 +1713,116 @@ function renderTaulaDinamica(t) {
   </tr>`;
 
   cos.innerHTML = filesBancs + filaTotals + filaVar;
+
+  // Guardem les dades per al comparador i poblem els desplegables
+  window._taulaBancs = t;
+  poblarComparador(t);
+}
+
+function poblarComparador(t) {
+  const cont = document.getElementById('comparadorBancs');
+  if (!cont || !t.dates || t.dates.length < 2) {
+    if (cont) cont.style.display = 'none';
+    return;
+  }
+  cont.style.display = '';
+  const selBanc  = document.getElementById('cmpBanc');
+  const selIni   = document.getElementById('cmpDataInici');
+  const selFi    = document.getElementById('cmpDataFi');
+
+  // Bancs: "Tots" + cada banc registrat
+  const valBancActual = selBanc.value;
+  selBanc.innerHTML = '<option value="__total__">Tots els bancs</option>' +
+    t.bancs.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  if (valBancActual && [...selBanc.options].some(o => o.value === valBancActual)) selBanc.value = valBancActual;
+
+  // Dates: les que ja tenim a la BD
+  const optDates = t.dates.map(d => {
+    const p = d.split('-');
+    return `<option value="${d}">${p[2]}/${p[1]}/${p[0].slice(2)}</option>`;
+  }).join('');
+  const valIni = selIni.value, valFi = selFi.value;
+  selIni.innerHTML = optDates;
+  selFi.innerHTML  = optDates;
+  // Per defecte: 1a data com a inicial, última com a final
+  selIni.value = (valIni && t.dates.includes(valIni)) ? valIni : t.dates[0];
+  selFi.value  = (valFi  && t.dates.includes(valFi))  ? valFi  : t.dates[t.dates.length - 1];
+}
+
+function calcularComparacio() {
+  const t = window._taulaBancs;
+  if (!t) return;
+  const banc    = document.getElementById('cmpBanc').value;
+  const dataIni = document.getElementById('cmpDataInici').value;
+  const dataFi  = document.getElementById('cmpDataFi').value;
+  const out     = document.getElementById('cmpResultat');
+
+  if (!dataIni || !dataFi) {
+    out.innerHTML = '<div style="color:var(--red);font-size:.88rem">Selecciona dues dates</div>';
+    return;
+  }
+  if (dataIni === dataFi) {
+    out.innerHTML = '<div style="color:var(--gray-3);font-size:.88rem">Les dues dates són la mateixa</div>';
+    return;
+  }
+
+  const idxIni = t.dates.indexOf(dataIni);
+  const idxFi  = t.dates.indexOf(dataFi);
+  if (idxIni < 0 || idxFi < 0) {
+    out.innerHTML = '<div style="color:var(--red);font-size:.88rem">Data no trobada</div>';
+    return;
+  }
+
+  // Si l'usuari ha posat la final abans que la inicial, les girem
+  const [iA, iB] = idxIni < idxFi ? [idxIni, idxFi] : [idxFi, idxIni];
+  const dA = t.dates[iA], dB = t.dates[iB];
+
+  let saldoA, saldoB, etiqueta;
+  if (banc === '__total__') {
+    saldoA = t.totals[iA];
+    saldoB = t.totals[iB];
+    etiqueta = 'Tots els bancs';
+  } else {
+    saldoA = t.files[banc] ? t.files[banc][iA] : null;
+    saldoB = t.files[banc] ? t.files[banc][iB] : null;
+    etiqueta = banc;
+  }
+
+  if (saldoA === null || saldoA === undefined || saldoB === null || saldoB === undefined) {
+    out.innerHTML = `<div style="background:#fff3cd;border-left:4px solid #f59e0b;padding:.85rem 1.1rem;border-radius:6px;font-size:.88rem;color:#7a6010">No hi ha saldo registrat per <strong>${esc(etiqueta)}</strong> en alguna de les dues dates.</div>`;
+    return;
+  }
+
+  const variacio = saldoB - saldoA;
+  const pct = saldoA !== 0 ? (variacio / Math.abs(saldoA)) * 100 : null;
+  const formatData = d => { const p = d.split('-'); return `${p[2]}/${p[1]}/${p[0].slice(2)}`; };
+
+  const colorPrincipal = variacio > 0 ? '#10b981' : variacio < 0 ? '#ef4444' : 'var(--gray-3)';
+  const signe = variacio > 0 ? '+' : '';
+  const fonsPrincipal = variacio > 0 ? '#ecfdf5' : variacio < 0 ? '#fef2f2' : '#f8fafc';
+  const bordeColor    = variacio > 0 ? '#10b981' : variacio < 0 ? '#ef4444' : 'var(--gray-2)';
+
+  out.innerHTML = `
+    <div style="background:${fonsPrincipal};border-left:4px solid ${bordeColor};border-radius:8px;padding:1.25rem 1.5rem">
+      <div style="font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-3);font-weight:600;margin-bottom:.4rem">${esc(etiqueta)}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1rem">
+        <div>
+          <div style="font-size:.72rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em">Saldo ${formatData(dA)}</div>
+          <div style="font-family:var(--font-head);font-size:1.3rem;font-weight:700;color:var(--navy)">${fmtN(saldoA)} €</div>
+        </div>
+        <div>
+          <div style="font-size:.72rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em">Saldo ${formatData(dB)}</div>
+          <div style="font-family:var(--font-head);font-size:1.3rem;font-weight:700;color:var(--navy)">${fmtN(saldoB)} €</div>
+        </div>
+      </div>
+      <div style="border-top:1px dashed ${bordeColor};padding-top:.85rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+        <div style="font-size:.85rem;color:var(--gray-3)">Variació entre <strong>${formatData(dA)}</strong> i <strong>${formatData(dB)}</strong>${variacio > 0 ? ' · <strong style="color:#10b981">guany</strong>' : variacio < 0 ? ' · <strong style="color:#ef4444">pèrdua</strong>' : ''}</div>
+        <div style="font-family:var(--font-head);font-size:1.5rem;font-weight:700;color:${colorPrincipal}">
+          ${signe}${fmtN(variacio)} €
+          ${pct !== null ? `<span style="font-size:.95rem;font-weight:600;margin-left:.4rem">(${signe}${pct.toFixed(2)}%)</span>` : ''}
+        </div>
+      </div>
+    </div>`;
 }
 
 function fmtN(v) {
