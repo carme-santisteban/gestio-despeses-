@@ -1602,12 +1602,32 @@ function renderTaulaDinamica(t) {
     return;
   }
 
-  info.textContent = t.dates.length + ' dates · ' + t.bancs.length + ' bancs';
+  // Paginació: si hi ha més de 9 dates, mostrem la 1a (referència) + les 8 últimes
+  // amb un separador visual "…" entre mig per indicar les amagades.
+  const MAX_VISIBLES = 9;       // 1 referència + 8 últimes
+  const ULTIMES = 8;
+  const totalDates = t.dates.length;
+  let idxsVisibles;             // índexs de les dates a mostrar dins de t.dates
+  let hiHaSeparador = false;
+  if (totalDates > MAX_VISIBLES) {
+    idxsVisibles = [0];
+    for (let i = totalDates - ULTIMES; i < totalDates; i++) idxsVisibles.push(i);
+    hiHaSeparador = true;
+  } else {
+    idxsVisibles = t.dates.map((_, i) => i);
+  }
+
+  info.textContent = totalDates + ' dates · ' + t.bancs.length + ' bancs' +
+    (hiHaSeparador ? ` · mostrant 1a + últimes ${ULTIMES}` : '');
 
   // Capçalera
-  const thDates = t.dates.map(d => {
+  const thDates = idxsVisibles.map((idx, posVis) => {
+    const d = t.dates[idx];
     const p = d.split('-');
-    return `<th style="text-align:right;white-space:nowrap;background:#1a3a5c;min-width:105px;font-size:.75rem">${p[2]}/${p[1]}/${p[0].slice(2)}</th>`;
+    const cellSep = (hiHaSeparador && posVis === 1)
+      ? '<th style="background:#1a3a5c;color:var(--gray-2);text-align:center;font-size:.85rem;min-width:30px" title="Fotografies intermèdies amagades">…</th>'
+      : '';
+    return cellSep + `<th style="text-align:right;white-space:nowrap;background:#1a3a5c;min-width:105px;font-size:.75rem">${p[2]}/${p[1]}/${p[0].slice(2)}</th>`;
   }).join('');
   head.innerHTML = `<tr>
     <th style="background:var(--navy);min-width:130px">FECHA</th>
@@ -1617,12 +1637,16 @@ function renderTaulaDinamica(t) {
 
   // Files bancs — cada cel·la és clicable per editar
   const filesBancs = t.bancs.map(banc => {
-    const tds = t.dates.map((d, i) => {
-      const val = t.files[banc][i];
+    const tds = idxsVisibles.map((idx, posVis) => {
+      const d = t.dates[idx];
+      const val = t.files[banc][idx];
+      const cellSep = (hiHaSeparador && posVis === 1)
+        ? '<td style="text-align:center;color:var(--gray-2);background:#fafafa">…</td>'
+        : '';
       if (val === null || val === undefined) {
-        return `<td style="text-align:right;color:var(--gray-2);cursor:pointer" onclick="obrirEditCella('${esc(banc)}','${d}',null)">—</td>`;
+        return cellSep + `<td style="text-align:right;color:var(--gray-2);cursor:pointer" onclick="obrirEditCella('${esc(banc)}','${d}',null)">—</td>`;
       }
-      return `<td style="text-align:right;font-weight:500;cursor:pointer" onclick="obrirEditCellaPerId('${esc(banc)}','${d}')" title="Clic per editar">${fmtN(val)}</td>`;
+      return cellSep + `<td style="text-align:right;font-weight:500;cursor:pointer" onclick="obrirEditCellaPerId('${esc(banc)}','${d}')" title="Clic per editar">${fmtN(val)}</td>`;
     }).join('');
     const varTotal = t.total_variacio[banc] || 0;
     const varCls = varTotal > 0 ? 'color:var(--green)' : varTotal < 0 ? 'color:var(--red)' : 'color:var(--gray-3)';
@@ -1631,9 +1655,12 @@ function renderTaulaDinamica(t) {
   }).join('');
 
   // Fila TOTAL
-  const tdTotals = t.totals.map(tot =>
-    `<td style="text-align:right;font-weight:700;font-family:var(--font-head)">${fmtN(tot)}</td>`
-  ).join('');
+  const tdTotals = idxsVisibles.map((idx, posVis) => {
+    const cellSep = (hiHaSeparador && posVis === 1)
+      ? '<td style="text-align:center;color:var(--gray-2);background:#fafafa">…</td>'
+      : '';
+    return cellSep + `<td style="text-align:right;font-weight:700;font-family:var(--font-head)">${fmtN(t.totals[idx])}</td>`;
+  }).join('');
   const totVar = t.total_variacio['__total__'] || 0;
   const totVarCls = totVar > 0 ? 'color:var(--green)' : totVar < 0 ? 'color:var(--red)' : '';
   const totVarTxt = totVar > 0 ? '+' + fmtN(totVar) : fmtN(totVar);
@@ -1643,10 +1670,14 @@ function renderTaulaDinamica(t) {
   </tr>`;
 
   // Fila VARIACIÓ groga
-  const tdVars = t.variacions.map(v => {
-    if (v === null) return `<td style="background:#f5e6b0;text-align:right;color:var(--gray-3)">—</td>`;
+  const tdVars = idxsVisibles.map((idx, posVis) => {
+    const v = t.variacions[idx];
+    const cellSep = (hiHaSeparador && posVis === 1)
+      ? '<td style="background:#f5e6b0;text-align:center;color:var(--gray-3)">…</td>'
+      : '';
+    if (v === null) return cellSep + `<td style="background:#f5e6b0;text-align:right;color:var(--gray-3)">—</td>`;
     const cls = v > 0 ? 'color:#5a7a2a' : v < 0 ? 'color:#8b2020' : 'color:var(--gray-3)';
-    return `<td style="background:#f5e6b0;text-align:right;font-weight:600;font-size:.85rem;${cls}">${v > 0 ? '+' : ''}${fmtN(v)}</td>`;
+    return cellSep + `<td style="background:#f5e6b0;text-align:right;font-weight:600;font-size:.85rem;${cls}">${v > 0 ? '+' : ''}${fmtN(v)}</td>`;
   }).join('');
   const filaVar = `<tr>
     <td style="background:#f5e6b0;font-size:.78rem;font-weight:600;color:#7a6010;letter-spacing:.04em">VARIACIÓ</td>
