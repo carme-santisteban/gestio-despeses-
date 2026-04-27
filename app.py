@@ -30,6 +30,31 @@ cloudinary.config(
     api_secret=os.environ.get('CLOUDINARY_API_SECRET', '')
 )
 
+# ─── Helper Cloudinary ────────────────────────────────────────────────────────
+def pujar_arxiu_cloudinary(fitxer, folder):
+    """
+    Puja un arxiu a Cloudinary preservant l'extensió original al public_id,
+    de manera que la URL retornada inclogui l'extensió (.pdf, .jpg, etc.).
+    Així el navegador desa el fitxer amb extensió correcta i s'obre amb
+    l'app adequada (Vista Prèvia per a PDFs).
+    """
+    import re, time
+    nom_original = fitxer.filename or 'document'
+    nom_base, ext = os.path.splitext(nom_original)
+    # Netejar el nom: només lletres, números, guió i guió baix
+    nom_net = re.sub(r'[^A-Za-z0-9_-]', '_', nom_base)[:60] or 'document'
+    # Sufix de temps per evitar col·lisions
+    sufix = str(int(time.time() * 1000))[-8:]
+    public_id_final = f"{nom_net}_{sufix}{ext.lower()}"
+    return cloudinary.uploader.upload(
+        fitxer,
+        resource_type='raw',
+        folder=folder,
+        public_id=public_id_final,
+        use_filename=False,
+        unique_filename=False,
+    )
+
 # ─── Models ───────────────────────────────────────────────────────────────────
 
 class Despesa(db.Model):
@@ -377,11 +402,7 @@ def create_despesa():
 
     if fitxer and fitxer.filename:
         try:
-            result = cloudinary.uploader.upload(
-                fitxer,
-                resource_type='raw',
-                folder='gestiodespeses'
-            )
+            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses')
             document_url = result.get('secure_url')
             document_nom = fitxer.filename
         except Exception as e:
@@ -418,7 +439,7 @@ def update_despesa(id):
     cloudinary_error = None
     if fitxer and fitxer.filename:
         try:
-            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses')
+            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses')
             despesa.document_url = result.get('secure_url')
             despesa.document_nom = fitxer.filename
         except Exception as e:
@@ -585,7 +606,7 @@ def create_factura():
     document_nom = None
     if fitxer and fitxer.filename:
         try:
-            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/factures')
+            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/factures')
             document_url = result.get('secure_url')
             document_nom = fitxer.filename
         except Exception as e:
@@ -623,7 +644,7 @@ def update_factura(id):
     data = request.form
     if fitxer and fitxer.filename:
         try:
-            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/factures')
+            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/factures')
             factura.document_url = result.get('secure_url')
             factura.document_nom = fitxer.filename
         except:
@@ -692,7 +713,7 @@ def create_torn_ofici():
     document_nom = None
     if fitxer and fitxer.filename:
         try:
-            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/torn_ofici')
+            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/torn_ofici')
             document_url = result.get('secure_url')
             document_nom = fitxer.filename
         except Exception:
@@ -721,7 +742,7 @@ def update_torn_ofici(id):
     data = request.form
     if fitxer and fitxer.filename:
         try:
-            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/torn_ofici')
+            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/torn_ofici')
             torn.document_url = result.get('secure_url')
             torn.document_nom = fitxer.filename
         except Exception:
@@ -859,7 +880,7 @@ def create_banc_document(banc_id):
     if not fitxer or not fitxer.filename:
         return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
     try:
-        result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/bancs', use_filename=True, unique_filename=True)
+        result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/bancs')
         url = result.get('secure_url')
         doc = BancDocument(
             banc_id=banc_id,
@@ -893,7 +914,7 @@ def create_despesa_document(despesa_id):
     if not fitxer or not fitxer.filename:
         return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
     try:
-        result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/despeses', use_filename=True, unique_filename=True)
+        result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/despeses')
         doc = DespesaDocument(
             despesa_id=despesa_id,
             document_url=result.get('secure_url'),
@@ -925,7 +946,7 @@ def create_factura_document(factura_id):
     if not fitxer or not fitxer.filename:
         return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
     try:
-        result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/factures', use_filename=True, unique_filename=True)
+        result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/factures')
         doc = FacturaDocument(
             factura_id=factura_id,
             document_url=result.get('secure_url'),
@@ -1501,7 +1522,7 @@ def create_asseguranca():
     document_nom = None
     if fitxer and fitxer.filename:
         try:
-            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/assegurances')
+            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/assegurances')
             document_url = result.get('secure_url')
             document_nom = fitxer.filename
         except Exception as e:
@@ -1542,7 +1563,7 @@ def update_asseguranca(id):
     fitxer = request.files.get('document')
     if fitxer and fitxer.filename:
         try:
-            result = cloudinary.uploader.upload(fitxer, resource_type='raw', folder='gestiodespeses/assegurances')
+            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/assegurances')
             a.document_url = result.get('secure_url')
             a.document_nom = fitxer.filename
         except:
