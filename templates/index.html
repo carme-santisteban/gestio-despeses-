@@ -1431,7 +1431,7 @@ function renderTornOfici(llista) {
       <td class="import-cell">${formatImport(t.import_brut)}</td>
       <td style="font-size:.85rem;color:var(--red)">-${formatImport(t.import_irpf)} <span style="color:var(--gray-3)">(${t.irpf_pct}%)</span></td>
       <td class="import-cell" style="color:var(--blue)">${formatImport(t.import_liquid)}</td>
-      <td>${t.document_url ? `<a href="${t.document_url}" target="_blank" style="color:var(--blue);font-size:.8rem">📎 ${esc(t.document_nom||'Doc')}</a>` : '—'}</td>
+      <td>${t.document_download_url ? `<a href="${t.document_download_url}" target="_blank" style="color:var(--blue);font-size:.8rem">📎 ${esc(t.document_nom||'Doc')}</a>` : '—'}</td>
       <td class="accions">
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarTorn(${t.id})" title="Editar">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="eliminarTorn(${t.id})" title="Eliminar">🗑</button>
@@ -1481,7 +1481,7 @@ function obrirModalTornOfici(t = null) {
   document.getElementById('ftNotes').value       = t ? t.notes : '';
   document.getElementById('ftNomDocument').textContent = '';
   document.getElementById('ftDocument').value = '';
-  document.getElementById('ftDocActual').innerHTML = t && t.document_url ? `Document actual: <a href="${t.document_url}" target="_blank" style="color:var(--blue)">${t.document_nom||'veure'}</a>` : '';
+  document.getElementById('ftDocActual').innerHTML = t && t.document_download_url ? `Document actual: <a href="${t.document_download_url}" target="_blank" style="color:var(--blue)">${t.document_nom||'veure'}</a>` : '';
   calcularTotalsTorn();
   document.getElementById('modalTornOverlay').classList.add('actiu');
 }

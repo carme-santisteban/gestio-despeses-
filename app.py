@@ -2,8 +2,10 @@ import os
 import csv
 import io
 import base64
+import mimetypes
+import urllib.request
 from datetime import datetime, date
-from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, Response, abort
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import extract, func
 import cloudinary
@@ -54,6 +56,31 @@ def pujar_arxiu_cloudinary(fitxer, folder):
         use_filename=False,
         unique_filename=False,
     )
+
+def respond_document(filename, mimetype, data):
+    filename = filename or 'document.pdf'
+    ascii_name = filename.encode('ascii', 'ignore').decode('ascii') or 'document.pdf'
+    return Response(
+        data,
+        mimetype=mimetype or mimetypes.guess_type(filename)[0] or 'application/octet-stream',
+        headers={'Content-Disposition': f'inline; filename="{ascii_name}"'}
+    )
+
+def prepare_cloud_document(file, folder):
+    data = file.read()
+    if not data:
+        return None, None, None, None
+    filename = file.filename or 'document.pdf'
+    mimetype = file.mimetype or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    document_url = None
+    try:
+        stream = io.BytesIO(data)
+        stream.filename = filename
+        result = pujar_arxiu_cloudinary(stream, folder)
+        document_url = result.get('secure_url')
+    except Exception as e:
+        print(f'Error Cloudinary: {e}')
+    return document_url, filename, base64.b64encode(data).decode('ascii'), mimetype
 
 # ─── Models ───────────────────────────────────────────────────────────────────
 
@@ -153,6 +180,8 @@ class TornOfici(db.Model):
     notes          = db.Column(db.Text)
     document_url   = db.Column(db.String(500))
     document_nom   = db.Column(db.String(200))
+    document_data  = db.Column(db.Text)
+    document_mimetype = db.Column(db.String(100), default='application/pdf')
     creat_el       = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
@@ -175,6 +204,8 @@ class TornOfici(db.Model):
             'notes':         self.notes or '',
             'document_url':  self.document_url or '',
             'document_nom':  self.document_nom or '',
+            'document_data': bool(self.document_data),
+            'document_download_url': url_for('download_torn_ofici_document', id=self.id) if (self.document_url or self.document_data) else '',
         }
 
 
@@ -291,6 +322,8 @@ with app.app_context():
     try:
         from sqlalchemy import text as _text
         db.session.execute(_text('ALTER TABLE assegurances ADD COLUMN IF NOT EXISTS data_itv DATE'))
+        db.session.execute(_text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_data TEXT'))
+        db.session.execute(_text("ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -320,9 +353,13 @@ with app.app_context():
                 notes TEXT,
                 document_url VARCHAR(500),
                 document_nom VARCHAR(200),
+                document_data TEXT,
+                document_mimetype VARCHAR(100) DEFAULT 'application/pdf',
                 creat_el TIMESTAMP DEFAULT NOW()
             )
         '''))
+        db.session.execute(text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_data TEXT'))
+        db.session.execute(text("ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -711,13 +748,13 @@ def create_torn_ofici():
     data = request.form if fitxer else (request.json or request.form)
     document_url = None
     document_nom = None
+    document_data = None
+    document_mimetype = None
     if fitxer and fitxer.filename:
-        try:
-            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/torn_ofici')
-            document_url = result.get('secure_url')
-            document_nom = fitxer.filename
-        except Exception:
-            pass
+        document_url, document_nom, document_data, document_mimetype = prepare_cloud_document(
+            fitxer,
+            'gestiodespeses/torn_ofici'
+        )
     try:
         torn = TornOfici(
             descripcio    = data['descripcio'],
@@ -727,6 +764,8 @@ def create_torn_ofici():
             notes         = data.get('notes', ''),
             document_url  = document_url,
             document_nom  = document_nom,
+            document_data = document_data,
+            document_mimetype = document_mimetype,
         )
         db.session.add(torn)
         db.session.commit()
@@ -741,12 +780,14 @@ def update_torn_ofici(id):
     fitxer = request.files.get('document')
     data = request.form
     if fitxer and fitxer.filename:
-        try:
-            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/torn_ofici')
-            torn.document_url = result.get('secure_url')
-            torn.document_nom = fitxer.filename
-        except Exception:
-            pass
+        document_url, document_nom, document_data, document_mimetype = prepare_cloud_document(
+            fitxer,
+            'gestiodespeses/torn_ofici'
+        )
+        torn.document_url = document_url
+        torn.document_nom = document_nom
+        torn.document_data = document_data
+        torn.document_mimetype = document_mimetype
     try:
         torn.descripcio    = data['descripcio']
         torn.data_pagament = datetime.strptime(data['data_pagament'], '%Y-%m-%d').date()
@@ -758,6 +799,23 @@ def update_torn_ofici(id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
+
+@app.route('/api/torn-ofici/<int:id>/document')
+def download_torn_ofici_document(id):
+    torn = TornOfici.query.get_or_404(id)
+    filename = torn.document_nom or 'document.pdf'
+    mimetype = torn.document_mimetype or mimetypes.guess_type(filename)[0] or 'application/pdf'
+    if torn.document_url:
+        try:
+            with urllib.request.urlopen(torn.document_url, timeout=10) as r:
+                data = r.read()
+            if data:
+                return respond_document(filename, mimetype, data)
+        except Exception as e:
+            print(f'Error baixant document TornOfici de Cloudinary: {e}')
+    if torn.document_data:
+        return respond_document(filename, mimetype, base64.b64decode(torn.document_data))
+    abort(404)
 
 @app.route('/api/torn-ofici/<int:id>', methods=['DELETE'])
 def delete_torn_ofici(id):
