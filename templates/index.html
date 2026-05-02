@@ -349,6 +349,18 @@
       </div>
       <div id="smiDetall" style="margin-top:.75rem;font-size:.82rem;color:var(--gray-3)"></div>
     </div>
+    <div class="taula-wrapper" style="margin-bottom:1.5rem">
+      <div class="taula-cap">
+        <h2>Comunicacions amb el torn</h2>
+        <button class="btn btn-primary" onclick="obrirModalComunicacioTorn()">+ Nova comunicació</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Data</th><th>Tipus</th><th>Assumpte</th><th>Notes</th><th>Doc.</th><th style="text-align:center">Accions</th></tr></thead>
+          <tbody id="taulaComunicacionsTornCos"><tr><td colspan="6" class="buit"><div class="buit-icon">✉️</div><div class="buit-text">Carregant…</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
     <div class="taula-wrapper">
       <div class="taula-cap"><h2>Llistat de pagaments ICAB</h2></div>
       <div style="overflow-x:auto">
@@ -615,6 +627,34 @@
     <div class="modal-peu">
       <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalTorn()">Cancel·lar</button>
       <button class="btn btn-primary" id="btnGuardarTorn" onclick="guardarTorn()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Comunicació Torn -->
+<div class="modal-overlay" id="modalComTornOverlay" onclick="if(event.target===this)tancarModalComunicacioTorn()">
+  <div class="modal" id="modalComTorn" style="max-width:620px" onclick="event.stopPropagation()">
+    <div class="modal-cap">
+      <h3 id="modalComTornTitol">Nova comunicació amb el torn</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalComunicacioTorn()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <div class="form-grid">
+        <div class="form-grup"><label class="form-label">Data <span>*</span></label><input type="date" class="form-control" id="ctData"></div>
+        <div class="form-grup"><label class="form-label">Tipus</label><select class="form-control" id="ctTipus"><option value="email">Email</option><option value="telefon">Telèfon</option><option value="presencial">Presencial</option><option value="escrit">Escrit</option><option value="altres">Altres</option></select></div>
+        <div class="form-grup full"><label class="form-label">Assumpte <span>*</span></label><input type="text" class="form-control" id="ctAssumpte" placeholder="Ex: Consulta ICAB, requeriment, justificació..."></div>
+        <div class="form-grup full">
+          <label class="form-label">Document adjunt</label>
+          <div class="upload-zona" onclick="document.getElementById('ctDocument').click()"><div>📎 Fes clic per adjuntar un arxiu</div><div class="upload-text">PDF, Word, imatge...</div><div class="upload-nom" id="ctNomDocument"></div></div>
+          <input type="file" id="ctDocument" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic" onchange="document.getElementById('ctNomDocument').textContent = this.files[0]?.name || ''">
+          <div id="ctDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
+        </div>
+        <div class="form-grup full"><label class="form-label">Notes</label><textarea class="form-control" id="ctNotes" placeholder="Detall de la comunicació, resposta pendent, persona de contacte..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalComunicacioTorn()">Cancel·lar</button>
+      <button class="btn btn-primary" id="btnGuardarComTorn" onclick="guardarComunicacioTorn()">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -1412,6 +1452,8 @@ async function eliminarFactura(id) {
 // ─── Torn d'Ofici ─────────────────────────────────────────────────────────────
 let tornsOfici = [];
 let tornEdId = null;
+let comunicacionsTorn = [];
+let comunicacioTornEdId = null;
 
 async function carregarAnysTornOfici() {
   try {
@@ -1439,6 +1481,7 @@ async function carregarTornOfici() {
     const r = await fetch('/api/torn-ofici?' + params);
     tornsOfici = await r.json();
     renderTornOfici(tornsOfici);
+    carregarComunicacionsTorn(any_);
     carregarResumSMI(any_ || new Date().getFullYear());
   } catch(e) { toast('Error carregant torn ofici', 'error'); }
 }
@@ -1489,6 +1532,102 @@ async function carregarResumSMI(any_) {
     }
     document.getElementById('smiRestant').style.color = d.restant !== null && d.restant < 0 ? '#ef4444' : 'inherit';
   } catch(e) {}
+}
+
+async function carregarComunicacionsTorn(any_) {
+  const params = new URLSearchParams();
+  if (any_) params.set('any', any_);
+  try {
+    const r = await fetch('/api/torn-comunicacions?' + params);
+    comunicacionsTorn = await r.json();
+    renderComunicacionsTorn(comunicacionsTorn);
+  } catch(e) { toast('Error carregant comunicacions del torn', 'error'); }
+}
+
+function renderComunicacionsTorn(llista) {
+  const cos = document.getElementById('taulaComunicacionsTornCos');
+  if (!llista.length) {
+    cos.innerHTML = '<tr><td colspan="6" class="buit"><div class="buit-icon">✉️</div><div class="buit-text">Cap comunicació registrada</div></td></tr>';
+    return;
+  }
+  cos.innerHTML = llista.map(c => `
+    <tr>
+      <td style="color:var(--gray-3);white-space:nowrap">${formatData(c.data)}</td>
+      <td><span style="padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600;background:#f1f5f9;color:var(--navy)">${esc(c.tipus || 'email')}</span></td>
+      <td style="font-weight:500">${esc(c.assumpte)}</td>
+      <td style="color:var(--gray-3);font-size:.85rem">${esc(c.notes || '—')}</td>
+      <td>${c.document_download_url ? `<a href="${c.document_download_url}" target="_blank" style="color:var(--blue);font-size:.8rem">📎 ${esc(c.document_nom||'Doc')}</a>` : '—'}</td>
+      <td class="accions">
+        <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarComunicacioTorn(${c.id})" title="Editar">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminarComunicacioTorn(${c.id})" title="Eliminar">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+function obrirModalComunicacioTorn(c = null) {
+  comunicacioTornEdId = c ? c.id : null;
+  document.getElementById('modalComTornTitol').textContent = c ? 'Editar comunicació amb el torn' : 'Nova comunicació amb el torn';
+  document.getElementById('ctData').value = c ? c.data : new Date().toISOString().slice(0,10);
+  document.getElementById('ctTipus').value = c ? (c.tipus || 'email') : 'email';
+  document.getElementById('ctAssumpte').value = c ? c.assumpte : '';
+  document.getElementById('ctNotes').value = c ? c.notes : '';
+  document.getElementById('ctNomDocument').textContent = '';
+  document.getElementById('ctDocument').value = '';
+  document.getElementById('ctDocActual').innerHTML = c && c.document_download_url ? `Document actual: <a href="${c.document_download_url}" target="_blank" style="color:var(--blue)">${c.document_nom||'veure'}</a>` : '';
+  document.getElementById('modalComTornOverlay').classList.add('actiu');
+}
+
+function tancarModalComunicacioTorn() {
+  document.getElementById('modalComTornOverlay').classList.remove('actiu');
+  comunicacioTornEdId = null;
+}
+
+async function guardarComunicacioTorn() {
+  const data = document.getElementById('ctData').value;
+  const assumpte = document.getElementById('ctAssumpte').value.trim();
+  if (!data || !assumpte) { toast('Data i assumpte són obligatoris', 'error'); return; }
+  const btn = document.getElementById('btnGuardarComTorn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant…';
+  const fd = new FormData();
+  fd.append('data', data);
+  fd.append('tipus', document.getElementById('ctTipus').value);
+  fd.append('assumpte', assumpte);
+  fd.append('notes', document.getElementById('ctNotes').value);
+  const fitxer = document.getElementById('ctDocument').files[0];
+  if (fitxer) fd.append('document', fitxer);
+  try {
+    const url = comunicacioTornEdId ? `/api/torn-comunicacions/${comunicacioTornEdId}` : '/api/torn-comunicacions';
+    const method = comunicacioTornEdId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, body: fd });
+    if (!r.ok) {
+      let msg = 'Error guardant la comunicació';
+      try { const errJson = await r.json(); if (errJson && errJson.error) msg = 'Error: ' + errJson.error; } catch(_) {}
+      toast(msg, 'error');
+      return;
+    }
+    toast(comunicacioTornEdId ? 'Comunicació actualitzada' : 'Comunicació guardada', 'ok');
+    tancarModalComunicacioTorn();
+    carregarComunicacionsTorn(document.getElementById('filtreAnyTorn').value);
+  } catch(e) {
+    toast('Error de connexió: ' + (e.message || 'desconegut'), 'error');
+  } finally {
+    btn.disabled = false; btn.innerHTML = '💾 Guardar';
+  }
+}
+
+function editarComunicacioTorn(id) {
+  const c = comunicacionsTorn.find(x => x.id === id);
+  if (c) obrirModalComunicacioTorn(c);
+}
+
+async function eliminarComunicacioTorn(id) {
+  const c = comunicacionsTorn.find(x => x.id === id);
+  if (!confirm(`Eliminar la comunicació "${c?.assumpte}"?`)) return;
+  try {
+    await fetch(`/api/torn-comunicacions/${id}`, { method:'DELETE' });
+    toast('Comunicació eliminada', 'ok');
+    carregarComunicacionsTorn(document.getElementById('filtreAnyTorn').value);
+  } catch(e) { toast('Error eliminant', 'error'); }
 }
 
 function calcularTotalsTorn() {

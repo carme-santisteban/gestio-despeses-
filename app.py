@@ -220,6 +220,34 @@ class TornOfici(db.Model):
         }
 
 
+class TornComunicacio(db.Model):
+    __tablename__ = 'torn_comunicacions'
+
+    id                = db.Column(db.Integer, primary_key=True)
+    data              = db.Column(db.Date, nullable=False, default=date.today)
+    tipus             = db.Column(db.String(50), default='email')
+    assumpte          = db.Column(db.String(255), nullable=False)
+    notes             = db.Column(db.Text)
+    document_url      = db.Column(db.String(500))
+    document_nom      = db.Column(db.String(200))
+    document_data     = db.Column(db.Text)
+    document_mimetype = db.Column(db.String(100), default='application/pdf')
+    creat_el          = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id':            self.id,
+            'data':          self.data.isoformat() if self.data else None,
+            'tipus':         self.tipus or 'email',
+            'assumpte':      self.assumpte,
+            'notes':         self.notes or '',
+            'document_url':  self.document_url or '',
+            'document_nom':  self.document_nom or '',
+            'document_data': bool(self.document_data),
+            'document_download_url': url_for('download_torn_comunicacio_document', id=self.id) if (self.document_url or self.document_data) else '',
+        }
+
+
 # SMI (Salari Mínim Interprofessional) anual — art. 213.4 LGSS
 # Font: RD que fixa el SMI cada any. Actualitzar cada any al BOE.
 SMI_ANUAL = {
@@ -335,6 +363,8 @@ with app.app_context():
         db.session.execute(_text('ALTER TABLE assegurances ADD COLUMN IF NOT EXISTS data_itv DATE'))
         db.session.execute(_text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(_text("ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
+        db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_data TEXT'))
+        db.session.execute(_text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -371,6 +401,22 @@ with app.app_context():
         '''))
         db.session.execute(text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(text("ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
+        db.session.execute(text('''
+            CREATE TABLE IF NOT EXISTS torn_comunicacions (
+                id SERIAL PRIMARY KEY,
+                data DATE NOT NULL,
+                tipus VARCHAR(50) DEFAULT 'email',
+                assumpte VARCHAR(255) NOT NULL,
+                notes TEXT,
+                document_url VARCHAR(500),
+                document_nom VARCHAR(200),
+                document_data TEXT,
+                document_mimetype VARCHAR(100) DEFAULT 'application/pdf',
+                creat_el TIMESTAMP DEFAULT NOW()
+            )
+        '''))
+        db.session.execute(text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_data TEXT'))
+        db.session.execute(text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -835,6 +881,91 @@ def download_torn_ofici_document(id):
 def delete_torn_ofici(id):
     torn = TornOfici.query.get_or_404(id)
     db.session.delete(torn)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/torn-comunicacions', methods=['GET'])
+def get_torn_comunicacions():
+    any_ = request.args.get('any', type=int)
+    q = TornComunicacio.query
+    if any_:
+        q = q.filter(extract('year', TornComunicacio.data) == any_)
+    return jsonify([c.to_dict() for c in q.order_by(TornComunicacio.data.desc(), TornComunicacio.id.desc()).all()])
+
+@app.route('/api/torn-comunicacions', methods=['POST'])
+def create_torn_comunicacio():
+    fitxer = request.files.get('document')
+    data = request.form
+    document_url = document_nom = document_data = document_mimetype = None
+    if fitxer and fitxer.filename:
+        document_url, document_nom, document_data, document_mimetype = prepare_cloud_document(
+            fitxer,
+            'gestiodespeses/torn_comunicacions'
+        )
+    try:
+        comunicacio = TornComunicacio(
+            data=datetime.strptime(data['data'], '%Y-%m-%d').date(),
+            tipus=data.get('tipus', 'email'),
+            assumpte=data['assumpte'],
+            notes=data.get('notes', ''),
+            document_url=document_url,
+            document_nom=document_nom,
+            document_data=document_data,
+            document_mimetype=document_mimetype,
+        )
+        db.session.add(comunicacio)
+        db.session.commit()
+        return jsonify(comunicacio.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/torn-comunicacions/<int:id>', methods=['PUT'])
+def update_torn_comunicacio(id):
+    comunicacio = TornComunicacio.query.get_or_404(id)
+    fitxer = request.files.get('document')
+    data = request.form
+    if fitxer and fitxer.filename:
+        document_url, document_nom, document_data, document_mimetype = prepare_cloud_document(
+            fitxer,
+            'gestiodespeses/torn_comunicacions'
+        )
+        comunicacio.document_url = document_url
+        comunicacio.document_nom = document_nom
+        comunicacio.document_data = document_data
+        comunicacio.document_mimetype = document_mimetype
+    try:
+        comunicacio.data = datetime.strptime(data['data'], '%Y-%m-%d').date()
+        comunicacio.tipus = data.get('tipus', 'email')
+        comunicacio.assumpte = data['assumpte']
+        comunicacio.notes = data.get('notes', '')
+        db.session.commit()
+        return jsonify(comunicacio.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/torn-comunicacions/<int:id>/document')
+def download_torn_comunicacio_document(id):
+    comunicacio = TornComunicacio.query.get_or_404(id)
+    filename = comunicacio.document_nom or 'document.pdf'
+    mimetype = comunicacio.document_mimetype or mimetypes.guess_type(filename)[0] or 'application/pdf'
+    if comunicacio.document_url:
+        try:
+            with urllib.request.urlopen(comunicacio.document_url, timeout=10) as r:
+                data = r.read()
+            if data:
+                return respond_document(filename, mimetype, data)
+        except Exception as e:
+            print(f'Error baixant document comunicacio torn de Cloudinary: {e}')
+    if comunicacio.document_data:
+        return respond_document(filename, mimetype, base64.b64decode(comunicacio.document_data))
+    abort(404)
+
+@app.route('/api/torn-comunicacions/<int:id>', methods=['DELETE'])
+def delete_torn_comunicacio(id):
+    comunicacio = TornComunicacio.query.get_or_404(id)
+    db.session.delete(comunicacio)
     db.session.commit()
     return jsonify({'ok': True})
 
