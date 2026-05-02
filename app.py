@@ -415,7 +415,10 @@ def logout():
 def index():
     if not session.get('auth'):
         return redirect('/login')
-    return render_template('index.html')
+    return render_template(
+        'index.html',
+        assegurances_calendar_path=url_for('assegurances_calendar', token=CALENDAR_TOKEN)
+    )
 
 # --- CRUD Despeses ---
 
@@ -1624,11 +1627,16 @@ def assegurances_calendar():
             f'LOCATION:{_ics_text(vehicle_adreca)}',
             'STATUS:CONFIRMED',
             'TRANSP:TRANSPARENT',
-            'BEGIN:VALARM',
-            'ACTION:DISPLAY',
-            f'DESCRIPTION:{_ics_text(titol)}',
-            'TRIGGER:-P7D',
-            'END:VALARM',
+        ])
+        for trigger in ('-P30D', '-P7D', '-P1D'):
+            lines.extend([
+                'BEGIN:VALARM',
+                'ACTION:DISPLAY',
+                f'DESCRIPTION:{_ics_text(titol)}',
+                f'TRIGGER:{trigger}',
+                'END:VALARM',
+            ])
+        lines.extend([
             'END:VEVENT',
         ])
 

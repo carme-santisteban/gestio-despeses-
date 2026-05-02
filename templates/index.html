@@ -439,7 +439,7 @@
       <div><div class="page-title">Assegurances <span style="color:var(--gold)">&#xB7; Vigents i venciments</span></div></div>
       <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
         <button class="btn" onclick="subscriureCalendariAssegurances()">&#x1F4C5; iPhone</button>
-        <a class="btn" href="/api/assegurances/calendar.ics?token=gestiodespeses-assegurances-2026">&#x1F504; Calendari</a>
+        <a class="btn" href="{{ assegurances_calendar_path }}">&#x1F504; Calendari</a>
         <button class="btn btn-primary" onclick="obrirModalAsseguranca()">+ Nova asseguran&#xE7;a</button>
       </div>
     </div>
@@ -450,6 +450,7 @@
           <input type="checkbox" id="filtreSolsActives" checked onchange="renderAssegurances()"> Nom&#xE9;s actives
         </label>
       </div>
+      <div id="resumAssegurances" style="display:none;margin:0 1.25rem 1rem 1.25rem;padding:.85rem 1rem;border:1px solid #eadfbf;border-radius:8px;background:#fffaf0;color:var(--navy);font-size:.9rem"></div>
       <div style="overflow-x:auto">
         <table>
           <thead><tr>
@@ -3028,10 +3029,54 @@ async function editarTargeta(id) {
 <script>
 let assegurances = [];
 let assegurancaEdId = null;
+const ASSEGURANCES_CALENDAR_PATH = '{{ assegurances_calendar_path }}';
 
 function subscriureCalendariAssegurances() {
   const base = window.location.origin.replace(/^https?:\/\//, 'webcal://');
-  window.location.href = base + '/api/assegurances/calendar.ics?token=gestiodespeses-assegurances-2026';
+  window.location.href = base + ASSEGURANCES_CALENDAR_PATH;
+}
+
+function diesFins(dataIso) {
+  if (!dataIso) return null;
+  const avui = new Date();
+  avui.setHours(0, 0, 0, 0);
+  const data = new Date(dataIso);
+  data.setHours(0, 0, 0, 0);
+  return Math.round((data - avui) / 86400000);
+}
+
+function properAvisAsseguranca(a) {
+  const opcions = [];
+  if (a.data_venciment) opcions.push({ tipus:'Assegurança', data:a.data_venciment, dies:diesFins(a.data_venciment) });
+  if ((a.tipus === 'Cotxe' || a.tipus === 'Moto') && a.data_itv) opcions.push({ tipus:'ITV', data:a.data_itv, dies:diesFins(a.data_itv) });
+  opcions.sort(function(x, y) {
+    const ax = x.dies === null ? 999999 : x.dies;
+    const ay = y.dies === null ? 999999 : y.dies;
+    return ax - ay;
+  });
+  return opcions[0] || null;
+}
+
+function renderResumAssegurances(llista) {
+  const resum = document.getElementById('resumAssegurances');
+  if (!resum) return;
+  const properes = llista.map(function(a) {
+    return { asseguranca:a, avis:properAvisAsseguranca(a) };
+  }).filter(function(x) {
+    return x.avis && x.avis.dies <= 45;
+  }).sort(function(a, b) {
+    return a.avis.dies - b.avis.dies;
+  }).slice(0, 4);
+  if (!properes.length) {
+    resum.style.display = 'none';
+    resum.innerHTML = '';
+    return;
+  }
+  resum.style.display = 'block';
+  resum.innerHTML = '<strong>Proper a mirar:</strong> ' + properes.map(function(x) {
+    const dies = x.avis.dies <= 0 ? 'vençut' : x.avis.dies + ' dies';
+    return esc(x.avis.tipus + ' - ' + x.asseguranca.nom + ' (' + dies + ')');
+  }).join(' · ');
 }
 
 async function carregarAssegurances() {
@@ -3071,6 +3116,14 @@ function renderAssegurances() {
   const cos = document.getElementById('taulaAssegurancesCos');
   const solsActives = document.getElementById('filtreSolsActives').checked;
   let llista = solsActives ? assegurances.filter(function(a){ return a.activa; }) : assegurances;
+  llista = llista.slice().sort(function(a, b) {
+    const avisa = properAvisAsseguranca(a);
+    const avisb = properAvisAsseguranca(b);
+    const da = avisa ? avisa.dies : 999999;
+    const db = avisb ? avisb.dies : 999999;
+    return da - db;
+  });
+  renderResumAssegurances(llista);
   if (!llista.length) {
     cos.innerHTML = '<tr><td colspan="10" class="buit"><div class="buit-icon">&#x1F6E1;</div><div class="buit-text">Cap asseguran&#xE7;a registrada</div></td></tr>';
     return;
@@ -3084,8 +3137,8 @@ function renderAssegurances() {
     if (venc) {
       let color = 'color:var(--gray-4)';
       if (dies <= 0) color = 'color:var(--red);font-weight:700';
-      else if (dies <= 30) color = 'color:#e65100;font-weight:700';
-      else if (dies <= 60) color = 'color:#d4a017;font-weight:600';
+      else if (dies <= 15) color = 'color:#e65100;font-weight:700';
+      else if (dies <= 45) color = 'color:#d4a017;font-weight:600';
       vencHtml = '<span style="' + color + '">' + formatData(a.data_venciment) + (dies !== null ? '<br><small>' + (dies <= 0 ? 'VENCUDA' : dies + ' dies') + '</small>' : '') + '</span>';
     }
     const contextual = a.matricula ? '<small style="color:var(--gray-3)">' + esc(a.matricula) + '</small>' :
@@ -3104,8 +3157,8 @@ function renderAssegurances() {
         const diesItv = Math.ceil((dItv - avui) / 86400000);
         let col = 'color:var(--gray-4)';
         if (diesItv <= 0) col = 'color:var(--red);font-weight:700';
-        else if (diesItv <= 30) col = 'color:#e65100;font-weight:700';
-        else if (diesItv <= 60) col = 'color:#d4a017;font-weight:600';
+        else if (diesItv <= 15) col = 'color:#e65100;font-weight:700';
+        else if (diesItv <= 45) col = 'color:#d4a017;font-weight:600';
         return '<span style="' + col + '">' + formatData(a.data_itv) + '<br><small>' + (diesItv <= 0 ? 'CADUCADA' : diesItv + ' dies') + '</small></span>';
       })() + '</td>' +
       '<td class="import-cell" style="font-size:.9rem">' + (a.import_prima ? formatImport(a.import_prima) + (a.periodicitat ? '<br><small style="color:var(--gray-3)">' + a.periodicitat + '</small>' : '') : '-') + '</td>' +
