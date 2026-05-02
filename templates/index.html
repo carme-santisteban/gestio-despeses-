@@ -437,7 +437,11 @@
   <div id="seccioAssegurances" style="display:none">
     <div class="page-header">
       <div><div class="page-title">Assegurances <span style="color:var(--gold)">&#xB7; Vigents i venciments</span></div></div>
-      <button class="btn btn-primary" onclick="obrirModalAsseguranca()">+ Nova asseguran&#xE7;a</button>
+      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+        <button class="btn" onclick="subscriureCalendariAssegurances()">&#x1F4C5; iPhone</button>
+        <a class="btn" href="/api/assegurances/calendar.ics?token=gestiodespeses-assegurances-2026">&#x1F504; Calendari</a>
+        <button class="btn btn-primary" onclick="obrirModalAsseguranca()">+ Nova asseguran&#xE7;a</button>
+      </div>
     </div>
     <div class="taula-wrapper">
       <div class="taula-cap">
@@ -3024,6 +3028,11 @@ async function editarTargeta(id) {
 <script>
 let assegurances = [];
 let assegurancaEdId = null;
+
+function subscriureCalendariAssegurances() {
+  const base = window.location.origin.replace(/^https?:\/\//, 'webcal://');
+  window.location.href = base + '/api/assegurances/calendar.ics?token=gestiodespeses-assegurances-2026';
+}
 
 async function carregarAssegurances() {
   try {

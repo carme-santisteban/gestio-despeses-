@@ -2,9 +2,10 @@ import os
 import csv
 import io
 import base64
+import hashlib
 import mimetypes
 import urllib.request
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, Response, abort
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import extract, func
@@ -13,6 +14,7 @@ import cloudinary.uploader
 import cloudinary.api
 
 app = Flask(__name__)
+CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
 
 # Database
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost/gestiodespeses')
@@ -24,6 +26,15 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
 db = SQLAlchemy(app)
+
+
+def _ics_text(value):
+    value = '' if value is None else str(value)
+    return value.replace('\\', '\\\\').replace(';', '\\;').replace(',', '\\,').replace('\n', '\\n').replace('\r', '')
+
+
+def _ics_date(value):
+    return value.strftime('%Y%m%d')
 
 # Cloudinary config
 cloudinary.config(
@@ -1557,7 +1568,6 @@ with app.app_context():
 
 @app.route('/api/assegurances/alertes', methods=['GET'])
 def get_alertes_assegurances():
-    from datetime import timedelta
     avui = date.today()
     limit = avui + timedelta(days=30)
     alertes = Asseguranca.query.filter(
@@ -1566,6 +1576,75 @@ def get_alertes_assegurances():
         Asseguranca.data_venciment <= limit
     ).order_by(Asseguranca.data_venciment).all()
     return jsonify([a.to_dict() for a in alertes])
+
+@app.route('/api/assegurances/calendar.ics', methods=['GET'])
+def assegurances_calendar():
+    if request.args.get('token') != CALENDAR_TOKEN:
+        abort(404)
+
+    assegurances = Asseguranca.query.filter(
+        Asseguranca.activa == True
+    ).order_by(Asseguranca.data_venciment).all()
+    ara = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//GestioDespeses//Assegurances//CA',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'X-WR-CALNAME:GSS assegurances',
+        'X-WR-CALDESC:Venciments de polisses i ITV de Gestio GSS',
+        'X-WR-TIMEZONE:Europe/Madrid',
+    ]
+
+    def afegir_event(a, tipus_event, data_event, titol_prefix):
+        if not data_event:
+            return
+        data_fi = data_event + timedelta(days=1)
+        vehicle_adreca = a.matricula or a.adreca or ''
+        uid_hash = hashlib.sha1(f'{a.id}-{tipus_event}-{data_event}'.encode('utf-8')).hexdigest()[:12]
+        descripcio = '\n'.join(filter(None, [
+            f'Tipus: {a.tipus or "Altres"}',
+            f'Companyia: {a.companyia}' if a.companyia else '',
+            f'Titular: {a.titular}' if a.titular else '',
+            f'Polissa: {a.numero_polissa}' if a.numero_polissa else '',
+            f'Vehicle/adreca: {vehicle_adreca}' if vehicle_adreca else '',
+            f'Prima: {a.import_prima} EUR' if a.import_prima else '',
+            a.notes or '',
+        ]))
+        titol = f'{titol_prefix}: {a.nom}'
+        lines.extend([
+            'BEGIN:VEVENT',
+            f'UID:gss-asseguranca-{a.id}-{tipus_event}-{uid_hash}@gestiodespeses',
+            f'DTSTAMP:{ara}',
+            f'DTSTART;VALUE=DATE:{_ics_date(data_event)}',
+            f'DTEND;VALUE=DATE:{_ics_date(data_fi)}',
+            f'SUMMARY:{_ics_text(titol)}',
+            f'DESCRIPTION:{_ics_text(descripcio)}',
+            f'LOCATION:{_ics_text(vehicle_adreca)}',
+            'STATUS:CONFIRMED',
+            'TRANSP:TRANSPARENT',
+            'BEGIN:VALARM',
+            'ACTION:DISPLAY',
+            f'DESCRIPTION:{_ics_text(titol)}',
+            'TRIGGER:-P7D',
+            'END:VALARM',
+            'END:VEVENT',
+        ])
+
+    for asseguranca in assegurances:
+        afegir_event(asseguranca, 'venciment', asseguranca.data_venciment, 'Venciment asseguranca')
+        afegir_event(asseguranca, 'itv', asseguranca.data_itv, 'ITV')
+
+    lines.append('END:VCALENDAR')
+    return Response(
+        '\r\n'.join(lines) + '\r\n',
+        content_type='text/calendar; charset=utf-8',
+        headers={
+            'Content-Disposition': 'inline; filename="gss-assegurances.ics"',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+    )
 
 @app.route('/api/assegurances', methods=['GET'])
 def get_assegurances():
