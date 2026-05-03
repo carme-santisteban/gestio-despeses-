@@ -1324,9 +1324,17 @@ async function guardarDespesa() {
   finally { btn.disabled = false; btn.innerHTML = '💾 Guardar'; }
 }
 
-function editarDespesa(id) {
-  const d = despeses.find(x=>x.id===id);
+async function editarDespesa(id) {
+  let d = despeses.find(x=>x.id===id);
+  if (!d) {
+    try {
+      const r = await fetch('/api/despeses');
+      const totes = await r.json();
+      d = totes.find(x => x.id === id);
+    } catch(e) {}
+  }
   if (d) obrirModal(d);
+  else toast('No he pogut carregar aquesta despesa', 'error');
 }
 
 async function eliminarDespesa(id) {
@@ -1336,6 +1344,7 @@ async function eliminarDespesa(id) {
     await fetch(`/api/despeses/${id}`, { method: 'DELETE' });
     toast('Despesa eliminada', 'ok');
     carregarDespeses();
+    if (document.getElementById('seccioRenda').style.display !== 'none') carregarRenda();
   } catch(e) { toast('Error eliminant', 'error'); }
 }
 
@@ -1399,10 +1408,10 @@ function renderRendaBlocs(data) {
       <tr><td>${formatData(f.data)}</td><td>${esc(f.numero)}</td><td>${esc(f.client_nom)}</td><td>${formatImport(f.base)}</td><td>${formatImport(f.iva)}</td><td>${formatImport(f.irpf)}</td><td>${f.document_url ? `<a href="${f.document_url}" target="_blank">📎</a>` : '—'}</td></tr>`) +
     bloc("Torn d'ofici cobrat", data.torn_ofici || [], ['Data','Designa','Client','Brut','IRPF','Net'], t => `
       <tr><td>${formatData(t.data_pagament)}</td><td>${esc(t.designa || '')}</td><td>${esc(t.client || '')}</td><td>${formatImport(t.import_brut)}</td><td>${formatImport(t.import_irpf)}</td><td>${formatImport(t.import_net)}</td></tr>`) +
-    bloc('Despeses professionals de l\'any', data.despeses_professionals || [], ['Data','Concepte','Categoria','Proveïdor','Import','Doc'], d => `
-      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td></tr>`) +
-    bloc('Despeses marcades específicament per renda', data.despeses_marcades || [], ['Data','Concepte','Categoria','Proveïdor','Import','Doc'], d => `
-      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td></tr>`);
+    bloc('Despeses professionals de l\'any', data.despeses_professionals || [], ['Data','Concepte','Categoria','Proveïdor','Import','Doc','Accions'], d => `
+      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td><td><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})">✏️</button> <button class="btn btn-sm btn-danger" onclick="eliminarDespesa(${d.id})">🗑</button></td></tr>`) +
+    bloc('Despeses marcades específicament per renda', data.despeses_marcades || [], ['Data','Concepte','Categoria','Proveïdor','Import','Doc','Accions'], d => `
+      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td><td><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})">✏️</button> <button class="btn btn-sm btn-danger" onclick="eliminarDespesa(${d.id})">🗑</button></td></tr>`);
 }
 
 // ─── Factures ─────────────────────────────────────────────────────────────────

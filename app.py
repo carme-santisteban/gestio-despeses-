@@ -1019,7 +1019,11 @@ def api_renda():
     factures = Factura.query.filter(extract('year', Factura.data) == any_).order_by(Factura.data).all()
     torns = TornOfici.query.filter(extract('year', TornOfici.data_pagament) == any_).order_by(TornOfici.data_pagament).all()
     despeses_renda = Despesa.query.filter(Despesa.incloure_renda == True, Despesa.renda_exercici == any_).order_by(Despesa.data).all()
-    despeses_prof = Despesa.query.filter(extract('year', Despesa.data) == any_, Despesa.tipus == 'professional').order_by(Despesa.data).all()
+    despeses_prof = Despesa.query.filter(
+        extract('year', Despesa.data) == any_,
+        Despesa.tipus == 'professional',
+        db.or_(Despesa.incloure_renda == False, Despesa.incloure_renda == None)
+    ).order_by(Despesa.data).all()
     total_base = sum(float(f.base or 0) for f in factures)
     total_iva = sum(float(f.iva or 0) for f in factures)
     total_irpf_factures = sum(float(f.irpf or 0) for f in factures)
