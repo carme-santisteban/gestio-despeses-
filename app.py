@@ -108,6 +108,8 @@ class Despesa(db.Model):
     notes         = db.Column(db.Text)
     document_url  = db.Column(db.String(500))
     document_nom  = db.Column(db.String(200))
+    incloure_renda = db.Column(db.Boolean, default=False)
+    renda_exercici = db.Column(db.Integer)
     creat_el      = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -122,6 +124,8 @@ class Despesa(db.Model):
             'notes':        self.notes or '',
             'document_url': self.document_url or '',
             'document_nom': self.document_nom or '',
+            'incloure_renda': bool(self.incloure_renda),
+            'renda_exercici': self.renda_exercici,
         }
 
 
@@ -361,6 +365,8 @@ with app.app_context():
     try:
         from sqlalchemy import text as _text
         db.session.execute(_text('ALTER TABLE assegurances ADD COLUMN IF NOT EXISTS data_itv DATE'))
+        db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS incloure_renda BOOLEAN DEFAULT FALSE'))
+        db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS renda_exercici INTEGER'))
         db.session.execute(_text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(_text("ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_data TEXT'))
@@ -516,6 +522,8 @@ def create_despesa():
             notes       = data.get('notes', ''),
             document_url= document_url,
             document_nom= document_nom,
+            incloure_renda = data.get('incloure_renda') == '1',
+            renda_exercici = int(data.get('renda_exercici') or datetime.strptime(data['data'], '%Y-%m-%d').date().year) if data.get('incloure_renda') == '1' else None,
         )
         db.session.add(despesa)
         db.session.commit()
@@ -550,6 +558,8 @@ def update_despesa(id):
         despesa.import_    = float(data['import_'])
         despesa.proveidor  = data.get('proveidor', '')
         despesa.notes      = data.get('notes', '')
+        despesa.incloure_renda = data.get('incloure_renda') == '1'
+        despesa.renda_exercici = int(data.get('renda_exercici') or despesa.data.year) if despesa.incloure_renda else None
         db.session.commit()
         result = despesa.to_dict()
         if cloudinary_error:
@@ -1001,6 +1011,37 @@ def resum_smi():
         'smi_anual':      smi,
         'percent_smi':    round(percent, 2),
         'restant':        round(smi - total_general, 2) if smi else None,
+    })
+
+@app.route('/api/renda')
+def api_renda():
+    any_ = request.args.get('any', type=int, default=date.today().year - 1)
+    factures = Factura.query.filter(extract('year', Factura.data) == any_).order_by(Factura.data).all()
+    torns = TornOfici.query.filter(extract('year', TornOfici.data_pagament) == any_).order_by(TornOfici.data_pagament).all()
+    despeses_renda = Despesa.query.filter(Despesa.incloure_renda == True, Despesa.renda_exercici == any_).order_by(Despesa.data).all()
+    despeses_prof = Despesa.query.filter(extract('year', Despesa.data) == any_, Despesa.tipus == 'professional').order_by(Despesa.data).all()
+    total_base = sum(float(f.base or 0) for f in factures)
+    total_iva = sum(float(f.iva or 0) for f in factures)
+    total_irpf_factures = sum(float(f.irpf or 0) for f in factures)
+    total_torn_brut = sum(float(t.import_brut or 0) for t in torns)
+    total_torn_irpf = sum(float(t.import_irpf or 0) for t in torns)
+    total_despeses_prof = sum(float(d.import_ or 0) for d in despeses_prof)
+    total_despeses_marcades = sum(float(d.import_ or 0) for d in despeses_renda)
+    return jsonify({
+        'any': any_,
+        'factures': [f.to_dict() for f in factures],
+        'torn_ofici': [t.to_dict() for t in torns],
+        'despeses_professionals': [d.to_dict() for d in despeses_prof],
+        'despeses_marcades': [d.to_dict() for d in despeses_renda],
+        'totals': {
+            'factures_base': round(total_base, 2),
+            'factures_iva': round(total_iva, 2),
+            'factures_irpf': round(total_irpf_factures, 2),
+            'torn_brut': round(total_torn_brut, 2),
+            'torn_irpf': round(total_torn_irpf, 2),
+            'despeses_professionals': round(total_despeses_prof, 2),
+            'despeses_marcades': round(total_despeses_marcades, 2),
+        }
     })
 
 # ─── PIN Bancs ────────────────────────────────────────────────────────────────
@@ -1696,6 +1737,8 @@ with app.app_context():
     try:
         from sqlalchemy import text as _text
         db.session.execute(_text('ALTER TABLE assegurances ADD COLUMN IF NOT EXISTS data_itv DATE'))
+        db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS incloure_renda BOOLEAN DEFAULT FALSE'))
+        db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS renda_exercici INTEGER'))
         db.session.commit()
     except Exception:
         db.session.rollback()

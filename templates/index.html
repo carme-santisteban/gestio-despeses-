@@ -251,6 +251,7 @@
     <button class="nav-tab" id="tabFactures" onclick="canviarTab('factures')">🧾 Factures emeses</button>
     <button class="nav-tab" id="tabTornOfici" onclick="canviarTab('tornOfici')">⚖️ Torn d'ofici</button>
     <button class="nav-tab" id="tabBancs" onclick="canviarTab('bancs')">🏦 Bancs</button>
+    <button class="nav-tab" id="tabRenda" onclick="canviarTab('renda')">📁 Renda</button>
     <button class="nav-tab" id="tabCredencials" onclick="canviarTab('credencials')">🔑 Credencials</button>
     <button class="nav-tab" id="tabAssegurances" onclick="canviarTab('assegurances')">&#x1F6E1;&#xFE0F; Assegurances</button>
   </div>
@@ -477,6 +478,26 @@
       </div>
     </div>
   </div>
+
+  <!-- RENDA -->
+  <div id="seccioRenda" style="display:none">
+    <div class="page-header">
+      <div><div class="page-title">Renda <span id="anyRendaActual"></span></div></div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <select id="filtreAnyRenda" class="form-control" style="width:110px" onchange="carregarRenda()"></select>
+      </div>
+    </div>
+    <div style="background:white;border-radius:10px;padding:1rem 1.25rem;box-shadow:var(--shadow);margin-bottom:1rem;border-left:4px solid var(--gold);font-size:.9rem;color:var(--gray-4)">
+      Dossier de justificants per la declaració: factures, torn d'ofici i despeses marcades com a renda.
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card total"><div class="kpi-label">Ingressos base factures</div><div class="kpi-value" id="rendaFacturesBase">—</div></div>
+      <div class="kpi-card prof"><div class="kpi-label">Torn d'ofici brut</div><div class="kpi-value" id="rendaTornBrut">—</div></div>
+      <div class="kpi-card count"><div class="kpi-label">Despeses professionals</div><div class="kpi-value" id="rendaDespProf">—</div></div>
+      <div class="kpi-card pers"><div class="kpi-label">Despeses marcades</div><div class="kpi-value" id="rendaDespMarcades">—</div></div>
+    </div>
+    <div id="rendaBlocs" style="display:grid;gap:1rem"></div>
+  </div>
 </div><!-- fi container -->
 
 <!-- Modal despesa -->
@@ -527,6 +548,12 @@
         </div>
         <div class="form-grup"><label class="form-label">Proveïdor / Entitat</label><input type="text" class="form-control" id="fProveidor" placeholder="Nom del proveïdor"></div>
         <div class="form-grup full"><label class="form-label">Notes</label><textarea class="form-control" id="fNotes" placeholder="Observacions addicionals…"></textarea></div>
+        <div class="form-grup full">
+          <label style="display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--navy);font-weight:500">
+            <input type="checkbox" id="fIncloureRenda"> Incloure al dossier de renda
+          </label>
+          <input type="number" class="form-control" id="fRendaExercici" placeholder="Exercici renda, ex. 2025" style="margin-top:6px;max-width:180px">
+        </div>
         <div class="form-grup full">
           <label class="form-label">Document adjunt (PDF/imatge)</label>
           <div class="upload-zona" onclick="document.getElementById('fDocument').click()">
@@ -1061,18 +1088,21 @@ function canviarTab(tab) {
   document.getElementById('seccioFactures').style.display = tab === 'factures' ? 'block' : 'none';
   document.getElementById('seccioTornOfici').style.display = tab === 'tornOfici' ? 'block' : 'none';
   document.getElementById('seccioBancs').style.display    = tab === 'bancs'    ? 'block' : 'none';
+  document.getElementById('seccioRenda').style.display    = tab === 'renda'    ? 'block' : 'none';
   document.getElementById('seccioCredencials').style.display = tab === 'credencials' ? 'block' : 'none';
   document.getElementById('seccioAssegurances').style.display = tab === 'assegurances' ? 'block' : 'none';
-  ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+  ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabRenda','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
   document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('actiu');
 
   if (tab === 'despeses') {
     document.getElementById('btnNou').textContent = '+ Nova despesa';
     document.getElementById('btnNou').onclick = obrirModal;
+    document.getElementById('btnNou').style.display = '';
     document.getElementById('btnExportCSV').style.display = '';
   } else if (tab === 'factures') {
     document.getElementById('btnNou').textContent = '+ Nova factura';
     document.getElementById('btnNou').onclick = () => obrirModalFactura();
+    document.getElementById('btnNou').style.display = '';
     document.getElementById('btnExportCSV').style.display = 'none';
     carregarFactures();
     carregarAnysFactures();
@@ -1087,8 +1117,9 @@ function canviarTab(tab) {
     document.getElementById('seccioDespeses').style.display = 'none';
     document.getElementById('seccioFactures').style.display = 'none';
     document.getElementById('seccioBancs').style.display = 'none';
+    document.getElementById('seccioRenda').style.display = 'none';
     document.getElementById('seccioCredencials').style.display = 'block';
-    ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+    ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabRenda','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
     document.getElementById('tabCredencials').classList.add('actiu');
     document.getElementById('btnNou').style.display = 'none';
     document.getElementById('btnExportCSV').style.display = 'none';
@@ -1100,6 +1131,11 @@ function canviarTab(tab) {
     document.getElementById('btnNou').onclick = function(){ obrirModalAsseguranca(); };
     document.getElementById('btnExportCSV').style.display = 'none';
     carregarAssegurances();
+  } else if (tab === 'renda') {
+    document.getElementById('btnNou').style.display = 'none';
+    document.getElementById('btnExportCSV').style.display = 'none';
+    prepararAnysRenda();
+    carregarRenda();
   } else if (tab === 'bancs') {
     document.getElementById('btnNou').textContent = '📸 Nova fotografia';
     document.getElementById('btnNou').onclick = obrirModalFotografia;
@@ -1158,7 +1194,7 @@ function renderTaula(llista) {
   cos.innerHTML = llista.map(d => `
     <tr>
       <td style="white-space:nowrap;color:var(--gray-3)">${formatData(d.data)}</td>
-      <td style="max-width:220px"><div style="font-weight:500">${esc(d.descripcio)}</div>${d.notes ? `<div style="font-size:.75rem;color:var(--gray-3);margin-top:2px">${esc(d.notes.substring(0,60))}${d.notes.length>60?'…':''}</div>` : ''}</td>
+      <td style="max-width:220px"><div style="font-weight:500">${esc(d.descripcio)}</div>${d.incloure_renda ? `<div style="font-size:.72rem;color:var(--gold);font-weight:600;margin-top:2px">Renda ${d.renda_exercici || ''}</div>` : ''}${d.notes ? `<div style="font-size:.75rem;color:var(--gray-3);margin-top:2px">${esc(d.notes.substring(0,60))}${d.notes.length>60?'…':''}</div>` : ''}</td>
       <td><span style="font-size:.8rem;color:var(--gray-4)">${esc(d.categoria)}</span></td>
       <td><span class="badge badge-${d.tipus==='professional'?'prof':'pers'}">${d.tipus==='professional'?'Prof.':'Pers.'}</span></td>
       <td style="color:var(--gray-4);font-size:.85rem">${esc(d.proveidor)||'—'}</td>
@@ -1226,6 +1262,8 @@ function obrirModal(d = null) {
   document.getElementById('fProveidor').value   = d ? (d.proveidor || '') : '';
   document.getElementById('fNotes').value       = d ? (d.notes || '') : '';
   document.getElementById('fCategoria').value   = d ? (d.categoria || 'Taxes i aranzels') : 'Taxes i aranzels';
+  if (document.getElementById('fIncloureRenda')) document.getElementById('fIncloureRenda').checked = d ? !!d.incloure_renda : false;
+  if (document.getElementById('fRendaExercici')) document.getElementById('fRendaExercici').value = d ? (d.renda_exercici || '') : (new Date().getFullYear() - 1);
   document.getElementById('nomDocument').textContent = '';
   document.getElementById('fDocument').value    = '';
   if (d && d.document_url) {
@@ -1266,6 +1304,10 @@ async function guardarDespesa() {
   fd.append('categoria', categoria); fd.append('tipus', tipus);
   fd.append('proveidor', document.getElementById('fProveidor').value);
   fd.append('notes', document.getElementById('fNotes').value);
+  if (document.getElementById('fIncloureRenda') && document.getElementById('fIncloureRenda').checked) {
+    fd.append('incloure_renda', '1');
+    fd.append('renda_exercici', document.getElementById('fRendaExercici').value || new Date(data).getFullYear());
+  }
   const fitxer = document.getElementById('fDocument').files[0];
   if (fitxer) fd.append('document', fitxer);
   try {
@@ -1304,6 +1346,63 @@ function exportarCSV() {
   const tip  = document.getElementById('filtreTipus').value;
   if (any_) params.set('any', any_); if (mes) params.set('mes', mes); if (tip) params.set('tipus', tip);
   window.open('/api/export/csv?' + params, '_blank');
+}
+
+// ─── Renda ───────────────────────────────────────────────────────────────────
+function prepararAnysRenda() {
+  const sel = document.getElementById('filtreAnyRenda');
+  if (!sel || sel.options.length) return;
+  const actual = new Date().getFullYear();
+  for (let any = actual; any >= actual - 6; any--) {
+    const o = document.createElement('option');
+    o.value = any;
+    o.textContent = any;
+    if (any === actual - 1) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+async function carregarRenda() {
+  const any_ = document.getElementById('filtreAnyRenda').value || (new Date().getFullYear() - 1);
+  document.getElementById('anyRendaActual').textContent = any_;
+  try {
+    const r = await fetch('/api/renda?any=' + encodeURIComponent(any_));
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    document.getElementById('rendaFacturesBase').textContent = formatImport(data.totals.factures_base);
+    document.getElementById('rendaTornBrut').textContent = formatImport(data.totals.torn_brut);
+    document.getElementById('rendaDespProf').textContent = formatImport(data.totals.despeses_professionals);
+    document.getElementById('rendaDespMarcades').textContent = formatImport(data.totals.despeses_marcades);
+    renderRendaBlocs(data);
+  } catch(e) {
+    toast('Error carregant el dossier de renda', 'error');
+  }
+}
+
+function renderRendaBlocs(data) {
+  const wrap = document.getElementById('rendaBlocs');
+  const bloc = (titol, files, cols, rowFn) => `
+    <div class="table-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--gray-1)">
+        <h3 style="font-size:1rem;color:var(--navy);margin:0">${titol}</h3>
+        <span style="font-size:.82rem;color:var(--gray-3)">${files.length} registres</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+          <tbody>${files.length ? files.map(rowFn).join('') : `<tr><td colspan="${cols.length}" class="buit">Cap registre</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>`;
+  wrap.innerHTML =
+    bloc('Factures emeses', data.factures || [], ['Data','Número','Client','Base','IVA','IRPF','Document'], f => `
+      <tr><td>${formatData(f.data)}</td><td>${esc(f.numero)}</td><td>${esc(f.client_nom)}</td><td>${formatImport(f.base)}</td><td>${formatImport(f.iva)}</td><td>${formatImport(f.irpf)}</td><td>${f.document_url ? `<a href="${f.document_url}" target="_blank">📎</a>` : '—'}</td></tr>`) +
+    bloc("Torn d'ofici cobrat", data.torn_ofici || [], ['Data','Designa','Client','Brut','IRPF','Net'], t => `
+      <tr><td>${formatData(t.data_pagament)}</td><td>${esc(t.designa || '')}</td><td>${esc(t.client || '')}</td><td>${formatImport(t.import_brut)}</td><td>${formatImport(t.import_irpf)}</td><td>${formatImport(t.import_net)}</td></tr>`) +
+    bloc('Despeses professionals de l\'any', data.despeses_professionals || [], ['Data','Concepte','Categoria','Proveïdor','Import','Doc'], d => `
+      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td></tr>`) +
+    bloc('Despeses marcades específicament per renda', data.despeses_marcades || [], ['Data','Concepte','Categoria','Proveïdor','Import','Doc'], d => `
+      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td></tr>`);
 }
 
 // ─── Factures ─────────────────────────────────────────────────────────────────
