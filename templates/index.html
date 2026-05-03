@@ -1329,6 +1329,7 @@ async function guardarDespesa() {
     else toast(despesaEdId ? 'Despesa actualitzada ✓' : 'Despesa afegida ✓', 'ok');
     tancarModal();
     carregarDespeses();
+    if (document.getElementById('seccioRenda').style.display !== 'none') carregarRenda();
   } catch(e) { toast('Error guardant la despesa', 'error'); }
   finally { btn.disabled = false; btn.innerHTML = '💾 Guardar'; }
 }
