@@ -555,6 +555,12 @@
           <input type="number" class="form-control" id="fRendaExercici" placeholder="Exercici renda, ex. 2025" style="margin-top:6px;max-width:180px">
         </div>
         <div class="form-grup full">
+          <label style="display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--red);font-weight:500">
+            <input type="checkbox" id="fExcloureRenda"> No incloure a renda
+          </label>
+          <div style="font-size:.78rem;color:var(--gray-3);margin-top:2px">Per factures a nom d'una altra persona o despeses professionals que no vols deduir.</div>
+        </div>
+        <div class="form-grup full">
           <label class="form-label">Document adjunt (PDF/imatge)</label>
           <div class="upload-zona" onclick="document.getElementById('fDocument').click()">
             <div>📎 Fes clic per adjuntar un document</div>
@@ -1264,6 +1270,7 @@ function obrirModal(d = null) {
   document.getElementById('fCategoria').value   = d ? (d.categoria || 'Taxes i aranzels') : 'Taxes i aranzels';
   if (document.getElementById('fIncloureRenda')) document.getElementById('fIncloureRenda').checked = d ? !!d.incloure_renda : false;
   if (document.getElementById('fRendaExercici')) document.getElementById('fRendaExercici').value = d ? (d.renda_exercici || '') : (new Date().getFullYear() - 1);
+  if (document.getElementById('fExcloureRenda')) document.getElementById('fExcloureRenda').checked = d ? !!d.excloure_renda : false;
   document.getElementById('nomDocument').textContent = '';
   document.getElementById('fDocument').value    = '';
   if (d && d.document_url) {
@@ -1304,7 +1311,9 @@ async function guardarDespesa() {
   fd.append('categoria', categoria); fd.append('tipus', tipus);
   fd.append('proveidor', document.getElementById('fProveidor').value);
   fd.append('notes', document.getElementById('fNotes').value);
-  if (document.getElementById('fIncloureRenda') && document.getElementById('fIncloureRenda').checked) {
+  const excloureRenda = document.getElementById('fExcloureRenda') && document.getElementById('fExcloureRenda').checked;
+  if (excloureRenda) fd.append('excloure_renda', '1');
+  if (!excloureRenda && document.getElementById('fIncloureRenda') && document.getElementById('fIncloureRenda').checked) {
     fd.append('incloure_renda', '1');
     fd.append('renda_exercici', document.getElementById('fRendaExercici').value || new Date(data).getFullYear());
   }
@@ -1409,9 +1418,22 @@ function renderRendaBlocs(data) {
     bloc("Torn d'ofici cobrat", data.torn_ofici || [], ['Data','Designa','Client','Brut','IRPF','Net'], t => `
       <tr><td>${formatData(t.data_pagament)}</td><td>${esc(t.designa || '')}</td><td>${esc(t.client || '')}</td><td>${formatImport(t.import_brut)}</td><td>${formatImport(t.import_irpf)}</td><td>${formatImport(t.import_net)}</td></tr>`) +
     bloc('Despeses professionals de l\'any', data.despeses_professionals || [], ['Data','Concepte','Categoria','Proveïdor','Import','Doc','Accions'], d => `
-      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td><td><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})">✏️</button> <button class="btn btn-sm btn-danger" onclick="eliminarDespesa(${d.id})">🗑</button></td></tr>`) +
+      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td><td><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})">✏️</button> <button class="btn btn-sm btn-outline" onclick="treureDespesaRenda(${d.id})">Treure</button></td></tr>`) +
     bloc('Despeses marcades específicament per renda', data.despeses_marcades || [], ['Data','Concepte','Categoria','Proveïdor','Import','Doc','Accions'], d => `
-      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td><td><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})">✏️</button> <button class="btn btn-sm btn-danger" onclick="eliminarDespesa(${d.id})">🗑</button></td></tr>`);
+      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td><td><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})">✏️</button> <button class="btn btn-sm btn-outline" onclick="treureDespesaRenda(${d.id})">Treure</button></td></tr>`);
+}
+
+async function treureDespesaRenda(id) {
+  if (!confirm('Treure aquesta despesa de la Renda sense esborrar-la del registre general?')) return;
+  try {
+    const r = await fetch(`/api/despeses/${id}/treure-renda`, { method: 'POST' });
+    if (!r.ok) throw new Error();
+    toast('Despesa treta de la Renda', 'ok');
+    carregarDespeses();
+    carregarRenda();
+  } catch(e) {
+    toast('Error traient-la de la Renda', 'error');
+  }
 }
 
 // ─── Factures ─────────────────────────────────────────────────────────────────

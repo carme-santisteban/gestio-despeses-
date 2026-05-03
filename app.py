@@ -110,6 +110,7 @@ class Despesa(db.Model):
     document_nom  = db.Column(db.String(200))
     incloure_renda = db.Column(db.Boolean, default=False)
     renda_exercici = db.Column(db.Integer)
+    excloure_renda = db.Column(db.Boolean, default=False)
     creat_el      = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -126,6 +127,7 @@ class Despesa(db.Model):
             'document_nom': self.document_nom or '',
             'incloure_renda': bool(self.incloure_renda),
             'renda_exercici': self.renda_exercici,
+            'excloure_renda': bool(self.excloure_renda),
         }
 
 
@@ -367,6 +369,7 @@ with app.app_context():
         db.session.execute(_text('ALTER TABLE assegurances ADD COLUMN IF NOT EXISTS data_itv DATE'))
         db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS incloure_renda BOOLEAN DEFAULT FALSE'))
         db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS renda_exercici INTEGER'))
+        db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS excloure_renda BOOLEAN DEFAULT FALSE'))
         db.session.execute(_text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(_text("ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_data TEXT'))
@@ -522,6 +525,7 @@ def create_despesa():
             notes       = data.get('notes', ''),
             document_url= document_url,
             document_nom= document_nom,
+            excloure_renda = data.get('excloure_renda') == '1',
             incloure_renda = data.get('incloure_renda') == '1',
             renda_exercici = int(data.get('renda_exercici') or datetime.strptime(data['data'], '%Y-%m-%d').date().year) if data.get('incloure_renda') == '1' else None,
         )
@@ -558,6 +562,7 @@ def update_despesa(id):
         despesa.import_    = float(data['import_'])
         despesa.proveidor  = data.get('proveidor', '')
         despesa.notes      = data.get('notes', '')
+        despesa.excloure_renda = data.get('excloure_renda') == '1'
         despesa.incloure_renda = data.get('incloure_renda') == '1'
         despesa.renda_exercici = int(data.get('renda_exercici') or despesa.data.year) if despesa.incloure_renda else None
         db.session.commit()
@@ -575,6 +580,15 @@ def delete_despesa(id):
     db.session.delete(despesa)
     db.session.commit()
     return jsonify({'ok': True})
+
+@app.route('/api/despeses/<int:id>/treure-renda', methods=['POST'])
+def treure_despesa_renda(id):
+    despesa = Despesa.query.get_or_404(id)
+    despesa.excloure_renda = True
+    despesa.incloure_renda = False
+    despesa.renda_exercici = None
+    db.session.commit()
+    return jsonify(despesa.to_dict())
 
 # --- Estadístiques ---
 
@@ -1018,11 +1032,16 @@ def api_renda():
     any_ = request.args.get('any', type=int, default=date.today().year - 1)
     factures = Factura.query.filter(extract('year', Factura.data) == any_).order_by(Factura.data).all()
     torns = TornOfici.query.filter(extract('year', TornOfici.data_pagament) == any_).order_by(TornOfici.data_pagament).all()
-    despeses_renda = Despesa.query.filter(Despesa.incloure_renda == True, Despesa.renda_exercici == any_).order_by(Despesa.data).all()
+    despeses_renda = Despesa.query.filter(
+        Despesa.incloure_renda == True,
+        Despesa.renda_exercici == any_,
+        db.or_(Despesa.excloure_renda == False, Despesa.excloure_renda == None)
+    ).order_by(Despesa.data).all()
     despeses_prof = Despesa.query.filter(
         extract('year', Despesa.data) == any_,
         Despesa.tipus == 'professional',
-        db.or_(Despesa.incloure_renda == False, Despesa.incloure_renda == None)
+        db.or_(Despesa.incloure_renda == False, Despesa.incloure_renda == None),
+        db.or_(Despesa.excloure_renda == False, Despesa.excloure_renda == None)
     ).order_by(Despesa.data).all()
     total_base = sum(float(f.base or 0) for f in factures)
     total_iva = sum(float(f.iva or 0) for f in factures)
@@ -1743,6 +1762,7 @@ with app.app_context():
         db.session.execute(_text('ALTER TABLE assegurances ADD COLUMN IF NOT EXISTS data_itv DATE'))
         db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS incloure_renda BOOLEAN DEFAULT FALSE'))
         db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS renda_exercici INTEGER'))
+        db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS excloure_renda BOOLEAN DEFAULT FALSE'))
         db.session.commit()
     except Exception:
         db.session.rollback()
