@@ -232,6 +232,7 @@ class TornComunicacio(db.Model):
     id                = db.Column(db.Integer, primary_key=True)
     data              = db.Column(db.Date, nullable=False, default=date.today)
     tipus             = db.Column(db.String(50), default='email')
+    tema              = db.Column(db.String(255))
     assumpte          = db.Column(db.String(255), nullable=False)
     notes             = db.Column(db.Text)
     document_url      = db.Column(db.String(500))
@@ -245,6 +246,7 @@ class TornComunicacio(db.Model):
             'id':            self.id,
             'data':          self.data.isoformat() if self.data else None,
             'tipus':         self.tipus or 'email',
+            'tema':          self.tema or self.assumpte,
             'assumpte':      self.assumpte,
             'notes':         self.notes or '',
             'document_url':  self.document_url or '',
@@ -372,6 +374,7 @@ with app.app_context():
         db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS excloure_renda BOOLEAN DEFAULT FALSE'))
         db.session.execute(_text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(_text("ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
+        db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS tema VARCHAR(255)'))
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(_text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.commit()
@@ -415,6 +418,7 @@ with app.app_context():
                 id SERIAL PRIMARY KEY,
                 data DATE NOT NULL,
                 tipus VARCHAR(50) DEFAULT 'email',
+                tema VARCHAR(255),
                 assumpte VARCHAR(255) NOT NULL,
                 notes TEXT,
                 document_url VARCHAR(500),
@@ -424,6 +428,7 @@ with app.app_context():
                 creat_el TIMESTAMP DEFAULT NOW()
             )
         '''))
+        db.session.execute(text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS tema VARCHAR(255)'))
         db.session.execute(text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.commit()
@@ -930,6 +935,7 @@ def create_torn_comunicacio():
         comunicacio = TornComunicacio(
             data=datetime.strptime(data['data'], '%Y-%m-%d').date(),
             tipus=data.get('tipus', 'email'),
+            tema=(data.get('tema') or data['assumpte']).strip(),
             assumpte=data['assumpte'],
             notes=data.get('notes', ''),
             document_url=document_url,
@@ -961,6 +967,7 @@ def update_torn_comunicacio(id):
     try:
         comunicacio.data = datetime.strptime(data['data'], '%Y-%m-%d').date()
         comunicacio.tipus = data.get('tipus', 'email')
+        comunicacio.tema = (data.get('tema') or data['assumpte']).strip()
         comunicacio.assumpte = data['assumpte']
         comunicacio.notes = data.get('notes', '')
         db.session.commit()
@@ -1355,6 +1362,7 @@ def exportar_json():
     from flask import Response
     despeses = Despesa.query.order_by(Despesa.id).all()
     factures = Factura.query.order_by(Factura.id).all()
+    torn_comunicacions = TornComunicacio.query.order_by(TornComunicacio.id).all()
     def d(val):
         return str(val) if val else ""
     dades = {
@@ -1376,7 +1384,14 @@ def exportar_json():
              "notes": f.notes, "estat": f.estat,
              "document_nom": f.document_nom, "document_url": f.document_url}
             for f in factures
-        ]
+        ],
+        "torn_comunicacions": [
+            {"id": c.id, "data": d(c.data), "tipus": c.tipus,
+             "tema": c.tema or c.assumpte, "assumpte": c.assumpte,
+             "notes": c.notes, "document_nom": c.document_nom,
+             "document_url": c.document_url}
+            for c in torn_comunicacions
+        ],
     }
     return Response(
         json.dumps(dades, ensure_ascii=False, indent=2),
@@ -1476,6 +1491,23 @@ def importar_dades():
                 estat=f.get('estat','pendent'),
                 document_nom=f.get('document_nom',''),
                 document_url=f.get('document_url','')
+            ))
+            db.session.commit()
+            importats += 1
+        except Exception:
+            db.session.rollback()
+            omesos += 1
+    for c in dades.get('torn_comunicacions', []):
+        try:
+            assumpte = c.get('assumpte','')
+            db.session.add(TornComunicacio(
+                data=parse_date(c.get('data','')) or date.today(),
+                tipus=c.get('tipus','email'),
+                tema=c.get('tema') or assumpte,
+                assumpte=assumpte,
+                notes=c.get('notes',''),
+                document_nom=c.get('document_nom',''),
+                document_url=c.get('document_url','')
             ))
             db.session.commit()
             importats += 1

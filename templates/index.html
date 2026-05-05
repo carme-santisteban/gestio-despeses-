@@ -118,6 +118,14 @@
     .doc-link { display: inline-flex; align-items: center; gap: 4px; font-size: .8rem; color: var(--blue); text-decoration: none; }
     .doc-link:hover { color: var(--gold); }
     .accions { display: flex; gap: 6px; justify-content: center; }
+    .fil-torn { border-bottom: 1px solid var(--gray-1); }
+    .fil-torn-cap { background: #fffbeb; color: var(--navy); font-weight: 700; }
+    .fil-torn-cap td { padding-top: 14px; padding-bottom: 14px; }
+    .fil-torn-meta { color: var(--gray-3); font-size: .78rem; font-weight: 400; margin-top: 2px; }
+    .fil-torn-docs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .fil-torn-docs a { color: var(--blue); font-size: .78rem; text-decoration: none; }
+    .fil-torn-docs a:hover { color: var(--gold); }
+    .com-resposta td:first-child { padding-left: 28px; border-left: 3px solid var(--gold); }
 
     .buit { padding: 3rem; text-align: center; color: var(--gray-3); }
     .buit-icon { font-size: 2.5rem; margin-bottom: .75rem; }
@@ -675,6 +683,7 @@
       <div class="form-grid">
         <div class="form-grup"><label class="form-label">Data <span>*</span></label><input type="date" class="form-control" id="ctData"></div>
         <div class="form-grup"><label class="form-label">Tipus</label><select class="form-control" id="ctTipus"><option value="email">Email</option><option value="telefon">Telèfon</option><option value="presencial">Presencial</option><option value="escrit">Escrit</option><option value="altres">Altres</option></select></div>
+        <div class="form-grup full"><label class="form-label">Tema / carpeta</label><input type="text" class="form-control" id="ctTema" list="ctTemesExistents" placeholder="Ex: Renúncia Maria Angela Muñoz Fornes"><datalist id="ctTemesExistents"></datalist></div>
         <div class="form-grup full"><label class="form-label">Assumpte <span>*</span></label><input type="text" class="form-control" id="ctAssumpte" placeholder="Ex: Consulta ICAB, requeriment, justificació..."></div>
         <div class="form-grup full">
           <label class="form-label">Document adjunt</label>
@@ -1681,18 +1690,40 @@ function renderComunicacionsTorn(llista) {
     cos.innerHTML = '<tr><td colspan="6" class="buit"><div class="buit-icon">✉️</div><div class="buit-text">Cap comunicació registrada</div></td></tr>';
     return;
   }
-  cos.innerHTML = llista.map(c => `
-    <tr>
-      <td style="color:var(--gray-3);white-space:nowrap">${formatData(c.data)}</td>
-      <td><span style="padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600;background:#f1f5f9;color:var(--navy)">${esc(c.tipus || 'email')}</span></td>
-      <td style="font-weight:500">${esc(c.assumpte)}</td>
-      <td style="color:var(--gray-3);font-size:.85rem">${esc(c.notes || '—')}</td>
-      <td>${c.document_download_url ? `<a href="${c.document_download_url}" target="_blank" style="color:var(--blue);font-size:.8rem">📎 ${esc(c.document_nom||'Doc')}</a>` : '—'}</td>
-      <td class="accions">
-        <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarComunicacioTorn(${c.id})" title="Editar">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="eliminarComunicacioTorn(${c.id})" title="Eliminar">🗑</button>
-      </td>
-    </tr>`).join('');
+  const grups = {};
+  llista.forEach(c => {
+    const tema = (c.tema || c.assumpte || 'Sense tema').trim();
+    if (!grups[tema]) grups[tema] = [];
+    grups[tema].push(c);
+  });
+  const files = [];
+  Object.entries(grups).forEach(([tema, items]) => {
+    items.sort((a,b) => String(a.data || '').localeCompare(String(b.data || '')) || a.id - b.id);
+    const docs = items.filter(c => c.document_download_url);
+    files.push(`
+      <tr class="fil-torn-cap">
+        <td colspan="5">
+          <div>📁 ${esc(tema)}</div>
+          <div class="fil-torn-meta">${items.length} comunicació${items.length !== 1 ? 'ns' : ''} · ${formatData(items[0].data)}${items.length > 1 ? ' - ' + formatData(items[items.length-1].data) : ''}</div>
+          ${docs.length ? `<div class="fil-torn-docs">${docs.map(d => `<a href="${d.document_download_url}" target="_blank">📎 ${esc(d.document_nom || d.assumpte || 'Doc')}</a>`).join('')}</div>` : ''}
+        </td>
+        <td class="accions"><button class="btn btn-sm btn-primary" data-tema="${escAttr(tema)}" onclick="obrirRespostaComunicacioTorn(this.dataset.tema)">+ Resposta</button></td>
+      </tr>`);
+    items.forEach(c => files.push(`
+      <tr class="com-resposta">
+        <td style="color:var(--gray-3);white-space:nowrap">${formatData(c.data)}</td>
+        <td><span style="padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600;background:#f1f5f9;color:var(--navy)">${esc(c.tipus || 'email')}</span></td>
+        <td style="font-weight:500">${esc(c.assumpte)}</td>
+        <td style="color:var(--gray-3);font-size:.85rem">${esc(c.notes || '—')}</td>
+        <td>${c.document_download_url ? `<a href="${c.document_download_url}" target="_blank" style="color:var(--blue);font-size:.8rem">📎 ${esc(c.document_nom||'Doc')}</a>` : '—'}</td>
+        <td class="accions">
+          <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarComunicacioTorn(${c.id})" title="Editar">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarComunicacioTorn(${c.id})" title="Eliminar">🗑</button>
+        </td>
+      </tr>`));
+  });
+  cos.innerHTML = files.join('');
+  actualitzarTemesComunicacionsTorn();
 }
 
 function obrirModalComunicacioTorn(c = null) {
@@ -1700,12 +1731,27 @@ function obrirModalComunicacioTorn(c = null) {
   document.getElementById('modalComTornTitol').textContent = c ? 'Editar comunicació amb el torn' : 'Nova comunicació amb el torn';
   document.getElementById('ctData').value = c ? c.data : new Date().toISOString().slice(0,10);
   document.getElementById('ctTipus').value = c ? (c.tipus || 'email') : 'email';
+  document.getElementById('ctTema').value = c ? (c.tema || c.assumpte || '') : '';
   document.getElementById('ctAssumpte').value = c ? c.assumpte : '';
   document.getElementById('ctNotes').value = c ? c.notes : '';
   document.getElementById('ctNomDocument').textContent = '';
   document.getElementById('ctDocument').value = '';
   document.getElementById('ctDocActual').innerHTML = c && c.document_download_url ? `Document actual: <a href="${c.document_download_url}" target="_blank" style="color:var(--blue)">${c.document_nom||'veure'}</a>` : '';
   document.getElementById('modalComTornOverlay').classList.add('actiu');
+}
+
+function obrirRespostaComunicacioTorn(tema) {
+  obrirModalComunicacioTorn();
+  document.getElementById('ctTema').value = tema;
+  document.getElementById('ctAssumpte').value = 'Resposta - ' + tema;
+  document.getElementById('ctNotes').focus();
+}
+
+function actualitzarTemesComunicacionsTorn() {
+  const dl = document.getElementById('ctTemesExistents');
+  if (!dl) return;
+  const temes = [...new Set(comunicacionsTorn.map(c => (c.tema || c.assumpte || '').trim()).filter(Boolean))].sort();
+  dl.innerHTML = temes.map(t => `<option value="${escAttr(t)}"></option>`).join('');
 }
 
 function tancarModalComunicacioTorn() {
@@ -1722,6 +1768,7 @@ async function guardarComunicacioTorn() {
   const fd = new FormData();
   fd.append('data', data);
   fd.append('tipus', document.getElementById('ctTipus').value);
+  fd.append('tema', document.getElementById('ctTema').value.trim() || assumpte);
   fd.append('assumpte', assumpte);
   fd.append('notes', document.getElementById('ctNotes').value);
   const fitxer = document.getElementById('ctDocument').files[0];
@@ -2332,6 +2379,10 @@ function formatImport(v) {
 function esc(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escAttr(s) {
+  return esc(s).replace(/'/g, '&#39;');
 }
 
 function toast(msg, tipus='ok') {
