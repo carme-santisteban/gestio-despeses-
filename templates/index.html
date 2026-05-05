@@ -125,6 +125,11 @@
     .fil-torn-docs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .fil-torn-docs a { color: var(--blue); font-size: .78rem; text-decoration: none; }
     .fil-torn-docs a:hover { color: var(--gold); }
+    .fil-torn-toggle { cursor: pointer; user-select: none; }
+    .fil-torn-toggle:hover { color: var(--gold); }
+    .fil-torn-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 7px; margin-left: 8px; border-radius: 999px; background: var(--gold); color: var(--navy); font-size: .75rem; font-weight: 700; }
+    .com-resposta { display: none; }
+    .com-resposta.oberta { display: table-row; }
     .com-resposta td:first-child { padding-left: 28px; border-left: 3px solid var(--gold); }
 
     .buit { padding: 3rem; text-align: center; color: var(--gray-3); }
@@ -1690,27 +1695,29 @@ function renderComunicacionsTorn(llista) {
     cos.innerHTML = '<tr><td colspan="6" class="buit"><div class="buit-icon">✉️</div><div class="buit-text">Cap comunicació registrada</div></td></tr>';
     return;
   }
+  const temesCanonics = llista.map(c => (c.tema || c.assumpte || '').trim()).filter(Boolean);
   const grups = {};
   llista.forEach(c => {
-    const tema = (c.tema || c.assumpte || 'Sense tema').trim();
+    const tema = temaCarpetaTorn(c, temesCanonics);
     if (!grups[tema]) grups[tema] = [];
     grups[tema].push(c);
   });
   const files = [];
-  Object.entries(grups).forEach(([tema, items]) => {
+  Object.entries(grups).forEach(([tema, items], idx) => {
     items.sort((a,b) => String(a.data || '').localeCompare(String(b.data || '')) || a.id - b.id);
     const docs = items.filter(c => c.document_download_url);
+    const gid = 'fil-torn-' + idx;
     files.push(`
       <tr class="fil-torn-cap">
         <td colspan="5">
-          <div>📁 ${esc(tema)}</div>
+          <div class="fil-torn-toggle" onclick="toggleFilTorn('${gid}')">📁 ${esc(tema)} <span class="fil-torn-count">${items.length}</span></div>
           <div class="fil-torn-meta">${items.length} comunicació${items.length !== 1 ? 'ns' : ''} · ${formatData(items[0].data)}${items.length > 1 ? ' - ' + formatData(items[items.length-1].data) : ''}</div>
           ${docs.length ? `<div class="fil-torn-docs">${docs.map(d => `<a href="${d.document_download_url}" target="_blank">📎 ${esc(d.document_nom || d.assumpte || 'Doc')}</a>`).join('')}</div>` : ''}
         </td>
         <td class="accions"><button class="btn btn-sm btn-primary" data-tema="${escAttr(tema)}" onclick="obrirRespostaComunicacioTorn(this.dataset.tema)">+ Resposta</button></td>
       </tr>`);
     items.forEach(c => files.push(`
-      <tr class="com-resposta">
+      <tr class="com-resposta ${gid}">
         <td style="color:var(--gray-3);white-space:nowrap">${formatData(c.data)}</td>
         <td><span style="padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600;background:#f1f5f9;color:var(--navy)">${esc(c.tipus || 'email')}</span></td>
         <td style="font-weight:500">${esc(c.assumpte)}</td>
@@ -1724,6 +1731,31 @@ function renderComunicacionsTorn(llista) {
   });
   cos.innerHTML = files.join('');
   actualitzarTemesComunicacionsTorn();
+}
+
+function normFilTorn(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/^resposta\s*[-:]?\s*/i, '')
+    .replace(/\b(resposta|torn|a|de|del|la|el)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function temaCarpetaTorn(c, temes) {
+  const base = (c.tema || c.assumpte || 'Sense tema').trim();
+  const assumpteNorm = normFilTorn(c.assumpte);
+  const temaNorm = normFilTorn(base);
+  const candidat = temes.find(t => {
+    const tn = normFilTorn(t);
+    return tn && tn !== temaNorm && (assumpteNorm.includes(tn) || tn.includes(assumpteNorm));
+  });
+  return candidat || base || 'Sense tema';
+}
+
+function toggleFilTorn(gid) {
+  document.querySelectorAll('.' + gid).forEach(row => row.classList.toggle('oberta'));
 }
 
 function obrirModalComunicacioTorn(c = null) {
