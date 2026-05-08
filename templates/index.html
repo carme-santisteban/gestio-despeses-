@@ -2702,8 +2702,8 @@ async function esborrarDocFactura(docId) {
         <div class="form-grup">
           <label class="form-label">Contrasenya</label>
           <div style="position:relative">
-            <input type="password" class="form-control" id="cContrasenya" placeholder="..." style="padding-right:40px">
-            <button onclick="toggleVisibilitatCred()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-3)">o</button>
+            <input type="password" class="form-control" id="cContrasenya" placeholder="..." style="padding-right:82px" onfocus="mostrarContrasenyaCred()" oninput="mostrarContrasenyaCred()" onblur="programarOcultarContrasenyaCred()">
+            <button type="button" id="btnVeureCred" onclick="toggleVisibilitatCred()" onmousedown="event.preventDefault()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-3);font-size:.8rem;font-weight:600">Veure</button>
           </div>
         </div>
         <div class="form-grup full">
@@ -2798,9 +2798,27 @@ function togglePwd(id, pwd) {
 function copiar(text) {
   navigator.clipboard.writeText(text).then(()=>toast('Copiat al portapapers', 'ok')).catch(()=>toast('Error copiant','error'));
 }
+let credPwdHideTimer = null;
+function setCredPwdVisible(visible) {
+  const inp = document.getElementById('cContrasenya');
+  const btn = document.getElementById('btnVeureCred');
+  if (!inp) return;
+  inp.type = visible ? 'text' : 'password';
+  if (btn) btn.textContent = visible ? 'Amagar' : 'Veure';
+}
+function mostrarContrasenyaCred() {
+  if (credPwdHideTimer) clearTimeout(credPwdHideTimer);
+  setCredPwdVisible(true);
+}
+function programarOcultarContrasenyaCred() {
+  if (credPwdHideTimer) clearTimeout(credPwdHideTimer);
+  credPwdHideTimer = setTimeout(() => setCredPwdVisible(false), 900);
+}
 function toggleVisibilitatCred() {
   const inp = document.getElementById('cContrasenya');
-  inp.type = inp.type==='password'?'text':'password';
+  if (!inp) return;
+  if (credPwdHideTimer) clearTimeout(credPwdHideTimer);
+  setCredPwdVisible(inp.type === 'password');
 }
 function obrirModalCredencial(c=null) {
   credencialEdId = c?c.id:null;
@@ -2809,11 +2827,11 @@ function obrirModalCredencial(c=null) {
   document.getElementById('cServei').value = c?c.servei:'';
   document.getElementById('cUsuari').value = c?c.usuari:'';
   document.getElementById('cContrasenya').value = c?c.contrasenya:'';
-  document.getElementById('cContrasenya').type = 'password';
+  setCredPwdVisible(false);
   document.getElementById('cNotes').value = c?c.notes:'';
   document.getElementById('modalCredencialOverlay').classList.add('actiu');
 }
-function tancarModalCredencial() { document.getElementById('modalCredencialOverlay').classList.remove('actiu'); credencialEdId=null; }
+function tancarModalCredencial() { setCredPwdVisible(false); document.getElementById('modalCredencialOverlay').classList.remove('actiu'); credencialEdId=null; }
 function editarCredencial(id) { const c=credencials.find(x=>x.id===id); if(c) obrirModalCredencial(c); }
 async function guardarCredencial() {
   const servei = document.getElementById('cServei').value.trim();
@@ -2827,6 +2845,7 @@ async function guardarCredencial() {
     const r = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(dades)});
     if(!r.ok) throw new Error();
     toast(credencialEdId?'Credencial actualitzada':'Credencial afegida','ok');
+    setCredPwdVisible(false);
     tancarModalCredencial();
     carregarCredencials();
   } catch(e) { toast('Error guardant','error'); }
