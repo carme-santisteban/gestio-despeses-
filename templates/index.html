@@ -1100,6 +1100,7 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarAnys();
   carregarDespeses();
   carregarAlertesAssegurances();
+  aplicarPrefillDespesa();
 });
 
 // ─── Tab navigation ───────────────────────────────────────────────────────────
@@ -1295,6 +1296,26 @@ function obrirModal(d = null) {
   selTipus(d ? d.tipus : 'professional');
   document.getElementById('modalOverlay').classList.add('actiu');
   carregarDocsDespesa(d ? d.id : null);
+}
+
+function aplicarPrefillDespesa() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('nou') !== 'despesa') return;
+  obrirModal();
+  const data = params.get('data');
+  if (data) document.getElementById('fData').value = data;
+  const import_ = params.get('import_') || params.get('import');
+  if (import_) document.getElementById('fImport').value = import_;
+  const descripcio = params.get('descripcio') || params.get('concepte');
+  if (descripcio) document.getElementById('fDescripcio').value = descripcio;
+  const proveidor = params.get('proveidor');
+  if (proveidor) document.getElementById('fProveidor').value = proveidor;
+  const notes = params.get('notes');
+  if (notes) document.getElementById('fNotes').value = notes;
+  const categoria = params.get('categoria');
+  if (categoria) document.getElementById('fCategoria').value = categoria;
+  const tipus = params.get('tipus');
+  if (tipus) selTipus(tipus);
 }
 
 function tancarModal() { document.getElementById('modalOverlay').classList.remove('actiu'); despesaEdId = null; }
