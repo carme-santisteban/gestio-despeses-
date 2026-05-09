@@ -589,14 +589,14 @@
           <div id="llistaDocsDespesa" style="margin-bottom:.5rem"></div>
           <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
             <input type="file" id="ndocDespesaFitxer" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="font-size:.8rem;flex:1;min-width:180px">
-            <button type="button" class="btn btn-sm btn-primary" onclick="pujarDocDespesa()" style="white-space:nowrap">⬆️ Pujar</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="pujarDocDespesa(event)" style="white-space:nowrap">Afegir document extra</button>
           </div>
         </div>
       </div>
     </div>
     <div class="modal-peu">
-      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModal()">Cancel·lar</button>
-      <button class="btn btn-primary" id="btnGuardar" onclick="guardarDespesa()">💾 Guardar</button>
+      <button type="button" class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModal()">Cancel·lar</button>
+      <button type="button" class="btn btn-primary" id="btnGuardar" onclick="guardarDespesa(event)">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -892,8 +892,8 @@
       </div>
     </div>
     <div class="modal-peu">
-      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModal()">Cancel·lar</button>
-      <button class="btn btn-primary" id="btnGuardar" onclick="guardarDespesa()">💾 Guardar</button>
+      <button type="button" class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModal()">Cancel·lar</button>
+      <button type="button" class="btn btn-primary" id="btnGuardar" onclick="guardarDespesa(event)">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -1353,7 +1353,8 @@ function mostrarNomFitxer() {
   document.getElementById('nomDocument').textContent = f ? '✓ ' + f.name : '';
 }
 
-async function guardarDespesa() {
+async function guardarDespesa(event) {
+  if (event) event.preventDefault();
   const data       = document.getElementById('fData').value;
   const import_    = document.getElementById('fImport').value;
   const descripcio = document.getElementById('fDescripcio').value.trim();
@@ -2626,7 +2627,8 @@ async function carregarDocsDespesa(id) {
   } catch(e) { el.innerHTML = '<p style="color:var(--red)">Error</p>'; }
 }
 
-async function pujarDocDespesa() {
+async function pujarDocDespesa(event) {
+  if (event) event.preventDefault();
   if (!_despesaDocsId) { toast('Desa la despesa primer abans de pujar documents addicionals', 'error'); return; }
   const fitxer = document.getElementById('ndocDespesaFitxer').files[0];
   if (!fitxer) { toast('Cal seleccionar un fitxer', 'error'); return; }
