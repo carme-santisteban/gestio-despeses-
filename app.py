@@ -102,6 +102,7 @@ class Despesa(db.Model):
     data          = db.Column(db.Date, nullable=False, default=date.today)
     descripcio    = db.Column(db.String(500), nullable=False)
     categoria     = db.Column(db.String(100), nullable=False)
+    subcategoria  = db.Column(db.String(100))
     tipus         = db.Column(db.String(20), nullable=False, default='professional')
     import_       = db.Column(db.Numeric(10, 2), nullable=False)
     proveidor     = db.Column(db.String(200))
@@ -119,6 +120,7 @@ class Despesa(db.Model):
             'data':         self.data.isoformat() if self.data else None,
             'descripcio':   self.descripcio,
             'categoria':    self.categoria,
+            'subcategoria': self.subcategoria or '',
             'tipus':        self.tipus,
             'import_':      float(self.import_) if self.import_ else 0,
             'proveidor':    self.proveidor or '',
@@ -372,6 +374,7 @@ with app.app_context():
         db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS incloure_renda BOOLEAN DEFAULT FALSE'))
         db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS renda_exercici INTEGER'))
         db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS excloure_renda BOOLEAN DEFAULT FALSE'))
+        db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS subcategoria VARCHAR(100)'))
         db.session.execute(_text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(_text("ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS tema VARCHAR(255)'))
@@ -488,6 +491,7 @@ def get_despeses():
     mes   = request.args.get('mes', type=int)
     tipus = request.args.get('tipus')
     cat   = request.args.get('categoria')
+    subcat = request.args.get('subcategoria')
 
     q = Despesa.query
     if any_:
@@ -498,6 +502,8 @@ def get_despeses():
         q = q.filter(Despesa.tipus == tipus)
     if cat:
         q = q.filter(Despesa.categoria == cat)
+    if subcat:
+        q = q.filter(Despesa.subcategoria == subcat)
 
     despeses = q.order_by(Despesa.data.desc()).all()
     return jsonify([d.to_dict() for d in despeses])
@@ -524,6 +530,7 @@ def create_despesa():
             data        = datetime.strptime(data['data'], '%Y-%m-%d').date(),
             descripcio  = data['descripcio'],
             categoria   = data['categoria'],
+            subcategoria= data.get('subcategoria', ''),
             tipus       = data.get('tipus', 'professional'),
             import_     = float(data['import_']),
             proveidor   = data.get('proveidor', ''),
@@ -563,6 +570,7 @@ def update_despesa(id):
         despesa.data       = datetime.strptime(data['data'], '%Y-%m-%d').date()
         despesa.descripcio = data['descripcio']
         despesa.categoria  = data['categoria']
+        despesa.subcategoria = data.get('subcategoria', '')
         despesa.tipus      = data.get('tipus', 'professional')
         despesa.import_    = float(data['import_'])
         despesa.proveidor  = data.get('proveidor', '')
@@ -653,6 +661,7 @@ def export_csv():
     any_  = request.args.get('any', type=int)
     mes   = request.args.get('mes', type=int)
     tipus = request.args.get('tipus')
+    subcat = request.args.get('subcategoria')
 
     q = Despesa.query
     if any_:
@@ -661,17 +670,20 @@ def export_csv():
         q = q.filter(extract('month', Despesa.data) == mes)
     if tipus:
         q = q.filter(Despesa.tipus == tipus)
+    if subcat:
+        q = q.filter(Despesa.subcategoria == subcat)
 
     despeses = q.order_by(Despesa.data).all()
 
     output = io.StringIO()
     writer = csv.writer(output, delimiter=';')
-    writer.writerow(['Data', 'Descripció', 'Categoria', 'Tipus', 'Import (€)', 'Proveïdor', 'Notes'])
+    writer.writerow(['Data', 'Descripció', 'Categoria', 'Subapartat', 'Tipus', 'Import (€)', 'Proveïdor', 'Notes'])
     for d in despeses:
         writer.writerow([
             d.data.strftime('%d/%m/%Y'),
             d.descripcio,
             d.categoria,
+            d.subcategoria or '',
             d.tipus.capitalize(),
             f"{float(d.import_):.2f}",
             d.proveidor or '',
@@ -1368,7 +1380,7 @@ def exportar_json():
     dades = {
         "despeses": [
             {"id": e.id, "data": d(e.data), "descripcio": e.descripcio,
-             "categoria": e.categoria, "tipus": e.tipus,
+             "categoria": e.categoria, "subcategoria": e.subcategoria or "", "tipus": e.tipus,
              "import": float(e.import_) if e.import_ else 0,
              "proveidor": e.proveidor, "notes": e.notes,
              "document_nom": e.document_nom, "document_url": e.document_url}
@@ -1463,6 +1475,7 @@ def importar_dades():
                 data=parse_date(d.get('data','')),
                 descripcio=d.get('descripcio',''),
                 categoria=d.get('categoria',''),
+                subcategoria=d.get('subcategoria',''),
                 tipus=d.get('tipus','professional'),
                 import_=d.get('import',0),
                 proveidor=d.get('proveidor',''),
