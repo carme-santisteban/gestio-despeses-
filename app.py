@@ -464,10 +464,13 @@ def login():
     if request.method == 'POST':
         if request.form.get('password') == '2026gestio':
             session['auth'] = True
-            return redirect('/')
+            next_url = request.form.get('next') or request.args.get('next') or '/'
+            if not next_url.startswith('/') or next_url.startswith('//'):
+                next_url = '/'
+            return redirect(next_url)
         else:
             error = 'Contrasenya incorrecta'
-    return render_template('login.html', error=error)
+    return render_template('login.html', error=error, next_url=request.args.get('next', ''))
 
 @app.route('/logout')
 def logout():
@@ -477,7 +480,8 @@ def logout():
 @app.route('/')
 def index():
     if not session.get('auth'):
-        return redirect('/login')
+        next_url = request.full_path if request.query_string else request.path
+        return redirect(url_for('login', next=next_url))
     return render_template(
         'index.html',
         assegurances_calendar_path=url_for('assegurances_calendar', token=CALENDAR_TOKEN)

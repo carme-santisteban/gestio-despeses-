@@ -23,6 +23,7 @@
     <div class="logo">💼 Gestió·CSS</div>
     <div class="sub">Carme Santisteban · ICAB 30907</div>
     <form method="POST" action="/login">
+      <input type="hidden" name="next" value="{{ next_url }}">
       <label for="password">Contrasenya</label>
       <input type="password" id="password" name="password" placeholder="••••••••" autofocus>
       <button type="submit">Entrar</button>
