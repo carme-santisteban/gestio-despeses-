@@ -2439,24 +2439,9 @@ function toast(msg, tipus='ok') {
   const MS = MINUTS * 60 * 1000;
   let timer;
 
-  function hiHaEdicioActiva() {
-    const active = document.activeElement;
-    const editantCamp = active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName);
-    const modalActiu = document.querySelector('.modal-overlay.actiu');
-    const modalVisible = Array.from(document.querySelectorAll('[id^="modal"]')).some(el => {
-      const style = window.getComputedStyle(el);
-      return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || 1) !== 0;
-    });
-    return editantCamp || modalActiu || modalVisible;
-  }
-
   function resetTimer() {
     clearTimeout(timer);
     timer = setTimeout(() => {
-      if (hiHaEdicioActiva()) {
-        resetTimer();
-        return;
-      }
       window.location.href = '/logout';
     }, MS);
   }
