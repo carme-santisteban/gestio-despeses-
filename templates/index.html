@@ -940,6 +940,7 @@ let moviments   = [];
 let bancosResum = [];
 let despesaEdId = null;
 let facturaEdId = null;
+let prefillLexDespesaActiu = false;
 const MESOS = ['','Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -953,6 +954,8 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarDespeses();
   carregarAlertesAssegurances();
   aplicarPrefillDespesa();
+  restaurarEsborranyLexDespesa();
+  activarEsborranyLexDespesa();
 });
 
 // ─── Tab navigation ───────────────────────────────────────────────────────────
@@ -969,7 +972,7 @@ function canviarTab(tab) {
 
   if (tab === 'despeses') {
     document.getElementById('btnNou').textContent = '+ Nova despesa';
-    document.getElementById('btnNou').onclick = obrirModal;
+    document.getElementById('btnNou').onclick = () => obrirModal();
     document.getElementById('btnNou').style.display = '';
     document.getElementById('btnExportCSV').style.display = '';
   } else if (tab === 'factures') {
@@ -1163,6 +1166,7 @@ function obrirModal(d = null) {
 function aplicarPrefillDespesa() {
   const params = new URLSearchParams(window.location.search);
   if (params.get('nou') !== 'despesa') return;
+  prefillLexDespesaActiu = true;
   obrirModal();
   const data = params.get('data');
   if (data) document.getElementById('fData').value = data;
@@ -1181,7 +1185,9 @@ function aplicarPrefillDespesa() {
   const tipus = params.get('tipus');
   if (tipus) selTipus(tipus);
   suggerirClassificacioDespesa();
+  guardarEsborranyLexDespesa();
   carregarAdjuntLexGestioDespesa(params);
+  history.replaceState(null, '', window.location.pathname);
 }
 
 async function carregarAdjuntLexGestioDespesa(params) {
@@ -1204,8 +1210,51 @@ async function carregarAdjuntLexGestioDespesa(params) {
   }
 }
 
-function tancarModal() { document.getElementById('modalOverlay').classList.remove('actiu'); despesaEdId = null; }
-function tancarModalFora(e) { if (e.target === document.getElementById('modalOverlay')) tancarModal(); }
+function tancarModal() {
+  document.getElementById('modalOverlay').classList.remove('actiu');
+  despesaEdId = null;
+  if (!prefillLexDespesaActiu) sessionStorage.removeItem('lexDespesaDraft');
+}
+function tancarModalFora(e) {
+  if (e.target !== document.getElementById('modalOverlay')) return;
+  if (prefillLexDespesaActiu) return;
+  tancarModal();
+}
+
+function activarEsborranyLexDespesa() {
+  ['fData','fImport','fDescripcio','fCategoria','fSubcategoria','fProveidor','fNotes','fTipus'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', guardarEsborranyLexDespesa);
+    el.addEventListener('change', guardarEsborranyLexDespesa);
+  });
+}
+
+function guardarEsborranyLexDespesa() {
+  if (!prefillLexDespesaActiu) return;
+  const dades = {};
+  ['fData','fImport','fDescripcio','fCategoria','fSubcategoria','fProveidor','fNotes','fTipus'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) dades[id] = el.value;
+  });
+  sessionStorage.setItem('lexDespesaDraft', JSON.stringify(dades));
+}
+
+function restaurarEsborranyLexDespesa() {
+  if (new URLSearchParams(window.location.search).get('nou') === 'despesa') return;
+  const raw = sessionStorage.getItem('lexDespesaDraft');
+  if (!raw) return;
+  try {
+    const dades = JSON.parse(raw);
+    prefillLexDespesaActiu = true;
+    obrirModal();
+    Object.entries(dades).forEach(([id, valor]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = valor;
+    });
+    if (dades.fTipus) selTipus(dades.fTipus);
+  } catch(e) {}
+}
 
 function selTipus(t) {
   document.getElementById('fTipus').value = t;
@@ -1286,6 +1335,8 @@ async function guardarDespesa(event) {
     const result = await r.json();
     if (result.cloudinary_error) toast('Despesa guardada però error al document: ' + result.cloudinary_error, 'error');
     else toast(despesaEdId ? 'Despesa actualitzada ✓' : 'Despesa afegida ✓', 'ok');
+    prefillLexDespesaActiu = false;
+    sessionStorage.removeItem('lexDespesaDraft');
     tancarModal();
     carregarDespeses();
     if (document.getElementById('seccioRenda').style.display !== 'none') carregarRenda();
