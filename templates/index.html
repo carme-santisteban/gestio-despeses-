@@ -551,6 +551,7 @@
               <option value="Altres professional">Altres professional</option>
             </optgroup>
             <optgroup label="Personal">
+              <option value="Impostos">Impostos</option>
               <option value="Compres internet">Compres internet</option>
               <option value="Supermercat">Supermercat</option>
               <option value="Alimentació">Alimentació</option>
@@ -577,6 +578,9 @@
             <option value="Salut i farmàcia">Salut i farmàcia</option>
             <option value="Bellesa i cura personal">Bellesa i cura personal</option>
             <option value="Oci">Oci</option>
+            <option value="Pisos">Pisos</option>
+            <option value="Cotxes">Cotxes</option>
+            <option value="Altres impostos">Altres impostos</option>
             <option value="Documents Xavi">Documents Xavi</option>
             <option value="Pagaments Xavi">Pagaments Xavi</option>
             <option value="Altres personals">Altres personals</option>
@@ -1289,6 +1293,13 @@ function suggerirClassificacioDespesa() {
     setIfEmptyOrGeneric('Salut', 'Salut i farmàcia');
   } else if (/(primor|sephora|druni|douglas|lubak|maquillaje|maquillatge|cosmetica|cosmetica)/.test(text)) {
     setIfEmptyOrGeneric('Compres internet', 'Bellesa i cura personal');
+  } else if (/(ibi|ivtm|impost|impuesto|tribut|tributaria|hacienda|agencia tributaria|ajuntament|ayuntamiento|taxa|tasa)/.test(text)) {
+    const subapartat = /(cotxe|coche|vehicle|vehiculo|ivtm|circulacio|circulacion|traccio|traccion)/.test(text)
+      ? 'Cotxes'
+      : /(ibi|pis|piso|habitatge|vivienda|immoble|inmueble|finca|comunitat|comunidad)/.test(text)
+        ? 'Pisos'
+        : 'Altres impostos';
+    setIfEmptyOrGeneric('Impostos', subapartat);
   } else if (/(xavi|xavier)/.test(text)) {
     setIfEmptyOrGeneric('Xavi personal', 'Pagaments Xavi');
   }
