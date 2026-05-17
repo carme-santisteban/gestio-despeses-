@@ -5,8 +5,11 @@ import base64
 import hashlib
 import mimetypes
 import urllib.request
+import json
+import tarfile
+import tempfile
 from datetime import datetime, date, timedelta
-from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, Response, abort
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, Response, abort, after_this_request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import extract, func
 import cloudinary
@@ -1374,8 +1377,105 @@ def get_bancs_taula():
 
 @app.route('/api/exportar-json')
 def exportar_json():
-    import json
-    from flask import Response
+    dades = backup_complet_dades()
+    return Response(
+        json.dumps(dades, ensure_ascii=False, indent=2),
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment; filename=gestiodespeses_backup.json"}
+    )
+
+def _backup_json_value(value):
+    if value is None:
+        return None
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, bytes):
+        return base64.b64encode(value).decode('ascii')
+    if hasattr(value, 'quantize'):
+        return float(value)
+    return value
+
+def _backup_table(model):
+    primary_key = list(model.__table__.primary_key.columns)[0]
+    return [
+        {col.name: _backup_json_value(getattr(row, col.name)) for col in model.__table__.columns}
+        for row in model.query.order_by(primary_key).all()
+    ]
+
+def backup_complet_dades():
+    model_names = [
+        'Despesa', 'Factura', 'TornOfici', 'TornComunicacio',
+        'BancDocument', 'BancConfig', 'DespesaDocument', 'FacturaDocument',
+        'FotografiaBanc', 'ConfigApp', 'Credencial', 'CompteIban',
+        'Targeta', 'Asseguranca',
+    ]
+    taules = {}
+    for name in model_names:
+        model = globals().get(name)
+        if model is not None:
+            taules[model.__tablename__] = _backup_table(model)
+    return {
+        "format": "gestiodespeses_backup_complet_v2",
+        "exported_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "counts": {name: len(items) for name, items in taules.items()},
+        "tables": taules,
+    }
+
+@app.route('/api/backup-complet-download')
+def backup_complet_download():
+    if not session.get('logged_in'):
+        return redirect(url_for('login', next=request.full_path))
+
+    stamp = datetime.now().strftime('%Y%m%d_%H%M')
+    dades = backup_complet_dades()
+    filename = f'backup_gestiocss_complet_{stamp}.tar.gz'
+    tmp = tempfile.NamedTemporaryFile(prefix='gestiocss_backup_', suffix='.tar.gz', delete=False)
+    tmp.close()
+
+    readme = (
+        'COPIA DE RESCAT COMPLETA - GESTIO CSS / GESTIODESPESES\n'
+        f'Data: {datetime.now().strftime("%d/%m/%Y %H:%M")}\n\n'
+        'Aquest arxiu s ha descarregat des del boto "Copia seguretat" de GestioCSS.\n\n'
+        'Conte:\n'
+        '- Copia JSON completa de les dades\n'
+        '- Fitxers principals del codi disponible al servidor\n\n'
+        'Comptatges:\n' +
+        ''.join(f'- {name}: {count}\n' for name, count in dades["counts"].items()) +
+        '\nAquest arxiu conte dades sensibles. Guarda l en un lloc segur.\n'
+    ).encode('utf-8')
+    data_json = json.dumps(dades, ensure_ascii=False, indent=2).encode('utf-8')
+
+    with tarfile.open(tmp.name, 'w:gz') as tar:
+        info = tarfile.TarInfo('LLEGEIX-ME_BACKUP.txt')
+        info.size = len(readme)
+        tar.addfile(info, io.BytesIO(readme))
+
+        info = tarfile.TarInfo(f'copies_dades/gestiocss_backup_complet_{stamp}.json')
+        info.size = len(data_json)
+        tar.addfile(info, io.BytesIO(data_json))
+
+        base_dir = os.path.abspath(os.path.dirname(__file__))
+        for root, dirs, files in os.walk(base_dir):
+            dirs[:] = [d for d in dirs if d not in {'.git', '__pycache__', 'venv', '.venv'}]
+            for name in files:
+                if name.endswith(('.pyc', '.db')) or name.startswith('.env'):
+                    continue
+                path = os.path.join(root, name)
+                rel = os.path.relpath(path, base_dir)
+                tar.add(path, arcname=os.path.join('codi_gestiocss', rel))
+
+    @after_this_request
+    def cleanup(response):
+        try:
+            os.remove(tmp.name)
+        except OSError:
+            pass
+        return response
+
+    return send_file(tmp.name, mimetype='application/gzip', as_attachment=True, download_name=filename)
+
+@app.route('/api/exportar-json-antic')
+def exportar_json_antic():
     despeses = Despesa.query.order_by(Despesa.id).all()
     factures = Factura.query.order_by(Factura.id).all()
     torn_comunicacions = TornComunicacio.query.order_by(TornComunicacio.id).all()
