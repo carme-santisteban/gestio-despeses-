@@ -1423,7 +1423,7 @@ def backup_complet_dades():
 
 @app.route('/api/backup-complet-download')
 def backup_complet_download():
-    if not session.get('logged_in'):
+    if not session.get('auth'):
         return redirect(url_for('login', next=request.full_path))
 
     stamp = datetime.now().strftime('%Y%m%d_%H%M')
