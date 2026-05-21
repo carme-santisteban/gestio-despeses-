@@ -471,6 +471,9 @@ with app.app_context():
     if not ConfigApp.query.filter_by(clau='pin_credencials').first():
         db.session.add(ConfigApp(clau='pin_credencials', valor='Cs75917591'))
         db.session.commit()
+    if not ConfigApp.query.filter_by(clau='pin_documents_personals').first():
+        db.session.add(ConfigApp(clau='pin_documents_personals', valor='Cs75917591'))
+        db.session.commit()
 
     if BancConfig.query.count() == 0:
         bancs_defecte = ['TRADE', 'CAIXA GUISONA', 'SANTANDER', 'CETELEM', 'REVOLUT', 'BUNQ', 'CAIXA']
@@ -1286,8 +1289,41 @@ def delete_factura_document(doc_id):
     db.session.commit()
     return jsonify({'ok': True})
 
+def documents_personals_autoritzat():
+    return bool(session.get('documents_personals_ok'))
+
+@app.route('/api/documents-personals/verificar-pin', methods=['POST'])
+def verificar_pin_documents_personals():
+    data = request.get_json()
+    config = ConfigApp.query.filter_by(clau='pin_documents_personals').first()
+    if not config or config.valor == data.get('pin', ''):
+        session['documents_personals_ok'] = True
+        return jsonify({'ok': True})
+    session.pop('documents_personals_ok', None)
+    return jsonify({'ok': False}), 401
+
+@app.route('/api/documents-personals/pin', methods=['POST'])
+def set_pin_documents_personals():
+    if not session.get('auth'):
+        return jsonify({'error': 'No autoritzat'}), 401
+    data = request.get_json()
+    nou_pin = data.get('pin', '').strip()
+    if not nou_pin:
+        return jsonify({'error': 'Cal una contrasenya'}), 400
+    config = ConfigApp.query.filter_by(clau='pin_documents_personals').first()
+    if config:
+        config.valor = nou_pin
+    else:
+        config = ConfigApp(clau='pin_documents_personals', valor=nou_pin)
+        db.session.add(config)
+    db.session.commit()
+    session['documents_personals_ok'] = True
+    return jsonify({'ok': True})
+
 @app.route('/api/documents-personals', methods=['GET'])
 def get_documents_personals():
+    if not documents_personals_autoritzat():
+        return jsonify({'error': 'No autoritzat'}), 401
     categoria = request.args.get('categoria')
     q = DocumentPersonal.query
     if categoria:
@@ -1297,6 +1333,8 @@ def get_documents_personals():
 
 @app.route('/api/documents-personals', methods=['POST'])
 def create_document_personal():
+    if not documents_personals_autoritzat():
+        return jsonify({'error': 'No autoritzat'}), 401
     fitxer = request.files.get('document')
     if not fitxer or not fitxer.filename:
         return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
@@ -1324,6 +1362,8 @@ def create_document_personal():
 
 @app.route('/api/documents-personals/<int:id>', methods=['PUT'])
 def update_document_personal(id):
+    if not documents_personals_autoritzat():
+        return jsonify({'error': 'No autoritzat'}), 401
     doc = DocumentPersonal.query.get_or_404(id)
     try:
         data_doc = datetime.strptime(request.form.get('data_document', ''), '%Y-%m-%d').date() if request.form.get('data_document') else None
@@ -1345,6 +1385,8 @@ def update_document_personal(id):
 
 @app.route('/api/documents-personals/<int:id>', methods=['DELETE'])
 def delete_document_personal(id):
+    if not documents_personals_autoritzat():
+        return jsonify({'error': 'No autoritzat'}), 401
     doc = DocumentPersonal.query.get_or_404(id)
     db.session.delete(doc)
     db.session.commit()

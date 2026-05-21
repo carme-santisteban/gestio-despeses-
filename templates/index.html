@@ -530,6 +530,7 @@
           <option value="Assegurances">Assegurances</option>
           <option value="Altres">Altres</option>
         </select>
+        <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="obrirModalPinDocuments()">🔒 Contrasenya</button>
         <button class="btn btn-primary" onclick="obrirModalDocumentPersonal()">+ Nou document</button>
       </div>
     </div>
@@ -547,6 +548,45 @@
     </div>
   </div>
 </div><!-- fi container -->
+
+<!-- Modal PIN Documents personals -->
+<div class="modal-overlay" id="modalPinDocumentsOverlay">
+  <div class="modal" style="max-width:380px" onclick="event.stopPropagation()">
+    <div class="modal-cap">
+      <h3>🔒 Accés a Documents personals</h3>
+    </div>
+    <div class="modal-cos" style="text-align:center;padding:2rem 1.5rem">
+      <p style="font-size:.9rem;color:var(--gray-3);margin-bottom:1.5rem">Introdueix la contrasenya per veure els documents personals</p>
+      <input type="password" class="form-control" id="pinDocumentsInput" placeholder="Contrasenya..." style="text-align:center;font-size:1.1rem;letter-spacing:.1em;margin-bottom:1rem" onkeydown="if(event.key==='Enter')verificarPinDocuments()">
+      <div id="pinDocumentsError" style="color:var(--red);font-size:.85rem;min-height:1.2rem;margin-bottom:.5rem"></div>
+    </div>
+    <div class="modal-peu" style="justify-content:center;gap:12px">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarPinDocuments()">Cancel·lar</button>
+      <button class="btn btn-primary" onclick="verificarPinDocuments()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal canviar contrasenya Documents personals -->
+<div class="modal-overlay" id="modalCanviarPinDocumentsOverlay" onclick="if(event.target===this)tancarModalPinDocuments()">
+  <div class="modal" style="max-width:440px" onclick="event.stopPropagation()">
+    <div class="modal-cap">
+      <h3>🔒 Contrasenya documents</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalPinDocuments()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <div class="form-grup">
+        <label class="form-label">Nova contrasenya</label>
+        <input type="password" class="form-control" id="nouPinDocuments" placeholder="Nova contrasenya...">
+      </div>
+      <p style="font-size:.75rem;color:var(--gray-3);margin-top:8px">S'aplicarà la propera vegada que entris a Documents personals.</p>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalPinDocuments()">Cancel·lar</button>
+      <button class="btn btn-primary" onclick="canviarPinDocuments()">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal despesa -->
 <div class="modal-overlay" id="modalOverlay" onclick="tancarModalFora(event)">
@@ -1018,6 +1058,7 @@ let documentsPersonals = [];
 let despesaEdId = null;
 let facturaEdId = null;
 let documentPersonalEdId = null;
+window._documentsPersonalsPinOk = false;
 let prefillLexDespesaActiu = false;
 const MESOS = ['','Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
 
@@ -1087,6 +1128,10 @@ function canviarTab(tab) {
     document.getElementById('btnNou').onclick = () => obrirModalDocumentPersonal();
     document.getElementById('btnNou').style.display = '';
     document.getElementById('btnExportCSV').style.display = 'none';
+    if (!window._documentsPersonalsPinOk) {
+      obrirPinDocuments();
+      return;
+    }
     carregarDocumentsPersonals();
   } else if (tab === 'assegurances') {
     document.getElementById('btnNou').textContent = '+ Nova asseguranca';
@@ -1542,12 +1587,85 @@ async function treureDespesaRenda(id) {
 }
 
 // ─── Documents personals ─────────────────────────────────────────────────────
+function obrirPinDocuments() {
+  document.getElementById('pinDocumentsInput').value = '';
+  document.getElementById('pinDocumentsError').textContent = '';
+  document.getElementById('modalPinDocumentsOverlay').classList.add('actiu');
+  setTimeout(() => document.getElementById('pinDocumentsInput').focus(), 100);
+}
+
+function tancarPinDocuments() {
+  document.getElementById('modalPinDocumentsOverlay').classList.remove('actiu');
+  canviarTab('despeses');
+}
+
+async function verificarPinDocuments() {
+  const pin = document.getElementById('pinDocumentsInput').value;
+  if (!pin) { document.getElementById('pinDocumentsError').textContent = 'Introdueix la contrasenya'; return; }
+  try {
+    const r = await fetch('/api/documents-personals/verificar-pin', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({pin})
+    });
+    const res = await r.json();
+    if (res.ok) {
+      window._documentsPersonalsPinOk = true;
+      document.getElementById('modalPinDocumentsOverlay').classList.remove('actiu');
+      document.getElementById('seccioDocumentsPersonals').style.display = 'block';
+      ['seccioDespeses','seccioFactures','seccioBancs','seccioRenda','seccioCredencials','seccioAssegurances'].forEach(id => document.getElementById(id).style.display = 'none');
+      ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabRenda','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+      document.getElementById('tabDocumentsPersonals').classList.add('actiu');
+      carregarDocumentsPersonals();
+    } else {
+      document.getElementById('pinDocumentsError').textContent = 'Contrasenya incorrecta';
+      document.getElementById('pinDocumentsInput').value = '';
+      document.getElementById('pinDocumentsInput').focus();
+    }
+  } catch(e) {
+    document.getElementById('pinDocumentsError').textContent = 'Error de connexio';
+  }
+}
+
+function obrirModalPinDocuments() {
+  document.getElementById('nouPinDocuments').value = '';
+  document.getElementById('modalCanviarPinDocumentsOverlay').classList.add('actiu');
+  setTimeout(() => document.getElementById('nouPinDocuments').focus(), 100);
+}
+
+function tancarModalPinDocuments() {
+  document.getElementById('modalCanviarPinDocumentsOverlay').classList.remove('actiu');
+}
+
+async function canviarPinDocuments() {
+  const pin = document.getElementById('nouPinDocuments').value.trim();
+  if (!pin) { toast('Escriu la nova contrasenya', 'error'); return; }
+  try {
+    const r = await fetch('/api/documents-personals/pin', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({pin})
+    });
+    if (!r.ok) throw new Error();
+    window._documentsPersonalsPinOk = true;
+    toast('Contrasenya de Documents personals actualitzada', 'ok');
+    tancarModalPinDocuments();
+  } catch(e) {
+    toast('Error canviant la contrasenya', 'error');
+  }
+}
+
 async function carregarDocumentsPersonals() {
   const params = new URLSearchParams();
   const categoria = document.getElementById('filtreCategoriaDocuments').value;
   if (categoria) params.set('categoria', categoria);
   try {
     const r = await fetch('/api/documents-personals?' + params);
+    if (r.status === 401) {
+      window._documentsPersonalsPinOk = false;
+      obrirPinDocuments();
+      return;
+    }
     documentsPersonals = await r.json();
     renderDocumentsPersonals(documentsPersonals);
   } catch(e) {
