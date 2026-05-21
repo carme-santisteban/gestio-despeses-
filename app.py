@@ -341,6 +341,33 @@ class FacturaDocument(db.Model):
         }
 
 
+class DocumentPersonal(db.Model):
+    __tablename__ = 'documents_personals'
+
+    id             = db.Column(db.Integer, primary_key=True)
+    nom            = db.Column(db.String(255), nullable=False)
+    categoria      = db.Column(db.String(100), nullable=False, default='Administratiu')
+    data_document  = db.Column(db.Date)
+    entitat        = db.Column(db.String(200))
+    notes          = db.Column(db.Text)
+    document_url   = db.Column(db.String(500), nullable=False)
+    document_nom   = db.Column(db.String(200))
+    creat_el       = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nom': self.nom,
+            'categoria': self.categoria or 'Administratiu',
+            'data_document': self.data_document.isoformat() if self.data_document else '',
+            'entitat': self.entitat or '',
+            'notes': self.notes or '',
+            'document_url': self.document_url or '',
+            'document_nom': self.document_nom or '',
+            'creat_el': self.creat_el.isoformat() if self.creat_el else '',
+        }
+
+
 class FotografiaBanc(db.Model):
     """Saldo real d'un banc en una data concreta"""
     __tablename__ = 'fotografies_banc'
@@ -1259,6 +1286,70 @@ def delete_factura_document(doc_id):
     db.session.commit()
     return jsonify({'ok': True})
 
+@app.route('/api/documents-personals', methods=['GET'])
+def get_documents_personals():
+    categoria = request.args.get('categoria')
+    q = DocumentPersonal.query
+    if categoria:
+        q = q.filter(DocumentPersonal.categoria == categoria)
+    docs = q.order_by(DocumentPersonal.data_document.desc().nullslast(), DocumentPersonal.creat_el.desc()).all()
+    return jsonify([d.to_dict() for d in docs])
+
+@app.route('/api/documents-personals', methods=['POST'])
+def create_document_personal():
+    fitxer = request.files.get('document')
+    if not fitxer or not fitxer.filename:
+        return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
+    nom = (request.form.get('nom') or '').strip()
+    if not nom:
+        return jsonify({'error': 'Cal indicar un nom'}), 400
+    try:
+        data_doc = datetime.strptime(request.form.get('data_document', ''), '%Y-%m-%d').date() if request.form.get('data_document') else None
+        result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/documents-personals')
+        doc = DocumentPersonal(
+            nom=nom,
+            categoria=request.form.get('categoria') or 'Administratiu',
+            data_document=data_doc,
+            entitat=request.form.get('entitat') or None,
+            notes=request.form.get('notes') or None,
+            document_url=result.get('secure_url'),
+            document_nom=fitxer.filename,
+        )
+        db.session.add(doc)
+        db.session.commit()
+        return jsonify(doc.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/documents-personals/<int:id>', methods=['PUT'])
+def update_document_personal(id):
+    doc = DocumentPersonal.query.get_or_404(id)
+    try:
+        data_doc = datetime.strptime(request.form.get('data_document', ''), '%Y-%m-%d').date() if request.form.get('data_document') else None
+        doc.nom = (request.form.get('nom') or doc.nom).strip()
+        doc.categoria = request.form.get('categoria') or 'Administratiu'
+        doc.data_document = data_doc
+        doc.entitat = request.form.get('entitat') or None
+        doc.notes = request.form.get('notes') or None
+        fitxer = request.files.get('document')
+        if fitxer and fitxer.filename:
+            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/documents-personals')
+            doc.document_url = result.get('secure_url')
+            doc.document_nom = fitxer.filename
+        db.session.commit()
+        return jsonify(doc.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/documents-personals/<int:id>', methods=['DELETE'])
+def delete_document_personal(id):
+    doc = DocumentPersonal.query.get_or_404(id)
+    db.session.delete(doc)
+    db.session.commit()
+    return jsonify({'ok': True})
+
 @app.route('/api/bancs/fotografies', methods=['GET'])
 def get_fotografies():
     banc = request.args.get('banc')
@@ -1406,8 +1497,8 @@ def backup_complet_dades():
     model_names = [
         'Despesa', 'Factura', 'TornOfici', 'TornComunicacio',
         'BancDocument', 'BancConfig', 'DespesaDocument', 'FacturaDocument',
-        'FotografiaBanc', 'ConfigApp', 'Credencial', 'CompteIban',
-        'Targeta', 'Asseguranca',
+        'DocumentPersonal', 'FotografiaBanc', 'ConfigApp', 'Credencial',
+        'CompteIban', 'Targeta', 'Asseguranca',
     ]
     taules = {}
     for name in model_names:

@@ -266,6 +266,7 @@
     <button class="nav-tab" id="tabTornOfici" onclick="canviarTab('tornOfici')">⚖️ Torn d'ofici</button>
     <button class="nav-tab" id="tabBancs" onclick="canviarTab('bancs')">🏦 Bancs</button>
     <button class="nav-tab" id="tabRenda" onclick="canviarTab('renda')">📁 Renda</button>
+    <button class="nav-tab" id="tabDocumentsPersonals" onclick="canviarTab('documentsPersonals')">📂 Documents personals</button>
     <button class="nav-tab" id="tabCredencials" onclick="canviarTab('credencials')">🔑 Credencials</button>
     <button class="nav-tab" id="tabAssegurances" onclick="canviarTab('assegurances')">&#x1F6E1;&#xFE0F; Assegurances</button>
   </div>
@@ -513,6 +514,38 @@
     </div>
     <div id="rendaBlocs" style="display:grid;gap:1rem"></div>
   </div>
+
+  <!-- DOCUMENTS PERSONALS -->
+  <div id="seccioDocumentsPersonals" style="display:none">
+    <div class="page-header">
+      <div><div class="page-title">Documents personals <span style="color:var(--gold)">· Arxiu privat</span></div></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" class="cerca-input" placeholder="Cercar document..." id="cercaDocumentsPersonals" oninput="filtrarDocumentsPersonals()" style="width:230px">
+        <select class="form-control" id="filtreCategoriaDocuments" onchange="carregarDocumentsPersonals()" style="width:170px">
+          <option value="">Totes les categories</option>
+          <option value="Administratiu">Administratiu</option>
+          <option value="Salut">Salut</option>
+          <option value="Identitat">Identitat</option>
+          <option value="Patrimoni">Patrimoni</option>
+          <option value="Assegurances">Assegurances</option>
+          <option value="Altres">Altres</option>
+        </select>
+        <button class="btn btn-primary" onclick="obrirModalDocumentPersonal()">+ Nou document</button>
+      </div>
+    </div>
+    <div class="taula-wrapper">
+      <div class="taula-cap">
+        <h2>Arxiu de documents</h2>
+        <span id="documentsPersonalsInfo" style="font-size:.82rem;color:var(--gray-3)"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Nom</th><th>Categoria</th><th>Data</th><th>Entitat</th><th>Notes</th><th>Fitxer</th><th style="text-align:center">Accions</th></tr></thead>
+          <tbody id="taulaDocumentsPersonalsCos"><tr><td colspan="7" class="buit"><div class="buit-icon">📂</div><div class="buit-text">Carregant...</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div><!-- fi container -->
 
 <!-- Modal despesa -->
@@ -624,6 +657,45 @@
     <div class="modal-peu">
       <button type="button" class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModal()">Cancel·lar</button>
       <button type="button" class="btn btn-primary" id="btnGuardar" onclick="guardarDespesa(event)">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal document personal -->
+<div class="modal-overlay" id="modalDocumentPersonalOverlay" onclick="if(event.target===this)tancarModalDocumentPersonal()">
+  <div class="modal" style="max-width:620px" onclick="event.stopPropagation()">
+    <div class="modal-cap">
+      <h3 id="modalDocumentPersonalTitol">Nou document personal</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalDocumentPersonal()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <div class="form-grid">
+        <div class="form-grup full"><label class="form-label">Nom <span>*</span></label><input type="text" class="form-control" id="dpNom" placeholder="Ex: Resolució grau de discapacitat"></div>
+        <div class="form-grup">
+          <label class="form-label">Categoria <span>*</span></label>
+          <select class="form-control" id="dpCategoria">
+            <option value="Administratiu">Administratiu</option>
+            <option value="Salut">Salut</option>
+            <option value="Identitat">Identitat</option>
+            <option value="Patrimoni">Patrimoni</option>
+            <option value="Assegurances">Assegurances</option>
+            <option value="Altres">Altres</option>
+          </select>
+        </div>
+        <div class="form-grup"><label class="form-label">Data document</label><input type="date" class="form-control" id="dpDataDocument"></div>
+        <div class="form-grup full"><label class="form-label">Entitat / organisme</label><input type="text" class="form-control" id="dpEntitat" placeholder="Ex: Generalitat, INSS, Ajuntament..."></div>
+        <div class="form-grup full">
+          <label class="form-label">Fitxer <span>*</span></label>
+          <div class="upload-zona" onclick="document.getElementById('dpDocument').click()"><div>📎 Fes clic per adjuntar el document</div><div class="upload-text">PDF, imatge o Word</div><div class="upload-nom" id="dpNomDocument"></div></div>
+          <input type="file" id="dpDocument" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic" onchange="document.getElementById('dpNomDocument').textContent = this.files[0]?.name ? '✓ ' + this.files[0].name : ''">
+          <div id="dpDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
+        </div>
+        <div class="form-grup full"><label class="form-label">Notes</label><textarea class="form-control" id="dpNotes" placeholder="Observacions, vigència, on s'ha presentat..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalDocumentPersonal()">Cancel·lar</button>
+      <button class="btn btn-primary" id="btnGuardarDocumentPersonal" onclick="guardarDocumentPersonal()">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -942,8 +1014,10 @@ let despeses    = [];
 let factures    = [];
 let moviments   = [];
 let bancosResum = [];
+let documentsPersonals = [];
 let despesaEdId = null;
 let facturaEdId = null;
+let documentPersonalEdId = null;
 let prefillLexDespesaActiu = false;
 const MESOS = ['','Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
 
@@ -969,9 +1043,10 @@ function canviarTab(tab) {
   document.getElementById('seccioTornOfici').style.display = tab === 'tornOfici' ? 'block' : 'none';
   document.getElementById('seccioBancs').style.display    = tab === 'bancs'    ? 'block' : 'none';
   document.getElementById('seccioRenda').style.display    = tab === 'renda'    ? 'block' : 'none';
+  document.getElementById('seccioDocumentsPersonals').style.display = tab === 'documentsPersonals' ? 'block' : 'none';
   document.getElementById('seccioCredencials').style.display = tab === 'credencials' ? 'block' : 'none';
   document.getElementById('seccioAssegurances').style.display = tab === 'assegurances' ? 'block' : 'none';
-  ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabRenda','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+  ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabRenda','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
   document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('actiu');
 
   if (tab === 'despeses') {
@@ -998,14 +1073,21 @@ function canviarTab(tab) {
     document.getElementById('seccioFactures').style.display = 'none';
     document.getElementById('seccioBancs').style.display = 'none';
     document.getElementById('seccioRenda').style.display = 'none';
+    document.getElementById('seccioDocumentsPersonals').style.display = 'none';
     document.getElementById('seccioCredencials').style.display = 'block';
-    ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabRenda','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+    ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabRenda','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
     document.getElementById('tabCredencials').classList.add('actiu');
     document.getElementById('btnNou').style.display = 'none';
     document.getElementById('btnExportCSV').style.display = 'none';
     if (!window._credencialsPinOk) { obrirPinCredencials(); return; }
     carregarCredencials();
     return;
+  } else if (tab === 'documentsPersonals') {
+    document.getElementById('btnNou').textContent = '+ Nou document';
+    document.getElementById('btnNou').onclick = () => obrirModalDocumentPersonal();
+    document.getElementById('btnNou').style.display = '';
+    document.getElementById('btnExportCSV').style.display = 'none';
+    carregarDocumentsPersonals();
   } else if (tab === 'assegurances') {
     document.getElementById('btnNou').textContent = '+ Nova asseguranca';
     document.getElementById('btnNou').onclick = function(){ obrirModalAsseguranca(); };
@@ -1456,6 +1538,118 @@ async function treureDespesaRenda(id) {
     carregarRenda();
   } catch(e) {
     toast('Error traient-la de la Renda', 'error');
+  }
+}
+
+// ─── Documents personals ─────────────────────────────────────────────────────
+async function carregarDocumentsPersonals() {
+  const params = new URLSearchParams();
+  const categoria = document.getElementById('filtreCategoriaDocuments').value;
+  if (categoria) params.set('categoria', categoria);
+  try {
+    const r = await fetch('/api/documents-personals?' + params);
+    documentsPersonals = await r.json();
+    renderDocumentsPersonals(documentsPersonals);
+  } catch(e) {
+    toast('Error carregant documents personals', 'error');
+  }
+}
+
+function renderDocumentsPersonals(llista) {
+  const cos = document.getElementById('taulaDocumentsPersonalsCos');
+  const info = document.getElementById('documentsPersonalsInfo');
+  if (info) info.textContent = llista.length + (llista.length === 1 ? ' document' : ' documents');
+  if (!llista.length) {
+    cos.innerHTML = '<tr><td colspan="7" class="buit"><div class="buit-icon">📂</div><div class="buit-text">Cap document personal registrat</div></td></tr>';
+    return;
+  }
+  cos.innerHTML = llista.map(d => `
+    <tr>
+      <td><div style="font-weight:500">${esc(d.nom)}</div></td>
+      <td><span class="badge badge-pers">${esc(d.categoria || 'Administratiu')}</span></td>
+      <td style="white-space:nowrap;color:var(--gray-3)">${d.data_document ? formatData(d.data_document) : '—'}</td>
+      <td style="color:var(--gray-4);font-size:.85rem">${esc(d.entitat || '') || '—'}</td>
+      <td style="max-width:260px;color:var(--gray-4);font-size:.85rem">${d.notes ? esc(d.notes.substring(0,90)) + (d.notes.length > 90 ? '…' : '') : '—'}</td>
+      <td>${d.document_url ? `<a href="${d.document_url}" target="_blank" class="doc-link">📎 ${esc(d.document_nom || 'Document')}</a>` : '—'}</td>
+      <td class="accions">
+        <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDocumentPersonal(${d.id})">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminarDocumentPersonal(${d.id})">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+function filtrarDocumentsPersonals() {
+  const q = normalitzarText(document.getElementById('cercaDocumentsPersonals').value);
+  if (!q) { renderDocumentsPersonals(documentsPersonals); return; }
+  renderDocumentsPersonals(documentsPersonals.filter(d => normalitzarText([
+    d.nom, d.categoria, d.entitat, d.notes, d.document_nom
+  ].join(' ')).includes(q)));
+}
+
+function obrirModalDocumentPersonal(d = null) {
+  documentPersonalEdId = d ? d.id : null;
+  document.getElementById('modalDocumentPersonalTitol').textContent = d ? 'Editar document personal' : 'Nou document personal';
+  document.getElementById('dpNom').value = d ? d.nom : '';
+  document.getElementById('dpCategoria').value = d ? (d.categoria || 'Administratiu') : 'Administratiu';
+  document.getElementById('dpDataDocument').value = d ? (d.data_document || '') : '';
+  document.getElementById('dpEntitat').value = d ? (d.entitat || '') : '';
+  document.getElementById('dpNotes').value = d ? (d.notes || '') : '';
+  document.getElementById('dpDocument').value = '';
+  document.getElementById('dpNomDocument').textContent = '';
+  document.getElementById('dpDocActual').innerHTML = d && d.document_url ? 'Document actual: <a href="' + d.document_url + '" target="_blank" style="color:var(--blue)">' + esc(d.document_nom || 'veure') + '</a>' : '';
+  document.getElementById('modalDocumentPersonalOverlay').classList.add('actiu');
+}
+
+function tancarModalDocumentPersonal() {
+  document.getElementById('modalDocumentPersonalOverlay').classList.remove('actiu');
+  documentPersonalEdId = null;
+}
+
+function editarDocumentPersonal(id) {
+  const d = documentsPersonals.find(x => x.id === id);
+  if (d) obrirModalDocumentPersonal(d);
+}
+
+async function guardarDocumentPersonal() {
+  const nom = document.getElementById('dpNom').value.trim();
+  const fitxer = document.getElementById('dpDocument').files[0];
+  if (!nom) { toast('Indica el nom del document', 'error'); return; }
+  if (!documentPersonalEdId && !fitxer) { toast('Adjunta el fitxer del document', 'error'); return; }
+  const btn = document.getElementById('btnGuardarDocumentPersonal');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant...';
+  const fd = new FormData();
+  fd.append('nom', nom);
+  fd.append('categoria', document.getElementById('dpCategoria').value);
+  fd.append('data_document', document.getElementById('dpDataDocument').value);
+  fd.append('entitat', document.getElementById('dpEntitat').value);
+  fd.append('notes', document.getElementById('dpNotes').value);
+  if (fitxer) fd.append('document', fitxer);
+  try {
+    const url = documentPersonalEdId ? '/api/documents-personals/' + documentPersonalEdId : '/api/documents-personals';
+    const method = documentPersonalEdId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, body: fd });
+    if (!r.ok) throw new Error();
+    toast(documentPersonalEdId ? 'Document actualitzat' : 'Document guardat', 'ok');
+    tancarModalDocumentPersonal();
+    carregarDocumentsPersonals();
+  } catch(e) {
+    toast('Error guardant el document', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '💾 Guardar';
+  }
+}
+
+async function eliminarDocumentPersonal(id) {
+  const d = documentsPersonals.find(x => x.id === id);
+  if (!confirm('Eliminar "' + (d ? d.nom : '') + '"?')) return;
+  try {
+    const r = await fetch('/api/documents-personals/' + id, { method: 'DELETE' });
+    if (!r.ok) throw new Error();
+    toast('Document eliminat', 'ok');
+    carregarDocumentsPersonals();
+  } catch(e) {
+    toast('Error eliminant el document', 'error');
   }
 }
 
@@ -1954,7 +2148,7 @@ async function verificarPinBancs() {
       document.getElementById('seccioBancs').style.display = 'block';
       document.getElementById('seccioDespeses').style.display = 'none';
       document.getElementById('seccioFactures').style.display = 'none';
-      ['tabDespeses','tabFactures','tabBancs'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+      ['tabDespeses','tabFactures','tabBancs','tabDocumentsPersonals'].forEach(id => document.getElementById(id).classList.remove('actiu'));
       document.getElementById('tabBancs').classList.add('actiu');
       carregarBancs();
     } else {
@@ -2754,8 +2948,8 @@ async function verificarPinCredencials() {
       window._credencialsPinOk = true;
       document.getElementById('modalPinCredencialsOverlay').classList.remove('actiu');
       document.getElementById('seccioCredencials').style.display = 'block';
-      ['seccioDespeses','seccioFactures','seccioBancs'].forEach(id => document.getElementById(id).style.display = 'none');
-      ['tabDespeses','tabFactures','tabBancs','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+      ['seccioDespeses','seccioFactures','seccioBancs','seccioDocumentsPersonals'].forEach(id => document.getElementById(id).style.display = 'none');
+      ['tabDespeses','tabFactures','tabBancs','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
       document.getElementById('tabCredencials').classList.add('actiu');
       carregarCredencials();
     } else {
