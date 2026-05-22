@@ -675,12 +675,12 @@
         </div>
         <div class="form-grup full">
           <label class="form-label">Document adjunt (PDF/imatge)</label>
-          <div class="upload-zona" onclick="document.getElementById('fDocument').click()">
-            <div>📎 Fes clic per adjuntar un document</div>
-            <div class="upload-text">PDF, JPG, PNG fins a 10 MB</div>
+          <div class="upload-zona" id="zonaDocumentDespesa" onclick="document.getElementById('fDocument').click()">
+            <div>📎 Fes clic o arrossega documents</div>
+            <div class="upload-text">PDF, JPG, PNG · pots seleccionar-ne més d'un</div>
             <div class="upload-nom" id="nomDocument"></div>
           </div>
-          <input type="file" id="fDocument" accept=".pdf,.jpg,.jpeg,.png" onchange="mostrarNomFitxer()">
+          <input type="file" id="fDocument" accept=".pdf,.jpg,.jpeg,.png" multiple onchange="mostrarNomFitxer()">
           <div id="docActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
         </div>
         <!-- Multi-documents despesa -->
@@ -688,7 +688,7 @@
           <label class="form-label">📎 Documents adjunts addicionals</label>
           <div id="llistaDocsDespesa" style="margin-bottom:.5rem"></div>
           <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
-            <input type="file" id="ndocDespesaFitxer" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="font-size:.8rem;flex:1;min-width:180px">
+            <input type="file" id="ndocDespesaFitxer" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple style="font-size:.8rem;flex:1;min-width:180px">
             <button type="button" class="btn btn-sm btn-primary" onclick="pujarDocDespesa(event)" style="white-space:nowrap">Afegir document extra</button>
           </div>
         </div>
@@ -1075,6 +1075,7 @@ document.addEventListener('DOMContentLoaded', () => {
   aplicarPrefillDespesa();
   restaurarEsborranyLexDespesa();
   activarEsborranyLexDespesa();
+  activarDropDocumentsDespesa();
 });
 
 // ─── Tab navigation ───────────────────────────────────────────────────────────
@@ -1437,8 +1438,36 @@ function normalitzarText(s) {
 }
 
 function mostrarNomFitxer() {
-  const f = document.getElementById('fDocument').files[0];
-  document.getElementById('nomDocument').textContent = f ? '✓ ' + f.name : '';
+  const files = Array.from(document.getElementById('fDocument').files || []);
+  const nomEl = document.getElementById('nomDocument');
+  if (!files.length) {
+    nomEl.textContent = '';
+  } else if (files.length === 1) {
+    nomEl.textContent = '✓ ' + files[0].name;
+  } else {
+    nomEl.textContent = '✓ ' + files.length + ' documents seleccionats: ' + files.slice(0, 3).map(f => f.name).join(', ') + (files.length > 3 ? '...' : '');
+  }
+}
+
+function activarDropDocumentsDespesa() {
+  const zona = document.getElementById('zonaDocumentDespesa');
+  const input = document.getElementById('fDocument');
+  if (!zona || !input) return;
+  ['dragenter', 'dragover'].forEach(evt => zona.addEventListener(evt, e => {
+    e.preventDefault();
+    zona.style.borderColor = 'var(--gold)';
+    zona.style.background = '#fff8df';
+  }));
+  ['dragleave', 'drop'].forEach(evt => zona.addEventListener(evt, e => {
+    e.preventDefault();
+    zona.style.borderColor = '';
+    zona.style.background = '';
+  }));
+  zona.addEventListener('drop', e => {
+    if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+    input.files = e.dataTransfer.files;
+    mostrarNomFitxer();
+  });
 }
 
 async function guardarDespesa(event) {
@@ -1463,16 +1492,17 @@ async function guardarDespesa(event) {
     fd.append('incloure_renda', '1');
     fd.append('renda_exercici', document.getElementById('fRendaExercici').value || new Date(data).getFullYear());
   }
-  const fitxer = document.getElementById('fDocument').files[0];
-  if (fitxer) fd.append('document', fitxer);
+  const fitxers = Array.from(document.getElementById('fDocument').files || []);
+  fitxers.forEach(fitxer => fd.append('documents', fitxer));
   try {
     const url    = despesaEdId ? `/api/despeses/${despesaEdId}` : '/api/despeses';
     const method = despesaEdId ? 'PUT' : 'POST';
     const r = await fetch(url, { method, body: fd });
     if (!r.ok) throw new Error();
     const result = await r.json();
-    if (result.cloudinary_error) toast('Despesa guardada però error al document: ' + result.cloudinary_error, 'error');
-    else toast(despesaEdId ? 'Despesa actualitzada ✓' : 'Despesa afegida ✓', 'ok');
+    const docsMsg = result.documents_afegits > 1 ? ' amb ' + result.documents_afegits + ' documents' : '';
+    if (result.cloudinary_error) toast('Despesa guardada però error en algun document: ' + result.cloudinary_error, 'error');
+    else toast((despesaEdId ? 'Despesa actualitzada' : 'Despesa afegida') + docsMsg + ' ✓', 'ok');
     prefillLexDespesaActiu = false;
     sessionStorage.removeItem('lexDespesaDraft');
     tancarModal();
@@ -2908,13 +2938,13 @@ async function carregarDocsDespesa(id) {
 async function pujarDocDespesa(event) {
   if (event) event.preventDefault();
   if (!_despesaDocsId) { toast('Desa la despesa primer abans de pujar documents addicionals', 'error'); return; }
-  const fitxer = document.getElementById('ndocDespesaFitxer').files[0];
-  if (!fitxer) { toast('Cal seleccionar un fitxer', 'error'); return; }
+  const fitxers = Array.from(document.getElementById('ndocDespesaFitxer').files || []);
+  if (!fitxers.length) { toast('Cal seleccionar un fitxer', 'error'); return; }
   const fd = new FormData();
-  fd.append('document', fitxer);
+  fitxers.forEach(fitxer => fd.append('documents', fitxer));
   try {
     const r = await fetch('/api/despeses/' + _despesaDocsId + '/documents', { method: 'POST', body: fd });
-    if (r.ok) { toast('Document pujat', 'ok'); document.getElementById('ndocDespesaFitxer').value = ''; carregarDocsDespesa(_despesaDocsId); }
+    if (r.ok) { toast(fitxers.length > 1 ? 'Documents pujats' : 'Document pujat', 'ok'); document.getElementById('ndocDespesaFitxer').value = ''; carregarDocsDespesa(_despesaDocsId); }
     else { const err = await r.json(); toast('Error: ' + (err.error||'desconegut'), 'error'); }
   } catch(e) { toast('Error pujant document', 'error'); }
 }

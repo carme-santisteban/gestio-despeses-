@@ -105,6 +105,17 @@ def prepare_cloud_document(file, folder):
         print(f'Error Cloudinary: {e}')
     return document_url, filename, base64.b64encode(data).decode('ascii'), mimetype
 
+
+def uploaded_documents():
+    files = []
+    seen = set()
+    for field in ('documents', 'document'):
+        for file in request.files.getlist(field):
+            if file and file.filename and id(file) not in seen:
+                files.append(file)
+                seen.add(id(file))
+    return files
+
 # ─── Models ───────────────────────────────────────────────────────────────────
 
 class Despesa(db.Model):
@@ -557,17 +568,17 @@ def get_despeses():
 @app.route('/api/despeses', methods=['POST'])
 def create_despesa():
     data = request.form
-    fitxer = request.files.get('document')
+    fitxers = uploaded_documents()
 
     document_url = None
     document_nom = None
     cloudinary_error = None
 
-    if fitxer and fitxer.filename:
+    if fitxers:
         try:
-            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses')
+            result = pujar_arxiu_cloudinary(fitxers[0], 'gestiodespeses')
             document_url = result.get('secure_url')
-            document_nom = fitxer.filename
+            document_nom = fitxers[0].filename
         except Exception as e:
             cloudinary_error = str(e)
 
@@ -589,7 +600,21 @@ def create_despesa():
         )
         db.session.add(despesa)
         db.session.commit()
+        docs_afegits = 1 if document_url else 0
+        for fitxer_extra in fitxers[1:]:
+            try:
+                result_extra = pujar_arxiu_cloudinary(fitxer_extra, 'gestiodespeses/despeses')
+                db.session.add(DespesaDocument(
+                    despesa_id=despesa.id,
+                    document_url=result_extra.get('secure_url'),
+                    document_nom=fitxer_extra.filename,
+                ))
+                docs_afegits += 1
+            except Exception as e:
+                cloudinary_error = str(e)
+        db.session.commit()
         result = despesa.to_dict()
+        result['documents_afegits'] = docs_afegits
         if cloudinary_error:
             result['cloudinary_error'] = cloudinary_error
         return jsonify(result), 201
@@ -601,16 +626,29 @@ def create_despesa():
 def update_despesa(id):
     despesa = Despesa.query.get_or_404(id)
     data = request.form
-    fitxer = request.files.get('document')
+    fitxers = uploaded_documents()
 
     cloudinary_error = None
-    if fitxer and fitxer.filename:
+    docs_afegits = 0
+    if fitxers:
         try:
-            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses')
+            result = pujar_arxiu_cloudinary(fitxers[0], 'gestiodespeses')
             despesa.document_url = result.get('secure_url')
-            despesa.document_nom = fitxer.filename
+            despesa.document_nom = fitxers[0].filename
+            docs_afegits += 1
         except Exception as e:
             cloudinary_error = str(e)
+        for fitxer_extra in fitxers[1:]:
+            try:
+                result_extra = pujar_arxiu_cloudinary(fitxer_extra, 'gestiodespeses/despeses')
+                db.session.add(DespesaDocument(
+                    despesa_id=despesa.id,
+                    document_url=result_extra.get('secure_url'),
+                    document_nom=fitxer_extra.filename,
+                ))
+                docs_afegits += 1
+            except Exception as e:
+                cloudinary_error = str(e)
 
     try:
         despesa.data       = datetime.strptime(data['data'], '%Y-%m-%d').date()
@@ -626,6 +664,7 @@ def update_despesa(id):
         despesa.renda_exercici = int(data.get('renda_exercici') or despesa.data.year) if despesa.incloure_renda else None
         db.session.commit()
         result = despesa.to_dict()
+        result['documents_afegits'] = docs_afegits
         if cloudinary_error:
             result['cloudinary_error'] = cloudinary_error
         return jsonify(result)
@@ -1242,21 +1281,25 @@ def get_despesa_documents(despesa_id):
 @app.route('/api/despeses/<int:despesa_id>/documents', methods=['POST'])
 def create_despesa_document(despesa_id):
     Despesa.query.get_or_404(despesa_id)
-    fitxer = request.files.get('document')
-    if not fitxer or not fitxer.filename:
+    fitxers = uploaded_documents()
+    if not fitxers:
         return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
     try:
-        result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/despeses')
-        doc = DespesaDocument(
-            despesa_id=despesa_id,
-            document_url=result.get('secure_url'),
-            document_nom=fitxer.filename,
-            notes=request.form.get('notes') or None,
-        )
-        db.session.add(doc)
+        docs = []
+        for fitxer in fitxers:
+            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/despeses')
+            doc = DespesaDocument(
+                despesa_id=despesa_id,
+                document_url=result.get('secure_url'),
+                document_nom=fitxer.filename,
+                notes=request.form.get('notes') or None,
+            )
+            db.session.add(doc)
+            docs.append(doc)
         db.session.commit()
-        return jsonify(doc.to_dict()), 201
+        return jsonify([doc.to_dict() for doc in docs]), 201
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/despeses/documents/<int:doc_id>', methods=['DELETE'])
