@@ -30,6 +30,15 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
 db = SQLAlchemy(app)
 
+APP_PASSWORDS = {
+    os.environ.get('APP_PASSWORD', '2026gestio'),
+    os.environ.get('APP_LEGACY_PASSWORD', 'Css75917591'),
+}
+
+
+def valid_app_password(value):
+    return value in APP_PASSWORDS
+
 
 def _ics_text(value):
     value = '' if value is None else str(value)
@@ -485,7 +494,7 @@ with app.app_context():
 
 @app.route('/auth', methods=['POST'])
 def auth():
-    if request.json.get('pwd') == 'Css75917591':
+    if valid_app_password(request.json.get('pwd')):
         session['auth'] = True
         return jsonify({'ok': True})
     return jsonify({'ok': False}), 401
@@ -495,7 +504,7 @@ def auth():
 def login():
     error = None
     if request.method == 'POST':
-        if request.form.get('password') == '2026gestio':
+        if valid_app_password(request.form.get('password')):
             session['auth'] = True
             next_url = request.form.get('next') or request.args.get('next') or '/'
             if not next_url.startswith('/') or next_url.startswith('//'):
