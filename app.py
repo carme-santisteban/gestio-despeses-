@@ -33,6 +33,7 @@ db = SQLAlchemy(app)
 APP_PASSWORDS = {
     os.environ.get('APP_PASSWORD', '2026gestio'),
     os.environ.get('APP_LEGACY_PASSWORD', 'Css75917591'),
+    'gestio2026',
 }
 
 
