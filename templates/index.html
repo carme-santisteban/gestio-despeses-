@@ -268,7 +268,7 @@
     <button class="nav-tab" id="tabRenda" onclick="canviarTab('renda')">📁 Renda</button>
     <button class="nav-tab" id="tabDocumentsPersonals" onclick="canviarTab('documentsPersonals')">📂 Documents personals</button>
     <button class="nav-tab" id="tabCredencials" onclick="canviarTab('credencials')">🔑 Credencials</button>
-    <button class="nav-tab" id="tabAssegurances" onclick="canviarTab('assegurances')">&#x1F6E1;&#xFE0F; Assegurances</button>
+    <button class="nav-tab" id="tabAssegurances" onclick="canviarTab('assegurances')">&#x23F0; Venciments</button>
   </div>
 
   <!-- ══════════════════════════════════════════════════════════ DESPESES -->
@@ -462,33 +462,39 @@
   </div>
 
 
-  <!-- ASSEGURANCES -->
+  <!-- VENCIMENTS -->
   <div id="seccioAssegurances" style="display:none">
     <div class="page-header">
-      <div><div class="page-title">Assegurances <span style="color:var(--gold)">&#xB7; Vigents i venciments</span></div></div>
+      <div><div class="page-title">Venciments <span style="color:var(--gold)">&#xB7; Subscripcions, assegurances i renovacions</span></div></div>
       <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
         <button class="btn" onclick="subscriureCalendariAssegurances()">&#x1F4C5; iPhone</button>
         <a class="btn" href="{{ assegurances_calendar_path }}">&#x1F504; Calendari</a>
-        <button class="btn btn-primary" onclick="obrirModalAsseguranca()">+ Nova asseguran&#xE7;a</button>
+        <button class="btn btn-primary" onclick="obrirModalAsseguranca()">+ Nou venciment</button>
       </div>
     </div>
     <div class="taula-wrapper">
       <div class="taula-cap">
-        <h2>Llistat d'assegurances</h2>
-        <label style="font-size:.8rem;color:var(--gray-3)">
-          <input type="checkbox" id="filtreSolsActives" checked onchange="renderAssegurances()"> Nom&#xE9;s actives
-        </label>
+        <h2>Llistat de venciments</h2>
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+          <label style="position:relative;display:block">
+            <span style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--gray-3)">&#x1F50D;</span>
+            <input type="search" id="cercaAssegurances" class="form-control" placeholder="Buscar..." oninput="renderAssegurances()" style="width:260px;padding-left:2rem">
+          </label>
+          <label style="font-size:.8rem;color:var(--gray-3)">
+            <input type="checkbox" id="filtreSolsActives" checked onchange="renderAssegurances()"> Nom&#xE9;s actives
+          </label>
+        </div>
       </div>
       <div id="resumAssegurances" style="display:none;margin:0 1.25rem 1rem 1.25rem;padding:.85rem 1rem;border:1px solid #eadfbf;border-radius:8px;background:#fffaf0;color:var(--navy);font-size:.9rem"></div>
       <div style="overflow-x:auto">
         <table>
           <thead><tr>
-            <th>Nom</th><th>Tipus</th><th>Companyia</th><th>P&#xF2;lissa</th>
-            <th>Vehicle/Adre&#xE7;a</th><th>Venciment</th><th>ITV</th><th>Prima</th><th>Doc.</th>
+            <th>Nom</th><th>Tipus</th><th>Proveïdor</th><th>Ref.</th>
+            <th>Detall</th><th>Proper avís</th><th>ITV</th><th>Import</th><th>Doc.</th>
             <th style="text-align:center">Accions</th>
           </tr></thead>
           <tbody id="taulaAssegurancesCos">
-            <tr><td colspan="9" class="buit"><div class="buit-icon">&#x1F6E1;</div><div class="buit-text">Carregant...</div></td></tr>
+            <tr><td colspan="10" class="buit"><div class="buit-icon">&#x23F0;</div><div class="buit-text">Carregant...</div></td></tr>
           </tbody>
         </table>
       </div>
@@ -680,7 +686,7 @@
             <div class="upload-text">PDF, JPG, PNG · pots seleccionar-ne més d'un</div>
             <div class="upload-nom" id="nomDocument"></div>
           </div>
-          <input type="file" id="fDocument" accept=".pdf,.jpg,.jpeg,.png" multiple onchange="mostrarNomFitxer()">
+          <input type="file" id="fDocument" accept=".pdf,.jpg,.jpeg,.png" multiple onchange="afegirDocumentsDespesaInput()">
           <div id="docActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
         </div>
         <!-- Multi-documents despesa -->
@@ -1058,6 +1064,7 @@ let documentsPersonals = [];
 let despesaEdId = null;
 let facturaEdId = null;
 let documentPersonalEdId = null;
+let despesaDocsSeleccionats = new DataTransfer();
 window._documentsPersonalsPinOk = false;
 let prefillLexDespesaActiu = false;
 const MESOS = ['','Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
@@ -1135,7 +1142,7 @@ function canviarTab(tab) {
     }
     carregarDocumentsPersonals();
   } else if (tab === 'assegurances') {
-    document.getElementById('btnNou').textContent = '+ Nova asseguranca';
+    document.getElementById('btnNou').textContent = '+ Nou venciment';
     document.getElementById('btnNou').onclick = function(){ obrirModalAsseguranca(); };
     document.getElementById('btnExportCSV').style.display = 'none';
     carregarAssegurances();
@@ -1283,8 +1290,7 @@ function obrirModal(d = null) {
   if (document.getElementById('fIncloureRenda')) document.getElementById('fIncloureRenda').checked = d ? !!d.incloure_renda : false;
   if (document.getElementById('fRendaExercici')) document.getElementById('fRendaExercici').value = d ? (d.renda_exercici || '') : (new Date().getFullYear() - 1);
   if (document.getElementById('fExcloureRenda')) document.getElementById('fExcloureRenda').checked = d ? !!d.excloure_renda : false;
-  document.getElementById('nomDocument').textContent = '';
-  document.getElementById('fDocument').value    = '';
+  netejarDocumentsDespesaSeleccionats();
   if (d && d.document_url) {
     document.getElementById('docActual').innerHTML = `Document actual: <a href="${d.document_url}" target="_blank" style="color:var(--blue)">${esc(d.document_nom||'veure')}</a>`;
   } else {
@@ -1333,10 +1339,7 @@ async function carregarAdjuntLexGestioDespesa(params) {
     if (!response.ok) throw new Error('HTTP ' + response.status);
     const blob = await response.blob();
     const file = new File([blob], name, { type: blob.type || 'application/pdf' });
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    input.files = dt.files;
-    document.getElementById('nomDocument').textContent = '✓ ' + name;
+    afegirDocumentsDespesa([file]);
   } catch (err) {
     document.getElementById('nomDocument').textContent = 'No he pogut carregar automàticament l’adjunt de LexGestió';
   }
@@ -1438,15 +1441,69 @@ function normalitzarText(s) {
 }
 
 function mostrarNomFitxer() {
-  const files = Array.from(document.getElementById('fDocument').files || []);
+  const files = Array.from(despesaDocsSeleccionats.files || []);
   const nomEl = document.getElementById('nomDocument');
   if (!files.length) {
-    nomEl.textContent = '';
+    nomEl.innerHTML = '';
   } else if (files.length === 1) {
-    nomEl.textContent = '✓ ' + files[0].name;
+    nomEl.innerHTML = renderDocumentDespesaSeleccionat(files[0], 0);
   } else {
-    nomEl.textContent = '✓ ' + files.length + ' documents seleccionats: ' + files.slice(0, 3).map(f => f.name).join(', ') + (files.length > 3 ? '...' : '');
+    nomEl.innerHTML =
+      '<div style="font-weight:700;color:var(--green);margin-bottom:.25rem">✓ ' + files.length + ' documents seleccionats</div>' +
+      files.map(renderDocumentDespesaSeleccionat).join('');
   }
+}
+
+function renderDocumentDespesaSeleccionat(fitxer, index) {
+  const mida = fitxer.size ? ' · ' + Math.round(fitxer.size / 1024) + ' KB' : '';
+  return '<div style="display:flex;align-items:center;justify-content:center;gap:.45rem;flex-wrap:wrap;color:var(--green);font-weight:700;margin-top:.15rem">' +
+    '<span>✓ ' + esc(fitxer.name) + mida + '</span>' +
+    '<button type="button" onclick="treureDocumentDespesaSeleccionat(' + index + ');event.stopPropagation();" title="Treure aquest document" style="border:0;background:transparent;color:var(--red);font-size:1rem;cursor:pointer;line-height:1">×</button>' +
+  '</div>';
+}
+
+function clauDocumentDespesa(fitxer) {
+  return [fitxer.name, fitxer.size, fitxer.lastModified].join('|');
+}
+
+function sincronitzarInputDocumentsDespesa() {
+  const input = document.getElementById('fDocument');
+  if (input) input.files = despesaDocsSeleccionats.files;
+}
+
+function afegirDocumentsDespesaInput() {
+  const input = document.getElementById('fDocument');
+  if (!input) return;
+  afegirDocumentsDespesa(input.files);
+}
+
+function afegirDocumentsDespesa(fitxers) {
+  const existents = new Set(Array.from(despesaDocsSeleccionats.files || []).map(clauDocumentDespesa));
+  Array.from(fitxers || []).forEach(fitxer => {
+    const clau = clauDocumentDespesa(fitxer);
+    if (!existents.has(clau)) {
+      despesaDocsSeleccionats.items.add(fitxer);
+      existents.add(clau);
+    }
+  });
+  sincronitzarInputDocumentsDespesa();
+  mostrarNomFitxer();
+}
+
+function treureDocumentDespesaSeleccionat(index) {
+  const nou = new DataTransfer();
+  Array.from(despesaDocsSeleccionats.files || []).forEach((fitxer, i) => {
+    if (i !== index) nou.items.add(fitxer);
+  });
+  despesaDocsSeleccionats = nou;
+  sincronitzarInputDocumentsDespesa();
+  mostrarNomFitxer();
+}
+
+function netejarDocumentsDespesaSeleccionats() {
+  despesaDocsSeleccionats = new DataTransfer();
+  sincronitzarInputDocumentsDespesa();
+  mostrarNomFitxer();
 }
 
 function activarDropDocumentsDespesa() {
@@ -1465,8 +1522,7 @@ function activarDropDocumentsDespesa() {
   }));
   zona.addEventListener('drop', e => {
     if (!e.dataTransfer || !e.dataTransfer.files.length) return;
-    input.files = e.dataTransfer.files;
-    mostrarNomFitxer();
+    afegirDocumentsDespesa(e.dataTransfer.files);
   });
 }
 
@@ -1492,7 +1548,7 @@ async function guardarDespesa(event) {
     fd.append('incloure_renda', '1');
     fd.append('renda_exercici', document.getElementById('fRendaExercici').value || new Date(data).getFullYear());
   }
-  const fitxers = Array.from(document.getElementById('fDocument').files || []);
+  const fitxers = Array.from(despesaDocsSeleccionats.files || []);
   fitxers.forEach(fitxer => fd.append('documents', fitxer));
   try {
     const url    = despesaEdId ? `/api/despeses/${despesaEdId}` : '/api/despeses';
@@ -3628,11 +3684,11 @@ async function editarTargeta(id) {
 </div>
 
 
-<!-- Modal Asseguranca -->
+<!-- Modal Venciment -->
 <div class="modal-overlay" id="modalAssegurancaOverlay" onclick="if(event.target===this)tancarModalAsseguranca()">
   <div class="modal" style="max-width:600px" onclick="event.stopPropagation()">
     <div class="modal-cap">
-      <h3 id="modalAssegurancaTitol">Nova assegurança</h3>
+      <h3 id="modalAssegurancaTitol">Nou venciment</h3>
       <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalAsseguranca()">×</button>
     </div>
     <div class="modal-cos">
@@ -3642,16 +3698,22 @@ async function editarTargeta(id) {
           <label class="form-label">Tipus <span>*</span></label>
           <select class="form-control" id="afTipus" onchange="ajustarCampsAsseguranca()">
             <option value="">-- Selecciona tipus --</option>
+            <option value="IA">&#x1F9E0; IA / intel·ligència artificial</option>
+            <option value="Programa">&#x1F4BB; Programa / app</option>
+            <option value="Servei">&#x1F4CC; Subscripció / servei</option>
+            <option value="Tecnologia">&#x1F4F1; Tecnologia</option>
+            <option value="Domini">&#x1F310; Domini / web</option>
+            <option value="Certificat">&#x1F511; Certificat digital</option>
+            <option value="Garantia">&#x1F6E0; Garantia</option>
             <option value="Cotxe">&#x1F697; Cotxe</option>
-            <option value="Moto">&#x1F3CD; Moto</option>
             <option value="Llar">&#x1F3E0; Llar</option>
             <option value="Salut">&#x2764; Salut</option>
-            <option value="Vida">&#x1F9E1; Vida</option>
             <option value="RC">&#x2696; Responsabilitat Civil</option>
-            <option value="Embarcacio">&#x26F5; Embarcació</option>
             <option value="Altres">&#x1F4CB; Altres</option>
           </select>
         </div>
+
+        <div class="form-grup full" id="afAjudaTipus" style="display:none;background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid var(--gold);border-radius:8px;padding:.75rem .9rem;color:var(--navy);font-size:.86rem;line-height:1.35"></div>
 
         <div class="form-grup" id="campMatricula" style="display:none">
           <label class="form-label">Matrícula</label>
@@ -3664,63 +3726,67 @@ async function editarTargeta(id) {
         </div>
 
         <div class="form-grup full" id="campAdreca" style="display:none">
-          <label class="form-label">Domicili assegurat</label>
+          <label class="form-label">Adreça / objecte</label>
           <input type="text" class="form-control" id="afAdreca" placeholder="Adreça completa del pis">
         </div>
 
         <div class="form-grup full" id="campSubtipus" style="display:none">
-          <label class="form-label">Descripció de la pòlissa</label>
-          <input type="text" class="form-control" id="afSubtipus" placeholder="Ex: Salut, Vida, RC professional...">
+          <label class="form-label">Detall opcional</label>
+          <input type="text" class="form-control" id="afSubtipus" placeholder="Ex: ChatGPT Plus, certificat FNMT, domini web...">
         </div>
 
         <div class="form-grup full">
-          <label class="form-label">Nom / Descripció <span>*</span></label>
-          <input type="text" class="form-control" id="afNom" placeholder="Ex: Assegurança cotxe Mapfre">
+          <label class="form-label">Nom del que vols controlar <span>*</span></label>
+          <input type="text" class="form-control" id="afNom" placeholder="Ex: Codex mensual, ChatGPT Plus, assegurança cotxe...">
         </div>
 
         <div class="form-grup">
-          <label class="form-label">Companyia</label>
-          <input type="text" class="form-control" id="afCompanyia" placeholder="Ex: Mapfre, Axa, Mutua...">
+          <label class="form-label">Companyia / proveïdor</label>
+          <input type="text" class="form-control" id="afCompanyia" placeholder="Ex: OpenAI, Mapfre, Axa, Google...">
         </div>
 
         <div class="form-grup">
-          <label class="form-label">Núm. pòlissa</label>
-          <input type="text" class="form-control" id="afPolissa" placeholder="Número de pòlissa">
+          <label class="form-label">Referència / pòlissa / factura</label>
+          <input type="text" class="form-control" id="afPolissa" placeholder="Número, factura, llicència o referència">
         </div>
 
         <div class="form-grup">
-          <label class="form-label">Titular</label>
-          <input type="text" class="form-control" id="afTitular" placeholder="Nom del titular">
+          <label class="form-label">Titular / compte</label>
+          <input type="text" class="form-control" id="afTitular" placeholder="Nom, email o compte">
         </div>
 
         <div class="form-grup">
-          <label class="form-label">Import prima (€)</label>
+          <label class="form-label">Import del pagament (€)</label>
           <input type="number" class="form-control" id="afImport" step="0.01" min="0" placeholder="0,00">
         </div>
 
         <div class="form-grup">
-          <label class="form-label">Data inici</label>
+          <label class="form-label">Data alta / inici</label>
           <input type="date" class="form-control" id="afDataInici">
         </div>
 
         <div class="form-grup">
-          <label class="form-label">Data venciment <span>*</span></label>
+          <label class="form-label">Propera renovació / venciment <span>*</span></label>
           <input type="date" class="form-control" id="afDataVenciment">
         </div>
 
         <div class="form-grup">
-          <label class="form-label">Periodicitat</label>
+          <label class="form-label">Cada quan es paga o renova</label>
           <select class="form-control" id="afPeriodicitat">
             <option value="">-</option>
             <option value="Mensual">Mensual</option>
+            <option value="Bimestral">Bimestral</option>
             <option value="Trimestral">Trimestral</option>
+            <option value="Semestral">Semestral</option>
             <option value="Anual">Anual</option>
+            <option value="Cada 2 anys">Cada 2 anys</option>
+            <option value="Únic">Pagament únic</option>
           </select>
         </div>
 
         <div class="form-grup" style="display:flex;align-items:center;gap:10px;padding-top:22px">
           <label style="display:flex;align-items:center;gap:6px;font-size:.9rem;cursor:pointer">
-            <input type="checkbox" id="afActiva" checked> Assegurança activa
+            <input type="checkbox" id="afActiva" checked> Seguiment actiu
           </label>
         </div>
 
@@ -3730,9 +3796,9 @@ async function editarTargeta(id) {
         </div>
 
         <div class="form-grup full">
-          <label class="form-label">Document (pòlissa PDF)</label>
+          <label class="form-label">Document</label>
           <div class="upload-zona" onclick="document.getElementById('afDocument').click()">
-            <div>&#x1F4CE; Fes clic per adjuntar la pòlissa</div>
+            <div>&#x1F4CE; Fes clic per adjuntar el document</div>
             <div class="upload-text">PDF fins a 10 MB</div>
             <div class="upload-nom" id="afNomDocument"></div>
           </div>
@@ -3771,8 +3837,8 @@ function diesFins(dataIso) {
 
 function properAvisAsseguranca(a) {
   const opcions = [];
-  if (a.data_venciment) opcions.push({ tipus:'Assegurança', data:a.data_venciment, dies:diesFins(a.data_venciment) });
-  if ((a.tipus === 'Cotxe' || a.tipus === 'Moto') && a.data_itv) opcions.push({ tipus:'ITV', data:a.data_itv, dies:diesFins(a.data_itv) });
+  if (a.data_venciment) opcions.push({ tipus:'Venciment', data:a.data_venciment, dies:diesFins(a.data_venciment) });
+  if (a.tipus === 'Cotxe' && a.data_itv) opcions.push({ tipus:'ITV', data:a.data_itv, dies:diesFins(a.data_itv) });
   opcions.sort(function(x, y) {
     const ax = x.dies === null ? 999999 : x.dies;
     const ay = y.dies === null ? 999999 : y.dies;
@@ -3808,7 +3874,7 @@ async function carregarAssegurances() {
     const r = await fetch('/api/assegurances');
     assegurances = await r.json();
     renderAssegurances();
-  } catch(e) { toast('Error carregant assegurances', 'error'); }
+  } catch(e) { toast('Error carregant venciments', 'error'); }
 }
 
 async function carregarAlertesAssegurances() {
@@ -3819,10 +3885,10 @@ async function carregarAlertesAssegurances() {
     const text   = document.getElementById('bannerAssegurancesText');
     if (alertes.length > 0) {
       const noms = alertes.map(function(a) {
-        const dies = Math.ceil((new Date(a.data_venciment) - new Date()) / 86400000);
-        return a.nom + (dies <= 0 ? ' (VENCUDA)' : ' (' + dies + ' dies)');
+        const avis = properAvisAsseguranca(a) || { dies: null, tipus: 'Venciment' };
+        return a.nom + ' - ' + avis.tipus + (avis.dies <= 0 ? ' (VENÇUT)' : ' (' + avis.dies + ' dies)');
       }).join(' | ');
-      text.textContent = alertes.length + ' asseguranca(es) amb venciment proper: ' + noms;
+      text.textContent = alertes.length + ' venciment(s) proper(s): ' + noms;
       banner.style.display = 'block';
     } else {
       banner.style.display = 'none';
@@ -3832,14 +3898,126 @@ async function carregarAlertesAssegurances() {
 
 const TIPUS_BADGE = {
   'Vehicle': 'background:#e8f0fb;color:#1a4a7a',
+  'Cotxe':   'background:#e8f0fb;color:#1a4a7a',
   'Llar':    'background:#fff3e0;color:#e65100',
+  'Salut':   'background:#fee2e2;color:#991b1b',
+  'RC':      'background:#f3e8ff;color:#6b21a8',
+  'IA':      'background:#e8f5ff;color:#075985',
+  'Tecnologia':'background:#ecfeff;color:#155e75',
+  'Programa':'background:#eef2ff;color:#3730a3',
+  'Certificat':'background:#fef3c7;color:#92400e',
+  'Domini':  'background:#dcfce7;color:#166534',
+  'Garantia':'background:#fce7f3;color:#9d174d',
+  'Servei':  'background:#f1f5f9;color:#334155',
   'Altres':  'background:#f0f0f0;color:#555',
 };
+
+const TIPUS_CONFIG = {
+  'IA': {
+    ajuda: 'Per Codex, ChatGPT, Claude, Perplexity o altres IA. Normalment posa periodicitat Mensual o Anual i la propera data en què et cobraran.',
+    nom: 'Ex: Codex Pro, ChatGPT Plus, Claude Pro',
+    proveidor: 'Ex: OpenAI, Anthropic, Perplexity',
+    ref: 'Factura, pla o email del compte',
+    periodicitat: 'Mensual'
+  },
+  'Programa': {
+    ajuda: 'Per programes i apps de pagament: Microsoft, Adobe, Signador, antivirus, eines del despatx, etc.',
+    nom: 'Ex: Microsoft 365, Adobe Acrobat, Signador',
+    proveidor: 'Ex: Microsoft, Adobe, Logalty',
+    ref: 'Llicència, factura o usuari',
+    periodicitat: 'Anual'
+  },
+  'Servei': {
+    ajuda: 'Per qualsevol subscripció o servei que no encaixi en IA ni programa. Si és mensual, posa Mensual.',
+    nom: 'Ex: Dropbox, gestor web, servei online',
+    proveidor: 'Empresa que cobra el servei',
+    ref: 'Factura, pla o compte',
+    periodicitat: 'Mensual'
+  },
+  'Tecnologia': {
+    ajuda: 'Per mòbils, ordinadors, garanties, manteniments o serveis tecnològics que hagis de revisar.',
+    nom: 'Ex: AppleCare MacBook, garantia iPhone',
+    proveidor: 'Ex: Apple, Amazon, MediaMarkt',
+    ref: 'Número de sèrie, comanda o factura',
+    periodicitat: 'Anual'
+  },
+  'Domini': {
+    ajuda: 'Per dominis i webs: posa la data de renovació del domini, hosting o certificat web.',
+    nom: 'Ex: domini gestiocss.com',
+    proveidor: 'Ex: Raiola, GoDaddy, Google Domains',
+    ref: 'Domini o número de client',
+    periodicitat: 'Anual'
+  },
+  'Certificat': {
+    ajuda: 'Per certificats digitals i signatures: FNMT, certificat professional, firma digital, etc.',
+    nom: 'Ex: Certificat FNMT Carme',
+    proveidor: 'Ex: FNMT, Camerfirma, ICAB',
+    ref: 'Número o titular del certificat',
+    periodicitat: 'Cada 2 anys'
+  },
+  'Garantia': {
+    ajuda: 'Per garanties de productes. La data és quan acaba la garantia.',
+    nom: 'Ex: garantia batedora Kotlie',
+    proveidor: 'Ex: Amazon, fabricant, botiga',
+    ref: 'Factura, comanda o número de sèrie',
+    periodicitat: 'Únic'
+  },
+  'Cotxe': {
+    ajuda: 'Per assegurança del cotxe i ITV. Si tens ITV, apareix un camp propi per posar-la.',
+    nom: 'Ex: assegurança Smart',
+    proveidor: 'Ex: Qualitas, Penelope Seguros',
+    ref: 'Número de pòlissa',
+    periodicitat: 'Anual'
+  },
+  'Llar': {
+    ajuda: 'Per assegurances de pis o casa. Pots posar l’adreça perquè després sigui fàcil identificar-la.',
+    nom: 'Ex: assegurança pis Calderón',
+    proveidor: 'Ex: Santa Lucía, Línea Directa',
+    ref: 'Número de pòlissa',
+    periodicitat: 'Anual'
+  },
+  'Salut': {
+    ajuda: 'Per assegurança mèdica o quotes de salut.',
+    nom: 'Ex: assegurança salut',
+    proveidor: 'Ex: Sanitas, Adeslas, DKV',
+    ref: 'Número de pòlissa',
+    periodicitat: 'Mensual'
+  },
+  'RC': {
+    ajuda: 'Per responsabilitat civil professional o altres assegurances professionals.',
+    nom: 'Ex: RC professional advocada',
+    proveidor: 'Ex: Occidente, Zurich',
+    ref: 'Número de pòlissa',
+    periodicitat: 'Anual'
+  },
+  'Altres': {
+    ajuda: 'Per qualsevol altra cosa que caduqui o que vulguis recordar. Només cal nom, data i periodicitat si la saps.',
+    nom: 'Ex: renovació o pagament pendent',
+    proveidor: 'Empresa o persona',
+    ref: 'Referència opcional',
+    periodicitat: ''
+  }
+};
+
+function textCercaAsseguranca(a) {
+  return [
+    a.nom, a.tipus, a.companyia, a.numero_polissa, a.titular,
+    a.matricula, a.adreca, a.periodicitat, a.document_nom, a.notes
+  ].join(' ').toLowerCase();
+}
 
 function renderAssegurances() {
   const cos = document.getElementById('taulaAssegurancesCos');
   const solsActives = document.getElementById('filtreSolsActives').checked;
+  const cerca = (document.getElementById('cercaAssegurances')?.value || '').trim().toLowerCase();
   let llista = solsActives ? assegurances.filter(function(a){ return a.activa; }) : assegurances;
+  if (cerca) {
+    llista = llista.filter(function(a) {
+      return cerca.split(/\s+/).every(function(part) {
+        return textCercaAsseguranca(a).includes(part);
+      });
+    });
+  }
   llista = llista.slice().sort(function(a, b) {
     const avisa = properAvisAsseguranca(a);
     const avisb = properAvisAsseguranca(b);
@@ -3849,7 +4027,7 @@ function renderAssegurances() {
   });
   renderResumAssegurances(llista);
   if (!llista.length) {
-    cos.innerHTML = '<tr><td colspan="10" class="buit"><div class="buit-icon">&#x1F6E1;</div><div class="buit-text">Cap asseguran&#xE7;a registrada</div></td></tr>';
+    cos.innerHTML = '<tr><td colspan="10" class="buit"><div class="buit-icon">&#x23F0;</div><div class="buit-text">' + (cerca ? 'Cap resultat per aquesta cerca' : 'Cap venciment registrat') + '</div></td></tr>';
     return;
   }
   const avui = new Date();
@@ -3875,7 +4053,7 @@ function renderAssegurances() {
       '<td>' + contextual + '</td>' +
       '<td>' + vencHtml + '</td>' +
       '<td>' + (function(){
-        if (a.tipus !== 'Cotxe' && a.tipus !== 'Moto') return '<span style="color:#ddd">—</span>';
+        if (a.tipus !== 'Cotxe') return '<span style="color:#ddd">—</span>';
         if (!a.data_itv) return '<span style="color:#aaa;font-size:.8rem">— <small>(sense data)</small></span>';
         const dItv = new Date(a.data_itv);
         const diesItv = Math.ceil((dItv - avui) / 86400000);
@@ -3896,16 +4074,32 @@ function renderAssegurances() {
 
 function ajustarCampsAsseguranca() {
   const tipus = document.getElementById('afTipus').value;
-  document.getElementById('campMatricula').style.display = (tipus === 'Cotxe' || tipus === 'Moto') ? '' : 'none';
-  document.getElementById('campITV').style.display       = (tipus === 'Cotxe' || tipus === 'Moto') ? '' : 'none';
+  const cfg = TIPUS_CONFIG[tipus] || TIPUS_CONFIG['Altres'];
+  const ajuda = document.getElementById('afAjudaTipus');
+  const periodicitat = document.getElementById('afPeriodicitat');
+  document.getElementById('afNom').placeholder = cfg.nom;
+  document.getElementById('afCompanyia').placeholder = cfg.proveidor;
+  document.getElementById('afPolissa').placeholder = cfg.ref;
+  if (tipus && cfg.ajuda) {
+    ajuda.textContent = cfg.ajuda;
+    ajuda.style.display = '';
+  } else {
+    ajuda.textContent = '';
+    ajuda.style.display = 'none';
+  }
+  if (!assegurancaEdId && !periodicitat.value && cfg.periodicitat) {
+    periodicitat.value = cfg.periodicitat;
+  }
+  document.getElementById('campMatricula').style.display = tipus === 'Cotxe' ? '' : 'none';
+  document.getElementById('campITV').style.display       = tipus === 'Cotxe' ? '' : 'none';
   document.getElementById('campAdreca').style.display    = tipus === 'Llar' ? '' : 'none';
-  document.getElementById('campSubtipus').style.display  = (tipus === 'Altres' || tipus === 'Embarcacio') ? '' : 'none';
+  document.getElementById('campSubtipus').style.display  = tipus === 'Altres' ? '' : 'none';
 }
 
 function obrirModalAsseguranca(a) {
   a = a || null;
   assegurancaEdId = a ? a.id : null;
-  document.getElementById('modalAssegurancaTitol').textContent = a ? 'Editar assegurança' : 'Nova assegurança';
+  document.getElementById('modalAssegurancaTitol').textContent = a ? 'Editar venciment' : 'Nou venciment';
   document.getElementById('afNom').value           = a ? a.nom : '';
   document.getElementById('afCompanyia').value     = a ? a.companyia : '';
   document.getElementById('afPolissa').value       = a ? a.numero_polissa : '';
@@ -3937,7 +4131,7 @@ function tancarModalAsseguranca() {
 async function guardarAsseguranca() {
   const nom  = document.getElementById('afNom').value.trim();
   const venc = document.getElementById('afDataVenciment').value;
-  if (!nom || !venc) { toast('Nom i data de venciment son obligatoris', 'error'); return; }
+  if (!nom || !venc) { toast('Nom i propera renovació son obligatoris', 'error'); return; }
   const btn = document.getElementById('btnGuardarAsseguranca');
   btn.disabled = true; btn.textContent = 'Guardant...';
   const fd = new FormData();
@@ -3957,7 +4151,6 @@ async function guardarAsseguranca() {
   const imp = document.getElementById('afImport').value;
   if (imp) fd.append('import_prima', imp);
   fd.append('activa', document.getElementById('afActiva').checked ? 'true' : 'false');
-  fd.append('notes', document.getElementById('afNotes').value);
   const fitxer = document.getElementById('afDocument').files[0];
   if (fitxer) fd.append('document', fitxer);
   try {

@@ -2108,9 +2108,11 @@ def get_alertes_assegurances():
     limit = avui + timedelta(days=30)
     alertes = Asseguranca.query.filter(
         Asseguranca.activa == True,
-        Asseguranca.data_venciment != None,
-        Asseguranca.data_venciment <= limit
-    ).order_by(Asseguranca.data_venciment).all()
+        db.or_(
+            db.and_(Asseguranca.data_venciment != None, Asseguranca.data_venciment <= limit),
+            db.and_(Asseguranca.data_itv != None, Asseguranca.data_itv <= limit),
+        )
+    ).order_by(Asseguranca.data_venciment, Asseguranca.data_itv).all()
     return jsonify([a.to_dict() for a in alertes])
 
 @app.route('/api/assegurances/calendar.ics', methods=['GET'])
@@ -2125,11 +2127,11 @@ def assegurances_calendar():
     lines = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//GestioDespeses//Assegurances//CA',
+        'PRODID:-//GestioDespeses//Venciments//CA',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
-        'X-WR-CALNAME:GSS assegurances',
-        'X-WR-CALDESC:Venciments de polisses i ITV de Gestio GSS',
+        'X-WR-CALNAME:GSS venciments',
+        'X-WR-CALDESC:Venciments, renovacions, subscripcions, assegurances i ITV de Gestio GSS',
         'X-WR-TIMEZONE:Europe/Madrid',
     ]
 
@@ -2143,9 +2145,9 @@ def assegurances_calendar():
             f'Tipus: {a.tipus or "Altres"}',
             f'Companyia: {a.companyia}' if a.companyia else '',
             f'Titular: {a.titular}' if a.titular else '',
-            f'Polissa: {a.numero_polissa}' if a.numero_polissa else '',
+            f'Referencia: {a.numero_polissa}' if a.numero_polissa else '',
             f'Vehicle/adreca: {vehicle_adreca}' if vehicle_adreca else '',
-            f'Prima: {a.import_prima} EUR' if a.import_prima else '',
+            f'Import: {a.import_prima} EUR' if a.import_prima else '',
             a.notes or '',
         ]))
         titol = f'{titol_prefix}: {a.nom}'
@@ -2174,7 +2176,7 @@ def assegurances_calendar():
         ])
 
     for asseguranca in assegurances:
-        afegir_event(asseguranca, 'venciment', asseguranca.data_venciment, 'Venciment asseguranca')
+        afegir_event(asseguranca, 'venciment', asseguranca.data_venciment, 'Venciment')
         afegir_event(asseguranca, 'itv', asseguranca.data_itv, 'ITV')
 
     lines.append('END:VCALENDAR')
