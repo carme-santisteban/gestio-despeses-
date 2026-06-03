@@ -362,25 +362,6 @@ class FacturaDocument(db.Model):
         }
 
 
-class AssegurancaDocument(db.Model):
-    __tablename__ = 'asseguranca_documents'
-    id              = db.Column(db.Integer, primary_key=True)
-    asseguranca_id  = db.Column(db.Integer, db.ForeignKey('assegurances.id'), nullable=False)
-    document_url    = db.Column(db.String(500), nullable=False)
-    document_nom    = db.Column(db.String(200))
-    notes           = db.Column(db.Text)
-    creat_el        = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'asseguranca_id': self.asseguranca_id,
-            'document_url': self.document_url,
-            'document_nom': self.document_nom or '',
-            'notes': self.notes or '',
-        }
-
-
 class DocumentPersonal(db.Model):
     __tablename__ = 'documents_personals'
 
@@ -2117,6 +2098,25 @@ class Asseguranca(db.Model):
             'documents':       documents,
             'data_itv':       self.data_itv.isoformat() if self.data_itv else '',
             'notes':          self.notes or '',
+        }
+
+
+class AssegurancaDocument(db.Model):
+    __tablename__ = 'asseguranca_documents'
+    id              = db.Column(db.Integer, primary_key=True)
+    asseguranca_id  = db.Column(db.Integer, db.ForeignKey('assegurances.id'), nullable=False)
+    document_url    = db.Column(db.String(500), nullable=False)
+    document_nom    = db.Column(db.String(200))
+    notes           = db.Column(db.Text)
+    creat_el        = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'asseguranca_id': self.asseguranca_id,
+            'document_url': self.document_url,
+            'document_nom': self.document_nom or '',
+            'notes': self.notes or '',
         }
 
 
