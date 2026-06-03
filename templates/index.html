@@ -119,6 +119,28 @@
     .doc-link { display: inline-flex; align-items: center; gap: 4px; font-size: .8rem; color: var(--blue); text-decoration: none; }
     .doc-link:hover { color: var(--gold); }
     .accions { display: flex; gap: 6px; justify-content: center; }
+    .venciments-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .taula-venciments { min-width: 1180px; table-layout: fixed; }
+    .taula-venciments th:nth-child(1), .taula-venciments td:nth-child(1) { width: 150px; }
+    .taula-venciments th:nth-child(2), .taula-venciments td:nth-child(2) { width: 90px; }
+    .taula-venciments th:nth-child(3), .taula-venciments td:nth-child(3) { width: 115px; }
+    .taula-venciments th:nth-child(4), .taula-venciments td:nth-child(4) { width: 100px; }
+    .taula-venciments th:nth-child(5), .taula-venciments td:nth-child(5) { width: 120px; }
+    .taula-venciments th:nth-child(6), .taula-venciments td:nth-child(6) { width: 100px; }
+    .taula-venciments th:nth-child(7), .taula-venciments td:nth-child(7) { width: 90px; }
+    .taula-venciments th:nth-child(8), .taula-venciments td:nth-child(8) { width: 95px; }
+    .taula-venciments th:nth-child(9), .taula-venciments td:nth-child(9) { width: 230px; }
+    .taula-venciments th:nth-child(10), .taula-venciments td:nth-child(10) {
+      width: 135px;
+      position: sticky;
+      right: 0;
+      z-index: 2;
+      background: var(--white);
+      box-shadow: -8px 0 12px rgba(15,31,61,.06);
+    }
+    .taula-venciments th:nth-child(10) { background: var(--navy); z-index: 3; }
+    .taula-venciments tbody tr:hover td:nth-child(10) { background: var(--cream); }
+    .taula-venciments .doc-link { display: inline; overflow-wrap: anywhere; word-break: break-word; line-height: 1.25; }
     .fil-torn { border-bottom: 1px solid var(--gray-1); }
     .fil-torn-cap { background: #fffbeb; color: var(--navy); font-weight: 700; }
     .fil-torn-cap td { padding-top: 14px; padding-bottom: 14px; }
@@ -486,8 +508,8 @@
         </div>
       </div>
       <div id="resumAssegurances" style="display:none;margin:0 1.25rem 1rem 1.25rem;padding:.85rem 1rem;border:1px solid #eadfbf;border-radius:8px;background:#fffaf0;color:var(--navy);font-size:.9rem"></div>
-      <div style="overflow-x:auto">
-        <table>
+      <div class="venciments-scroll">
+        <table class="taula-venciments">
           <thead><tr>
             <th>Nom</th><th>Tipus</th><th>Proveïdor</th><th>Ref.</th>
             <th>Detall</th><th>Proper avís</th><th>ITV</th><th>Import</th><th>Doc.</th>
