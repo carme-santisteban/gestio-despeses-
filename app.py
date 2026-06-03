@@ -362,6 +362,25 @@ class FacturaDocument(db.Model):
         }
 
 
+class AssegurancaDocument(db.Model):
+    __tablename__ = 'asseguranca_documents'
+    id              = db.Column(db.Integer, primary_key=True)
+    asseguranca_id  = db.Column(db.Integer, db.ForeignKey('assegurances.id'), nullable=False)
+    document_url    = db.Column(db.String(500), nullable=False)
+    document_nom    = db.Column(db.String(200))
+    notes           = db.Column(db.Text)
+    creat_el        = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'asseguranca_id': self.asseguranca_id,
+            'document_url': self.document_url,
+            'document_nom': self.document_nom or '',
+            'notes': self.notes or '',
+        }
+
+
 class DocumentPersonal(db.Model):
     __tablename__ = 'documents_personals'
 
@@ -2066,6 +2085,18 @@ class Asseguranca(db.Model):
     creat_el       = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
+        documents = []
+        if self.document_url:
+            documents.append({
+                'id': 'principal',
+                'document_url': self.document_url,
+                'document_nom': self.document_nom or 'Document',
+                'principal': True,
+            })
+        for doc in AssegurancaDocument.query.filter_by(asseguranca_id=self.id).order_by(AssegurancaDocument.creat_el.asc()).all():
+            doc_dict = doc.to_dict()
+            doc_dict['principal'] = False
+            documents.append(doc_dict)
         return {
             'id':             self.id,
             'nom':            self.nom,
@@ -2083,6 +2114,7 @@ class Asseguranca(db.Model):
             'activa':         self.activa if self.activa is not None else True,
             'document_url':   self.document_url or '',
             'document_nom':   self.document_nom or '',
+            'documents':       documents,
             'data_itv':       self.data_itv.isoformat() if self.data_itv else '',
             'notes':          self.notes or '',
         }
@@ -2197,14 +2229,14 @@ def get_assegurances():
 @app.route('/api/assegurances', methods=['POST'])
 def create_asseguranca():
     data = request.form
-    fitxer = request.files.get('document')
+    fitxers = uploaded_documents()
     document_url = None
     document_nom = None
-    if fitxer and fitxer.filename:
+    if fitxers:
         try:
-            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/assegurances')
+            result = pujar_arxiu_cloudinary(fitxers[0], 'gestiodespeses/assegurances')
             document_url = result.get('secure_url')
-            document_nom = fitxer.filename
+            document_nom = fitxers[0].filename
         except Exception as e:
             pass
     try:
@@ -2230,6 +2262,18 @@ def create_asseguranca():
             document_nom   = document_nom,
         )
         db.session.add(a)
+        db.session.flush()
+        for fitxer_extra in fitxers[1:]:
+            try:
+                result_extra = pujar_arxiu_cloudinary(fitxer_extra, 'gestiodespeses/assegurances')
+                if result_extra.get('secure_url'):
+                    db.session.add(AssegurancaDocument(
+                        asseguranca_id=a.id,
+                        document_url=result_extra.get('secure_url'),
+                        document_nom=fitxer_extra.filename,
+                    ))
+            except Exception:
+                pass
         db.session.commit()
         return jsonify(a.to_dict()), 201
     except Exception as e:
@@ -2240,13 +2284,24 @@ def create_asseguranca():
 def update_asseguranca(id):
     a = Asseguranca.query.get_or_404(id)
     data = request.form
-    fitxer = request.files.get('document')
-    if fitxer and fitxer.filename:
+    fitxers = uploaded_documents()
+    if fitxers:
         try:
-            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/assegurances')
-            a.document_url = result.get('secure_url')
-            a.document_nom = fitxer.filename
-        except:
+            fitxers_per_afegir = fitxers
+            if not a.document_url:
+                result = pujar_arxiu_cloudinary(fitxers[0], 'gestiodespeses/assegurances')
+                a.document_url = result.get('secure_url')
+                a.document_nom = fitxers[0].filename
+                fitxers_per_afegir = fitxers[1:]
+            for fitxer_extra in fitxers_per_afegir:
+                result_extra = pujar_arxiu_cloudinary(fitxer_extra, 'gestiodespeses/assegurances')
+                if result_extra.get('secure_url'):
+                    db.session.add(AssegurancaDocument(
+                        asseguranca_id=a.id,
+                        document_url=result_extra.get('secure_url'),
+                        document_nom=fitxer_extra.filename,
+                    ))
+        except Exception:
             pass
     try:
         def parse_d(s):

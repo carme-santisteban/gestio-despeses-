@@ -3796,13 +3796,13 @@ async function editarTargeta(id) {
         </div>
 
         <div class="form-grup full">
-          <label class="form-label">Document</label>
+          <label class="form-label">Documents</label>
           <div class="upload-zona" onclick="document.getElementById('afDocument').click()">
-            <div>&#x1F4CE; Fes clic per adjuntar el document</div>
-            <div class="upload-text">PDF fins a 10 MB</div>
+            <div>&#x1F4CE; Fes clic per adjuntar documents</div>
+            <div class="upload-text">PDF, JPG, PNG · pots seleccionar-ne més d'un</div>
             <div class="upload-nom" id="afNomDocument"></div>
           </div>
-          <input type="file" id="afDocument" accept=".pdf,.jpg,.jpeg,.png" onchange="document.getElementById('afNomDocument').textContent = this.files[0]?.name || ''">
+          <input type="file" id="afDocument" accept=".pdf,.jpg,.jpeg,.png" multiple onchange="document.getElementById('afNomDocument').innerHTML = Array.from(this.files).map(f => '&#10003; ' + esc(f.name)).join('<br>')">
           <div id="afDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
         </div>
 
@@ -4000,9 +4000,10 @@ const TIPUS_CONFIG = {
 };
 
 function textCercaAsseguranca(a) {
+  const docsText = (a.documents || []).map(function(d) { return d.document_nom || ''; }).join(' ');
   return [
     a.nom, a.tipus, a.companyia, a.numero_polissa, a.titular,
-    a.matricula, a.adreca, a.periodicitat, a.document_nom, a.notes
+    a.matricula, a.adreca, a.periodicitat, a.document_nom, docsText, a.notes
   ].join(' ').toLowerCase();
 }
 
@@ -4064,7 +4065,13 @@ function renderAssegurances() {
         return '<span style="' + col + '">' + formatData(a.data_itv) + '<br><small>' + (diesItv <= 0 ? 'CADUCADA' : diesItv + ' dies') + '</small></span>';
       })() + '</td>' +
       '<td class="import-cell" style="font-size:.9rem">' + (a.import_prima ? formatImport(a.import_prima) + (a.periodicitat ? '<br><small style="color:var(--gray-3)">' + a.periodicitat + '</small>' : '') : '-') + '</td>' +
-      '<td>' + (a.document_url ? '<a href="' + a.document_url + '" target="_blank" class="doc-link">&#x1F4CE; ' + esc(a.document_nom || 'Doc') + '</a>' : '-') + '</td>' +
+      '<td>' + (function(){
+        const docs = a.documents && a.documents.length ? a.documents : (a.document_url ? [{ document_url:a.document_url, document_nom:a.document_nom }] : []);
+        if (!docs.length) return '-';
+        return docs.map(function(d) {
+          return '<a href="' + d.document_url + '" target="_blank" class="doc-link">&#x1F4CE; ' + esc(d.document_nom || 'Doc') + '</a>';
+        }).join('<br>');
+      })() + '</td>' +
       '<td class="accions">' +
         '<button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarAsseguranca(' + a.id + ')">Edit</button>' +
         '<button class="btn btn-sm btn-danger" onclick="eliminarAsseguranca(' + a.id + ')">Esborrar</button>' +
@@ -4118,7 +4125,13 @@ function obrirModalAsseguranca(a) {
   if(document.getElementById('afSubtipus')) document.getElementById('afSubtipus').value = '';
   document.getElementById('afNomDocument').textContent = '';
   document.getElementById('afDocument').value = '';
-  document.getElementById('afDocActual').innerHTML = a && a.document_url ? 'Document actual: <a href="' + a.document_url + '" target="_blank" style="color:var(--blue)">' + esc(a.document_nom || 'veure') + '</a>' : '';
+  if (a && a.documents && a.documents.length) {
+    document.getElementById('afDocActual').innerHTML = 'Documents actuals:<br>' + a.documents.map(function(d) {
+      return '<a href="' + d.document_url + '" target="_blank" style="color:var(--blue)">' + esc(d.document_nom || 'veure') + '</a>';
+    }).join('<br>');
+  } else {
+    document.getElementById('afDocActual').innerHTML = a && a.document_url ? 'Document actual: <a href="' + a.document_url + '" target="_blank" style="color:var(--blue)">' + esc(a.document_nom || 'veure') + '</a>' : '';
+  }
   ajustarCampsAsseguranca();
   document.getElementById('modalAssegurancaOverlay').classList.add('actiu');
 }
@@ -4151,8 +4164,9 @@ async function guardarAsseguranca() {
   const imp = document.getElementById('afImport').value;
   if (imp) fd.append('import_prima', imp);
   fd.append('activa', document.getElementById('afActiva').checked ? 'true' : 'false');
-  const fitxer = document.getElementById('afDocument').files[0];
-  if (fitxer) fd.append('document', fitxer);
+  Array.from(document.getElementById('afDocument').files).forEach(function(fitxer) {
+    fd.append('documents', fitxer);
+  });
   try {
     const url    = assegurancaEdId ? '/api/assegurances/' + assegurancaEdId : '/api/assegurances';
     const method = assegurancaEdId ? 'PUT' : 'POST';
