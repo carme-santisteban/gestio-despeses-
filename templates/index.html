@@ -505,6 +505,11 @@
           <label style="font-size:.8rem;color:var(--gray-3)">
             <input type="checkbox" id="filtreSolsActives" checked onchange="renderAssegurances()"> Nom&#xE9;s actives
           </label>
+          <div style="display:flex;gap:.35rem;flex-wrap:wrap">
+            <button class="btn btn-sm btn-outline" id="vistaVencTots" onclick="canviarVistaVenciments('tots')">Tots</button>
+            <button class="btn btn-sm btn-outline" id="vistaVencPropers" onclick="canviarVistaVenciments('propers')">Propers 45 dies</button>
+            <button class="btn btn-sm btn-outline" id="vistaVencVencuts" onclick="canviarVistaVenciments('vencuts')">Vençuts</button>
+          </div>
         </div>
       </div>
       <div id="resumAssegurances" style="display:none;margin:0 1.25rem 1rem 1.25rem;padding:.85rem 1rem;border:1px solid #eadfbf;border-radius:8px;background:#fffaf0;color:var(--navy);font-size:.9rem"></div>
@@ -3866,6 +3871,7 @@ async function editarTargeta(id) {
 <script>
 let assegurances = [];
 let assegurancaEdId = null;
+let vistaVenciments = 'tots';
 const ASSEGURANCES_CALENDAR_PATH = '{{ assegurances_calendar_path }}';
 
 function subscriureCalendariAssegurances() {
@@ -3897,23 +3903,53 @@ function properAvisAsseguranca(a) {
 function renderResumAssegurances(llista) {
   const resum = document.getElementById('resumAssegurances');
   if (!resum) return;
-  const properes = llista.map(function(a) {
+  const base = assegurances.filter(function(a){ return a.activa; });
+  const avisos = base.map(function(a) {
     return { asseguranca:a, avis:properAvisAsseguranca(a) };
-  }).filter(function(x) {
+  }).filter(function(x) { return x.avis; });
+  const vencuts = avisos.filter(function(x) { return x.avis.dies <= 0; }).sort(function(a, b) { return a.avis.dies - b.avis.dies; });
+  const properes = avisos.filter(function(x) {
     return x.avis && x.avis.dies <= 45;
   }).sort(function(a, b) {
     return a.avis.dies - b.avis.dies;
-  }).slice(0, 4);
-  if (!properes.length) {
+  });
+  if (!base.length) {
     resum.style.display = 'none';
     resum.innerHTML = '';
     return;
   }
   resum.style.display = 'block';
-  resum.innerHTML = '<strong>Proper a mirar:</strong> ' + properes.map(function(x) {
+  const visibles = llista.length;
+  const mostra = properes.slice(0, 4).map(function(x) {
     const dies = x.avis.dies <= 0 ? 'vençut' : x.avis.dies + ' dies';
     return esc(x.avis.tipus + ' - ' + x.asseguranca.nom + ' (' + dies + ')');
   }).join(' · ');
+  resum.innerHTML =
+    '<strong>Control venciments:</strong> ' +
+    base.length + ' actiu' + (base.length === 1 ? '' : 's') +
+    ' · ' + properes.length + ' proper' + (properes.length === 1 ? '' : 's') + ' en 45 dies' +
+    ' · ' + vencuts.length + ' vençut' + (vencuts.length === 1 ? '' : 's') +
+    ' · ' + visibles + ' visible' + (visibles === 1 ? '' : 's') +
+    (mostra ? '<br><strong>Primer a mirar:</strong> ' + mostra : '');
+}
+
+function canviarVistaVenciments(vista) {
+  vistaVenciments = vista || 'tots';
+  renderAssegurances();
+}
+
+function actualitzarBotonsVistaVenciments() {
+  [
+    ['vistaVencTots', 'tots'],
+    ['vistaVencPropers', 'propers'],
+    ['vistaVencVencuts', 'vencuts']
+  ].forEach(function(item) {
+    const btn = document.getElementById(item[0]);
+    if (!btn) return;
+    const actiu = vistaVenciments === item[1];
+    btn.style.background = actiu ? 'var(--navy)' : '';
+    btn.style.color = actiu ? 'white' : '';
+  });
 }
 
 async function carregarAssegurances() {
@@ -4059,6 +4095,18 @@ function renderAssegurances() {
   const solsActives = document.getElementById('filtreSolsActives').checked;
   const cerca = (document.getElementById('cercaAssegurances')?.value || '').trim().toLowerCase();
   let llista = solsActives ? assegurances.filter(function(a){ return a.activa; }) : assegurances;
+  actualitzarBotonsVistaVenciments();
+  if (vistaVenciments === 'propers') {
+    llista = llista.filter(function(a) {
+      const avis = properAvisAsseguranca(a);
+      return avis && avis.dies <= 45;
+    });
+  } else if (vistaVenciments === 'vencuts') {
+    llista = llista.filter(function(a) {
+      const avis = properAvisAsseguranca(a);
+      return avis && avis.dies <= 0;
+    });
+  }
   if (cerca) {
     llista = llista.filter(function(a) {
       return cerca.split(/\s+/).every(function(part) {
@@ -4075,7 +4123,8 @@ function renderAssegurances() {
   });
   renderResumAssegurances(llista);
   if (!llista.length) {
-    cos.innerHTML = '<tr><td colspan="10" class="buit"><div class="buit-icon">&#x23F0;</div><div class="buit-text">' + (cerca ? 'Cap resultat per aquesta cerca' : 'Cap venciment registrat') + '</div></td></tr>';
+    const buit = cerca ? 'Cap resultat per aquesta cerca' : (vistaVenciments === 'propers' ? 'Cap venciment proper en 45 dies' : (vistaVenciments === 'vencuts' ? 'Cap venciment vençut' : 'Cap venciment registrat'));
+    cos.innerHTML = '<tr><td colspan="10" class="buit"><div class="buit-icon">&#x23F0;</div><div class="buit-text">' + buit + '</div></td></tr>';
     return;
   }
   const avui = new Date();
