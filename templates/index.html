@@ -3453,6 +3453,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') tancarModalC
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const COLORS_ENTITAT = {
   'CaixaBank · Guissona': '#1a5276', 'CaixaGuissona': '#1a5276',
+  'CaixaBank Guissona': '#1a5276',
   'Revolut':  '#0050ff', 'Trade Republic': '#1a1a2e',
   'Santander':'#cc0000', 'ING': '#ff6200',
   'N26':      '#1e1e2f', 'Bunq': '#00b0b0',
@@ -3461,6 +3462,34 @@ function colorEntitat(e) { return COLORS_ENTITAT[e] || '#2c3e50'; }
 function fmtIban(iban) { return iban.replace(/(.{4})/g, '$1 ').trim(); }
 function fmtNumero(n) {
   return n.replace(/\s/g,'').replace(/(.{4})/g,'$1 ').trim();
+}
+function normalitzarEntitat(e) {
+  return (e || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/CAIXA\s*BANK/g, 'CAIXABANK')
+    .replace(/[^A-Z0-9]/g, '');
+}
+function etiquetaEntitat(e) {
+  const n = normalitzarEntitat(e);
+  if (n.includes('CAIXABANK') && n.includes('GUISSONA')) return 'CaixaBank Guissona';
+  if (n.includes('CAIXAGUISSONA')) return 'CaixaBank Guissona';
+  if (n.includes('CAIXABANK')) return 'CaixaBank';
+  return (e || 'Sense entitat').trim();
+}
+function agruparPerEntitat(items) {
+  const grups = {};
+  const ordre = [];
+  items.forEach(item => {
+    const entitat = etiquetaEntitat(item.entitat);
+    const key = normalitzarEntitat(entitat) || 'SENSEENTITAT';
+    if (!grups[key]) {
+      grups[key] = { entitat, llista: [] };
+      ordre.push(key);
+    }
+    grups[key].llista.push(item);
+  });
+  return ordre.map(key => grups[key]);
 }
 
 // ── COMPTES ───────────────────────────────────────────────────────────────────
@@ -3477,9 +3506,7 @@ async function carregarComptesIban() {
 function renderComptesIban(comptes) {
   const div = document.getElementById('comptesLlistat');
   if (!comptes.length) { div.innerHTML='<p style="text-align:center;color:#aaa">Cap compte.</p>'; return; }
-  const grups = {};
-  comptes.forEach(c => { if (!grups[c.entitat]) grups[c.entitat]=[]; grups[c.entitat].push(c); });
-  div.innerHTML = Object.entries(grups).map(([entitat, llista]) => `
+  div.innerHTML = agruparPerEntitat(comptes).map(({entitat, llista}) => `
     <div style="margin-bottom:1rem;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.1)">
       <div style="background:${colorEntitat(entitat)};color:#fff;padding:.55rem 1rem;font-weight:700;font-size:.88rem">🏦 ${entitat}</div>
       ${llista.map(c => `
@@ -3533,9 +3560,7 @@ async function carregarTargetes() {
 function renderTargetes(targetes) {
   const div = document.getElementById('targetesLlistat');
   if (!targetes.length) { div.innerHTML='<p style="text-align:center;color:#aaa">Cap targeta.</p>'; return; }
-  const grups = {};
-  targetes.forEach(t => { if (!grups[t.entitat]) grups[t.entitat]=[]; grups[t.entitat].push(t); });
-  div.innerHTML = Object.entries(grups).map(([entitat, llista]) => `
+  div.innerHTML = agruparPerEntitat(targetes).map(({entitat, llista}) => `
     <div style="margin-bottom:1rem;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.1)">
       <div style="background:${colorEntitat(entitat)};color:#fff;padding:.55rem 1rem;font-weight:700;font-size:.88rem">💳 ${entitat}</div>
       ${llista.map(t => `
