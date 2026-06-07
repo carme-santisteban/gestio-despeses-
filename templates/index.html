@@ -2644,6 +2644,7 @@ function calcularComparacio() {
   const dA = t.dates[iA], dB = t.dates[iB];
 
   let saldoA, saldoB, etiqueta, dSaldoA = dA, dSaldoB = dB;
+  let registresBanc = [];
   if (banc === '__total__') {
     saldoA = t.totals[iA];
     saldoB = t.totals[iB];
@@ -2670,6 +2671,10 @@ function calcularComparacio() {
     dSaldoA = t.dates[idxPrimer];
     dSaldoB = t.dates[idxUltim];
     etiqueta = banc;
+    registresBanc = idxAmbSaldo.map(idx => ({
+      data: t.dates[idx],
+      saldo: fila[idx]
+    }));
   }
 
   if (saldoA === null || saldoA === undefined || saldoB === null || saldoB === undefined) {
@@ -2685,6 +2690,22 @@ function calcularComparacio() {
   const signe = variacio > 0 ? '+' : '';
   const fonsPrincipal = variacio > 0 ? '#ecfdf5' : variacio < 0 ? '#fef2f2' : '#f8fafc';
   const bordeColor    = variacio > 0 ? '#10b981' : variacio < 0 ? '#ef4444' : 'var(--gray-2)';
+  const detallRegistres = registresBanc.length > 1 ? `
+    <div style="margin-top:1rem;border-top:1px solid rgba(16,185,129,.25);padding-top:.9rem">
+      <div style="font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-3);font-weight:700;margin-bottom:.55rem">Registres dins el període</div>
+      <div style="display:grid;gap:.45rem">
+        ${registresBanc.map((r, i) => {
+          const anterior = i > 0 ? registresBanc[i - 1].saldo : 0;
+          const increment = r.saldo - anterior;
+          const signeInc = increment > 0 ? '+' : '';
+          const colorInc = increment > 0 ? '#10b981' : increment < 0 ? '#ef4444' : 'var(--gray-3)';
+          return `<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;font-size:.88rem">
+            <div><strong>${formatData(r.data)}</strong><span style="color:var(--gray-3)"> · saldo ${fmtN(r.saldo)} €</span></div>
+            <div style="font-weight:700;color:${colorInc}">${signeInc}${fmtN(increment)} €</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
 
   out.innerHTML = `
     <div style="background:${fonsPrincipal};border-left:4px solid ${bordeColor};border-radius:8px;padding:1.25rem 1.5rem">
@@ -2706,6 +2727,7 @@ function calcularComparacio() {
           ${pct !== null ? `<span style="font-size:.95rem;font-weight:600;margin-left:.4rem">(${signe}${pct.toFixed(2)}%)</span>` : ''}
         </div>
       </div>
+      ${detallRegistres}
     </div>`;
 }
 
