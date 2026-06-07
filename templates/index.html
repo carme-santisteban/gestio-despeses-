@@ -430,8 +430,12 @@
     <div class="taula-wrapper" style="margin-bottom:1.5rem">
       <div class="taula-cap">
         <h2>Evolució per dates</h2>
-        <span id="bancTaulaInfo" style="font-size:.82rem;color:var(--gray-3)"></span>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <input type="text" class="cerca-input" placeholder="Cercar banc..." id="cercaBancs" oninput="filtrarTaulaBancs()">
+          <span id="bancTaulaInfo" style="font-size:.82rem;color:var(--gray-3)"></span>
+        </div>
       </div>
+      <div id="resumCercaBancs" style="display:none;margin:0 0 1rem 0"></div>
       <div style="overflow-x:auto">
         <table id="taulaBancsDinamica" style="min-width:600px">
           <thead id="taulaBancsHead"></thead>
@@ -2490,7 +2494,7 @@ function renderTaulaDinamica(t) {
     const varTotal = t.total_variacio[banc] || 0;
     const varCls = varTotal > 0 ? 'color:var(--green)' : varTotal < 0 ? 'color:var(--red)' : 'color:var(--gray-3)';
     const varTxt = varTotal > 0 ? '+' + fmtN(varTotal) : fmtN(varTotal);
-    return `<tr><td style="font-weight:600">${esc(banc)}</td>${tds}<td style="text-align:right;font-weight:700;${varCls}">${varTxt}</td></tr>`;
+    return `<tr data-banc-row="${esc(banc).toLowerCase()}"><td style="font-weight:600">${esc(banc)}</td>${tds}<td style="text-align:right;font-weight:700;${varCls}">${varTxt}</td></tr>`;
   }).join('');
 
   // Fila TOTAL
@@ -2528,6 +2532,57 @@ function renderTaulaDinamica(t) {
   // Guardem les dades per al comparador i poblem els desplegables
   window._taulaBancs = t;
   poblarComparador(t);
+  filtrarTaulaBancs();
+}
+
+function filtrarTaulaBancs() {
+  const input = document.getElementById('cercaBancs');
+  const resum = document.getElementById('resumCercaBancs');
+  const t = window._taulaBancs;
+  if (!input || !resum || !t) return;
+
+  const q = input.value.trim().toLowerCase();
+  document.querySelectorAll('#taulaBancsCos tr[data-banc-row]').forEach(row => {
+    row.style.display = !q || row.dataset.bancRow.includes(q) ? '' : 'none';
+  });
+
+  if (!q) {
+    resum.style.display = 'none';
+    resum.innerHTML = '';
+    return;
+  }
+
+  const bancs = t.bancs.filter(b => b.toLowerCase().includes(q));
+  if (!bancs.length) {
+    resum.style.display = '';
+    resum.innerHTML = `<div style="background:#fff3cd;border-left:4px solid #f59e0b;padding:.85rem 1.1rem;border-radius:6px;font-size:.88rem;color:#7a6010">No he trobat cap banc amb aquesta cerca.</div>`;
+    return;
+  }
+
+  const items = bancs.map(banc => {
+    const fila = t.files[banc] || [];
+    let idxUltim = -1;
+    let idxPrimer = -1;
+    fila.forEach((v, i) => {
+      if (v !== null && v !== undefined) {
+        if (idxPrimer === -1) idxPrimer = i;
+        idxUltim = i;
+      }
+    });
+    if (idxUltim === -1) {
+      return `<div><strong>${esc(banc)}</strong>: cap saldo registrat</div>`;
+    }
+    const saldo = fila[idxUltim];
+    const variacio = t.total_variacio[banc] || 0;
+    const signe = variacio > 0 ? '+' : '';
+    return `<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline">
+      <div><strong>${esc(banc)}</strong><span style="color:var(--gray-3)"> · últim registre ${formatData(t.dates[idxUltim])}</span></div>
+      <div style="text-align:right"><strong>${fmtN(saldo)} €</strong><span style="color:${variacio >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:700;margin-left:10px">${signe}${fmtN(variacio)} €</span></div>
+    </div>`;
+  }).join('');
+
+  resum.style.display = '';
+  resum.innerHTML = `<div style="background:#ecfdf5;border-left:4px solid var(--green);padding:.9rem 1.1rem;border-radius:8px;font-size:.9rem;color:var(--navy)">${items}</div>`;
 }
 
 function poblarComparador(t) {
