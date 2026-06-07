@@ -19,6 +19,8 @@ import cloudinary.api
 app = Flask(__name__)
 CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
 APP_VERSION = '2026-06-07-bancs-registres'
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.jinja_env.auto_reload = True
 
 # Database
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost/gestiodespeses')
@@ -45,6 +47,22 @@ def valid_app_password(value):
 @app.route('/api/version')
 def api_version():
     return jsonify({'version': APP_VERSION})
+
+
+@app.route('/api/template-version')
+def api_template_version():
+    template_path = os.path.join(app.root_path, 'templates', 'index.html')
+    try:
+        with open(template_path, encoding='utf-8') as f:
+            content = f.read()
+    except OSError as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 500
+    return jsonify({
+        'ok': True,
+        'has_banc_search': 'filtrarTaulaBancs' in content,
+        'has_banc_details': 'Registres dins el període' in content,
+        'size': len(content),
+    })
 
 
 def _ics_text(value):
