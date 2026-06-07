@@ -2588,14 +2588,32 @@ function calcularComparacio() {
   const [iA, iB] = idxIni < idxFi ? [idxIni, idxFi] : [idxFi, idxIni];
   const dA = t.dates[iA], dB = t.dates[iB];
 
-  let saldoA, saldoB, etiqueta;
+  let saldoA, saldoB, etiqueta, dSaldoA = dA, dSaldoB = dB;
   if (banc === '__total__') {
     saldoA = t.totals[iA];
     saldoB = t.totals[iB];
     etiqueta = 'Tots els bancs';
   } else {
-    saldoA = t.files[banc] ? t.files[banc][iA] : null;
-    saldoB = t.files[banc] ? t.files[banc][iB] : null;
+    const fila = t.files[banc] || [];
+    const idxAmbSaldo = [];
+    for (let i = iA; i <= iB; i++) {
+      if (fila[i] !== null && fila[i] !== undefined) idxAmbSaldo.push(i);
+    }
+    if (!idxAmbSaldo.length) {
+      const datesBanc = fila
+        .map((v, i) => (v !== null && v !== undefined) ? t.dates[i] : null)
+        .filter(Boolean)
+        .map(formatData)
+        .join(', ');
+      out.innerHTML = `<div style="background:#fff3cd;border-left:4px solid #f59e0b;padding:.85rem 1.1rem;border-radius:6px;font-size:.88rem;color:#7a6010">No hi ha cap saldo registrat per <strong>${esc(banc)}</strong> entre <strong>${formatData(dA)}</strong> i <strong>${formatData(dB)}</strong>. Dates disponibles: ${datesBanc || 'cap'}.</div>`;
+      return;
+    }
+    const idxPrimer = idxAmbSaldo[0];
+    const idxUltim = idxAmbSaldo[idxAmbSaldo.length - 1];
+    saldoA = fila[idxPrimer];
+    saldoB = fila[idxUltim];
+    dSaldoA = t.dates[idxPrimer];
+    dSaldoB = t.dates[idxUltim];
     etiqueta = banc;
   }
 
@@ -2618,16 +2636,16 @@ function calcularComparacio() {
       <div style="font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-3);font-weight:600;margin-bottom:.4rem">${esc(etiqueta)}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1rem">
         <div>
-          <div style="font-size:.72rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em">Saldo ${formatData(dA)}</div>
+          <div style="font-size:.72rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em">Saldo ${formatData(dSaldoA)}</div>
           <div style="font-family:var(--font-head);font-size:1.3rem;font-weight:700;color:var(--navy)">${fmtN(saldoA)} €</div>
         </div>
         <div>
-          <div style="font-size:.72rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em">Saldo ${formatData(dB)}</div>
+          <div style="font-size:.72rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em">Saldo ${formatData(dSaldoB)}</div>
           <div style="font-family:var(--font-head);font-size:1.3rem;font-weight:700;color:var(--navy)">${fmtN(saldoB)} €</div>
         </div>
       </div>
       <div style="border-top:1px dashed ${bordeColor};padding-top:.85rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
-        <div style="font-size:.85rem;color:var(--gray-3)">Variació entre <strong>${formatData(dA)}</strong> i <strong>${formatData(dB)}</strong>${variacio > 0 ? ' · <strong style="color:#10b981">guany</strong>' : variacio < 0 ? ' · <strong style="color:#ef4444">pèrdua</strong>' : ''}</div>
+        <div style="font-size:.85rem;color:var(--gray-3)">Variació entre <strong>${formatData(dSaldoA)}</strong> i <strong>${formatData(dSaldoB)}</strong>${(dSaldoA !== dA || dSaldoB !== dB) ? ` <span style="color:#7a6010">(primer i últim saldo disponible dins ${formatData(dA)} - ${formatData(dB)})</span>` : ''}${variacio > 0 ? ' · <strong style="color:#10b981">guany</strong>' : variacio < 0 ? ' · <strong style="color:#ef4444">pèrdua</strong>' : ''}</div>
         <div style="font-family:var(--font-head);font-size:1.5rem;font-weight:700;color:${colorPrincipal}">
           ${signe}${fmtN(variacio)} €
           ${pct !== null ? `<span style="font-size:.95rem;font-weight:600;margin-left:.4rem">(${signe}${pct.toFixed(2)}%)</span>` : ''}
