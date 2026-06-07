@@ -18,6 +18,7 @@ import cloudinary.api
 
 app = Flask(__name__)
 CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
+APP_VERSION = '2026-06-07-bancs-registres'
 
 # Database
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost/gestiodespeses')
@@ -39,6 +40,11 @@ APP_PASSWORDS = {
 
 def valid_app_password(value):
     return value in APP_PASSWORDS
+
+
+@app.route('/api/version')
+def api_version():
+    return jsonify({'version': APP_VERSION})
 
 
 def _ics_text(value):
