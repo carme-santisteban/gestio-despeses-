@@ -18,7 +18,7 @@ import cloudinary.api
 
 app = Flask(__name__)
 CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
-APP_VERSION = '2026-06-12-prestec-xavi'
+APP_VERSION = '2026-06-12-prestec-xavi-bancs-net'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 
@@ -1573,12 +1573,14 @@ def get_bancs_taula():
     Fila groga = variació entre data anterior i actual.
     Columna TOTAL VARIACIÓ = última - primera fotografia.
     """
-    bancs_cfg = BancConfig.query.order_by(BancConfig.ordre, BancConfig.id).all()
-    banc_noms = [b.nom for b in bancs_cfg]
-
     # Dates úniques, ordenades
     dates_q = db.session.query(FotografiaBanc.data).distinct().order_by(FotografiaBanc.data).all()
     dates = [r.data for r in dates_q]
+
+    bancs_amb_fotos_q = db.session.query(FotografiaBanc.banc).distinct().all()
+    bancs_amb_fotos = {r.banc for r in bancs_amb_fotos_q}
+    bancs_cfg = BancConfig.query.order_by(BancConfig.ordre, BancConfig.id).all()
+    banc_noms = [b.nom for b in bancs_cfg if b.nom in bancs_amb_fotos]
 
     if not dates:
         return jsonify({'bancs': banc_noms, 'dates': [], 'files': {}, 'totals': [], 'variacions': [], 'total_variacio': {}})
