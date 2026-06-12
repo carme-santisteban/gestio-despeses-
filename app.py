@@ -18,7 +18,7 @@ import cloudinary.api
 
 app = Flask(__name__)
 CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
-APP_VERSION = '2026-06-07-bancs-registres'
+APP_VERSION = '2026-06-12-prestec-xavi'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 
@@ -432,6 +432,31 @@ class FotografiaBanc(db.Model):
         }
 
 
+PRESTEC_XAVI_IMPORT_INICIAL = 18000.00
+
+
+class PrestecXaviPagament(db.Model):
+    """Pagaments de devolució del préstec personal de Xavi."""
+    __tablename__ = 'prestec_xavi_pagaments'
+    id            = db.Column(db.Integer, primary_key=True)
+    data_pagament = db.Column(db.Date, nullable=False)
+    concepte      = db.Column(db.String(255), nullable=False, default='Devolució préstec')
+    import_rebut  = db.Column(db.Numeric(10, 2), nullable=False)
+    compte        = db.Column(db.String(200))
+    notes         = db.Column(db.Text)
+    creat_el      = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'data_pagament': self.data_pagament.isoformat() if self.data_pagament else None,
+            'concepte': self.concepte or '',
+            'import_rebut': float(self.import_rebut or 0),
+            'compte': self.compte or '',
+            'notes': self.notes or '',
+        }
+
+
 class ConfigApp(db.Model):
     """Configuració general de l'app (clau-valor)"""
     __tablename__ = 'config_app'
@@ -524,6 +549,24 @@ with app.app_context():
         bancs_defecte = ['TRADE', 'CAIXA GUISONA', 'SANTANDER', 'CETELEM', 'REVOLUT', 'BUNQ', 'CAIXA']
         for i, b in enumerate(bancs_defecte):
             db.session.add(BancConfig(nom=b, ordre=i))
+        db.session.commit()
+
+    if not ConfigApp.query.filter_by(clau='prestec_xavi_importat_excel').first():
+        pagaments_inicials = [
+            ('2026-04-02', 'Devolució préstec (1a quota)', 500, 'Bunq (compte conjunt)'),
+            ('2026-04-03', 'Devolució préstec (2a quota)', 500, 'Bunq (compte conjunt)'),
+            ('2026-06-07', 'Devolució préstec (3a quota)', 1000, 'Bunq (compte conjunt)'),
+        ]
+        if PrestecXaviPagament.query.count() == 0:
+            for data_iso, concepte, import_rebut, compte in pagaments_inicials:
+                db.session.add(PrestecXaviPagament(
+                    data_pagament=datetime.strptime(data_iso, '%Y-%m-%d').date(),
+                    concepte=concepte,
+                    import_rebut=import_rebut,
+                    compte=compte,
+                    notes='Importat de Prestec_Xavi_Seguiment.xlsx'
+                ))
+        db.session.add(ConfigApp(clau='prestec_xavi_importat_excel', valor='2026-06-12'))
         db.session.commit()
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
@@ -1583,6 +1626,77 @@ def get_bancs_taula():
         'total_variacio': total_variacio,
     })
 
+
+def prestec_xavi_resum():
+    pagaments = PrestecXaviPagament.query.order_by(
+        PrestecXaviPagament.data_pagament.asc(),
+        PrestecXaviPagament.id.asc()
+    ).all()
+    total_retornat = sum(float(p.import_rebut or 0) for p in pagaments)
+    saldo_pendent = PRESTEC_XAVI_IMPORT_INICIAL - total_retornat
+    percent_retornat = total_retornat / PRESTEC_XAVI_IMPORT_INICIAL if PRESTEC_XAVI_IMPORT_INICIAL else 0
+    return {
+        'prestador': 'Maria Carmen Santisteban Sibila',
+        'prestatari': 'Xavier Valcarce Santisteban',
+        'import_inicial': PRESTEC_XAVI_IMPORT_INICIAL,
+        'finalitat': 'Amortització parcial hipoteca',
+        'interes': '0% (préstec sense interès)',
+        'total_retornat': round(total_retornat, 2),
+        'saldo_pendent': round(saldo_pendent, 2),
+        'percent_retornat': round(percent_retornat, 4),
+        'pagaments_count': len(pagaments),
+        'pagaments': [p.to_dict() for p in pagaments],
+    }
+
+
+@app.route('/api/prestec-xavi', methods=['GET'])
+def get_prestec_xavi():
+    return jsonify(prestec_xavi_resum())
+
+
+@app.route('/api/prestec-xavi/pagaments', methods=['POST'])
+def create_prestec_xavi_pagament():
+    data = request.get_json() or {}
+    try:
+        pagament = PrestecXaviPagament(
+            data_pagament=datetime.strptime(data['data_pagament'], '%Y-%m-%d').date(),
+            concepte=(data.get('concepte') or 'Devolució préstec').strip(),
+            import_rebut=float(data['import_rebut']),
+            compte=(data.get('compte') or '').strip(),
+            notes=(data.get('notes') or '').strip(),
+        )
+        db.session.add(pagament)
+        db.session.commit()
+        return jsonify(pagament.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/prestec-xavi/pagaments/<int:id>', methods=['PUT'])
+def update_prestec_xavi_pagament(id):
+    pagament = PrestecXaviPagament.query.get_or_404(id)
+    data = request.get_json() or {}
+    try:
+        pagament.data_pagament = datetime.strptime(data['data_pagament'], '%Y-%m-%d').date()
+        pagament.concepte = (data.get('concepte') or 'Devolució préstec').strip()
+        pagament.import_rebut = float(data['import_rebut'])
+        pagament.compte = (data.get('compte') or '').strip()
+        pagament.notes = (data.get('notes') or '').strip()
+        db.session.commit()
+        return jsonify(pagament.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/prestec-xavi/pagaments/<int:id>', methods=['DELETE'])
+def delete_prestec_xavi_pagament(id):
+    pagament = PrestecXaviPagament.query.get_or_404(id)
+    db.session.delete(pagament)
+    db.session.commit()
+    return jsonify({'ok': True})
+
 # ─── Export / Import JSON ─────────────────────────────────────────────────────
 
 @app.route('/api/exportar-json')
@@ -1616,7 +1730,7 @@ def backup_complet_dades():
     model_names = [
         'Despesa', 'Factura', 'TornOfici', 'TornComunicacio',
         'BancDocument', 'BancConfig', 'DespesaDocument', 'FacturaDocument',
-        'DocumentPersonal', 'FotografiaBanc', 'ConfigApp', 'Credencial',
+        'DocumentPersonal', 'FotografiaBanc', 'PrestecXaviPagament', 'ConfigApp', 'Credencial',
         'CompteIban', 'Targeta', 'Asseguranca',
     ]
     taules = {}
