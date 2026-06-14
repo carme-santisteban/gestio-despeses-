@@ -67,6 +67,33 @@
 
     .container { max-width: 1300px; margin: 0 auto; padding: 0 1.5rem; }
 
+    .banner-venciments {
+      display: none;
+      max-width: 900px;
+      margin: 1.25rem auto 1.5rem;
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius);
+      background: #137a4f;
+      color: #ffffff;
+      border: 2px solid #2fbf7a;
+      box-shadow: 0 10px 28px rgba(19,122,79,.22);
+      font-size: .98rem;
+      font-weight: 600;
+      line-height: 1.35;
+      text-align: center;
+      cursor: pointer;
+    }
+    .banner-venciments:hover { background: #0f6b45; transform: translateY(-1px); }
+    .banner-venciments span { color: #ffffff; }
+    .banner-venciments .banner-icon { margin-right: .35rem; }
+    @media (max-width: 700px) {
+      .banner-venciments {
+        margin: 1rem 1rem 1.25rem;
+        padding: .9rem 1rem;
+        font-size: .9rem;
+      }
+    }
+
     .page-header { padding: 2rem 0 1.5rem; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
     .page-title { font-family: var(--font-head); font-size: 1.8rem; font-weight: 700; color: var(--navy); }
     .page-title span { color: var(--gold); }
@@ -278,9 +305,9 @@
 </header>
 
 <div class="toast-container" id="toasts"></div>
-<div id="bannerAssegurances" style="display:none;background:#7f1d1d;color:#fecaca;padding:.75rem 1.5rem;font-size:.88rem;cursor:pointer;text-align:center;border-bottom:2px solid #ef4444" onclick="canviarTab('assegurances')">&#x26A0; <span id="bannerAssegurancesText"></span> - Clica per veure</div>
 
 <div class="container">
+  <div id="bannerAssegurances" class="banner-venciments" onclick="canviarTab('assegurances')"><span class="banner-icon">&#x26A0;</span><span id="bannerAssegurancesText"></span> - Clica per veure</div>
 
   <div class="nav-tabs">
     <button class="nav-tab actiu" id="tabDespeses" onclick="canviarTab('despeses')">💼 Despeses</button>
