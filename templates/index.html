@@ -307,7 +307,7 @@
 <div class="toast-container" id="toasts"></div>
 
 <div class="container">
-  <div id="bannerAssegurances" class="banner-venciments" onclick="canviarTab('assegurances')"><span class="banner-icon">&#x26A0;</span><span id="bannerAssegurancesText"></span> - Clica per veure</div>
+  <div id="bannerAssegurances" class="banner-venciments" onclick="obrirVencimentsPropers()"><span class="banner-icon">&#x26A0;</span><span id="bannerAssegurancesText"></span> - Clica per veure</div>
 
   <div class="nav-tabs">
     <button class="nav-tab actiu" id="tabDespeses" onclick="canviarTab('despeses')">💼 Despeses</button>
@@ -4254,6 +4254,16 @@ function renderResumAssegurances(llista) {
 function canviarVistaVenciments(vista) {
   vistaVenciments = vista || 'tots';
   renderAssegurances();
+}
+
+function obrirVencimentsPropers() {
+  canviarTab('assegurances');
+  vistaVenciments = 'propers';
+  if (assegurances.length) renderAssegurances();
+  setTimeout(function() {
+    const desti = document.getElementById('resumAssegurances') || document.getElementById('taulaAssegurancesCos');
+    if (desti) desti.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 120);
 }
 
 function actualitzarBotonsVistaVenciments() {
