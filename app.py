@@ -163,6 +163,19 @@ class Despesa(db.Model):
     creat_el      = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
+        documents = []
+        if self.document_url:
+            documents.append({
+                'id': 'principal',
+                'despesa_id': self.id,
+                'document_url': self.document_url,
+                'document_nom': self.document_nom or 'Document',
+                'principal': True,
+            })
+        for doc in DespesaDocument.query.filter_by(despesa_id=self.id).order_by(DespesaDocument.creat_el.asc()).all():
+            doc_dict = doc.to_dict()
+            doc_dict['principal'] = False
+            documents.append(doc_dict)
         return {
             'id':           self.id,
             'data':         self.data.isoformat() if self.data else None,
@@ -175,6 +188,7 @@ class Despesa(db.Model):
             'notes':        self.notes or '',
             'document_url': self.document_url or '',
             'document_nom': self.document_nom or '',
+            'documents':     documents,
             'incloure_renda': bool(self.incloure_renda),
             'renda_exercici': self.renda_exercici,
             'excloure_renda': bool(self.excloure_renda),

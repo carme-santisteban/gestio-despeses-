@@ -1358,12 +1358,28 @@ function renderTaula(llista) {
       <td><span class="badge badge-${d.tipus==='professional'?'prof':'pers'}">${d.tipus==='professional'?'Prof.':'Pers.'}</span></td>
       <td style="color:var(--gray-4);font-size:.85rem">${esc(d.proveidor)||'—'}</td>
       <td class="import-cell">${formatImport(d.import_)}</td>
-      <td>${d.document_url ? `<a href="${d.document_url}" target="_blank" class="doc-link">📎 ${esc(d.document_nom||'Doc')}</a>` : '<span style="color:var(--gray-2)">—</span>'}</td>
+      <td>${htmlDocsDespesa(d)}</td>
       <td class="accions">
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})" title="Editar">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="eliminarDespesa(${d.id})" title="Eliminar">🗑</button>
       </td>
     </tr>`).join('');
+}
+
+function docsDespesa(d) {
+  const docs = Array.isArray(d && d.documents) ? d.documents : [];
+  if (docs.length) return docs;
+  return d && d.document_url ? [{ document_url: d.document_url, document_nom: d.document_nom || 'Doc' }] : [];
+}
+
+function htmlDocsDespesa(d, compacte = false) {
+  const docs = docsDespesa(d);
+  if (!docs.length) return '<span style="color:var(--gray-2)">—</span>';
+  return docs.map(doc => {
+    const nom = esc(doc.document_nom || 'Doc');
+    const text = compacte ? '📎' : '📎 ' + nom;
+    return `<a href="${doc.document_url}" target="_blank" class="doc-link" title="${nom}">${text}</a>`;
+  }).join(compacte ? ' ' : '<br>');
 }
 
 function actualitzarKPIs(llista) {
@@ -1432,8 +1448,11 @@ function obrirModal(d = null) {
   if (document.getElementById('fRendaExercici')) document.getElementById('fRendaExercici').value = d ? (d.renda_exercici || '') : (new Date().getFullYear() - 1);
   if (document.getElementById('fExcloureRenda')) document.getElementById('fExcloureRenda').checked = d ? !!d.excloure_renda : false;
   netejarDocumentsDespesaSeleccionats();
-  if (d && d.document_url) {
-    document.getElementById('docActual').innerHTML = `Document actual: <a href="${d.document_url}" target="_blank" style="color:var(--blue)">${esc(d.document_nom||'veure')}</a>`;
+  const docsActuals = docsDespesa(d);
+  if (docsActuals.length) {
+    document.getElementById('docActual').innerHTML = 'Documents actuals:<br>' + docsActuals.map(doc => {
+      return `<a href="${doc.document_url}" target="_blank" style="color:var(--blue)">${esc(doc.document_nom||'veure')}</a>`;
+    }).join('<br>');
   } else {
     document.getElementById('docActual').textContent = '';
   }
@@ -1795,9 +1814,9 @@ function renderRendaBlocs(data) {
     bloc("Torn d'ofici cobrat", data.torn_ofici || [], ['Data','Designa','Client','Brut','IRPF','Net'], t => `
       <tr><td>${formatData(t.data_pagament)}</td><td>${esc(t.designa || '')}</td><td>${esc(t.client || '')}</td><td>${formatImport(t.import_brut)}</td><td>${formatImport(t.import_irpf)}</td><td>${formatImport(t.import_net)}</td></tr>`) +
     bloc('Despeses professionals de l\'any', data.despeses_professionals || [], ['Data','Concepte','Categoria','Proveïdor','Import','Doc','Accions'], d => `
-      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td><td><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})">✏️</button> <button class="btn btn-sm btn-outline" onclick="treureDespesaRenda(${d.id})">Treure</button></td></tr>`) +
+      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${htmlDocsDespesa(d, true)}</td><td><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})">✏️</button> <button class="btn btn-sm btn-outline" onclick="treureDespesaRenda(${d.id})">Treure</button></td></tr>`) +
     bloc('Despeses marcades específicament per renda', data.despeses_marcades || [], ['Data','Concepte','Categoria','Proveïdor','Import','Doc','Accions'], d => `
-      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${d.document_url ? `<a href="${d.document_url}" target="_blank">📎</a>` : '—'}</td><td><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})">✏️</button> <button class="btn btn-sm btn-outline" onclick="treureDespesaRenda(${d.id})">Treure</button></td></tr>`);
+      <tr><td>${formatData(d.data)}</td><td>${esc(d.descripcio)}</td><td>${esc(d.categoria)}</td><td>${esc(d.proveidor || '')}</td><td>${formatImport(d.import_)}</td><td>${htmlDocsDespesa(d, true)}</td><td><button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})">✏️</button> <button class="btn btn-sm btn-outline" onclick="treureDespesaRenda(${d.id})">Treure</button></td></tr>`);
 }
 
 async function treureDespesaRenda(id) {
