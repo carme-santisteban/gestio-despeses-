@@ -316,6 +316,7 @@
     <button class="nav-tab" id="tabBancs" onclick="canviarTab('bancs')">🏦 Bancs</button>
     <button class="nav-tab" id="tabPrestecXavi" onclick="canviarTab('prestecXavi')">↩ Préstec Xavi</button>
     <button class="nav-tab" id="tabRenda" onclick="canviarTab('renda')">📁 Renda</button>
+    <button class="nav-tab" id="tabGestionsReclamacions" onclick="canviarTab('gestionsReclamacions')">📝 Gestions i reclamacions</button>
     <button class="nav-tab" id="tabDocumentsPersonals" onclick="canviarTab('documentsPersonals')">📂 Documents personals</button>
     <button class="nav-tab" id="tabCredencials" onclick="canviarTab('credencials')">🔑 Credencials</button>
     <button class="nav-tab" id="tabAssegurances" onclick="canviarTab('assegurances')">&#x23F0; Venciments</button>
@@ -629,6 +630,55 @@
     <div id="rendaBlocs" style="display:grid;gap:1rem"></div>
   </div>
 
+  <!-- GESTIONS I RECLAMACIONS -->
+  <div id="seccioGestionsReclamacions" style="display:none">
+    <div class="page-header">
+      <div><div class="page-title">Gestions i reclamacions <span style="color:var(--gold)">· Escrits presentats</span></div></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" class="cerca-input" placeholder="Cercar gestió..." id="cercaGestionsReclamacions" oninput="filtrarGestionsReclamacions()" style="width:220px">
+        <select class="form-control" id="filtreEstatGestions" onchange="carregarGestionsReclamacions()" style="width:150px">
+          <option value="">Tots els estats</option>
+          <option value="pendent">Pendent</option>
+          <option value="presentat">Presentat</option>
+          <option value="contestat">Contestat</option>
+          <option value="resolt">Resolt</option>
+          <option value="arxivat">Arxivat</option>
+        </select>
+        <select class="form-control" id="filtreTipusGestions" onchange="carregarGestionsReclamacions()" style="width:170px">
+          <option value="">Tots els tipus</option>
+          <option value="Reclamació">Reclamació</option>
+          <option value="Queixa">Queixa</option>
+          <option value="Escrit administratiu">Escrit administratiu</option>
+          <option value="Comunitat">Comunitat</option>
+          <option value="Consum">Consum</option>
+          <option value="Altres">Altres</option>
+        </select>
+        <button class="btn btn-primary" onclick="obrirModalGestioReclamacio()">+ Nova gestió</button>
+      </div>
+    </div>
+    <div style="background:var(--white);border-radius:var(--radius);padding:1rem 1.5rem;margin-bottom:1.5rem;box-shadow:var(--shadow);font-size:.85rem;color:var(--gray-4);border-left:4px solid var(--gold)">
+      Per guardar escrits i seguiments que presentes tu: queixes, reclamacions, administració, comunitats, empreses, bloquejos de diners o incidències de casa.
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card total"><div class="kpi-label">Total</div><div class="kpi-value" id="grTotal">—</div></div>
+      <div class="kpi-card prof"><div class="kpi-label">Pendents</div><div class="kpi-value" id="grPendents">—</div></div>
+      <div class="kpi-card pers"><div class="kpi-label">Presentats</div><div class="kpi-value" id="grPresentats">—</div></div>
+      <div class="kpi-card count"><div class="kpi-label">Resolts</div><div class="kpi-value" id="grResolts">—</div></div>
+    </div>
+    <div class="taula-wrapper">
+      <div class="taula-cap">
+        <h2>Llistat de gestions</h2>
+        <span id="gestionsReclamacionsInfo" style="font-size:.82rem;color:var(--gray-3)"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Data</th><th>Títol</th><th>Tipus</th><th>Destinatari</th><th>Estat</th><th>Import</th><th>Ref.</th><th>Doc.</th><th style="text-align:center">Accions</th></tr></thead>
+          <tbody id="taulaGestionsReclamacionsCos"><tr><td colspan="9" class="buit"><div class="buit-icon">📝</div><div class="buit-text">Carregant...</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- DOCUMENTS PERSONALS -->
   <div id="seccioDocumentsPersonals" style="display:none">
     <div class="page-header">
@@ -662,6 +712,57 @@
     </div>
   </div>
 </div><!-- fi container -->
+
+<!-- Modal gestió / reclamació -->
+<div class="modal-overlay" id="modalGestioReclamacioOverlay" onclick="if(event.target===this)tancarModalGestioReclamacio()">
+  <div class="modal" style="max-width:680px" onclick="event.stopPropagation()">
+    <div class="modal-cap">
+      <h3 id="modalGestioReclamacioTitol">Nova gestió o reclamació</h3>
+      <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-3)" onclick="tancarModalGestioReclamacio()">✕</button>
+    </div>
+    <div class="modal-cos">
+      <div class="form-grid">
+        <div class="form-grup full"><label class="form-label">Títol <span>*</span></label><input type="text" class="form-control" id="grTitol" placeholder="Ex: Reclamació La Sirena per diners bloquejats"></div>
+        <div class="form-grup">
+          <label class="form-label">Tipus</label>
+          <select class="form-control" id="grTipus">
+            <option value="Reclamació">Reclamació</option>
+            <option value="Queixa">Queixa</option>
+            <option value="Escrit administratiu">Escrit administratiu</option>
+            <option value="Comunitat">Comunitat</option>
+            <option value="Consum">Consum</option>
+            <option value="Altres">Altres</option>
+          </select>
+        </div>
+        <div class="form-grup"><label class="form-label">Data presentació</label><input type="date" class="form-control" id="grDataPresentacio"></div>
+        <div class="form-grup full"><label class="form-label">Destinatari / organisme</label><input type="text" class="form-control" id="grDestinatari" placeholder="Ex: La Sirena, Ajuntament, Administrador, Generalitat..."></div>
+        <div class="form-grup">
+          <label class="form-label">Estat</label>
+          <select class="form-control" id="grEstat">
+            <option value="pendent">Pendent</option>
+            <option value="presentat">Presentat</option>
+            <option value="contestat">Contestat</option>
+            <option value="resolt">Resolt</option>
+            <option value="arxivat">Arxivat</option>
+          </select>
+        </div>
+        <div class="form-grup"><label class="form-label">Import afectat (€)</label><input type="number" class="form-control" id="grImportAfectat" step="0.01" min="0" placeholder="Opcional"></div>
+        <div class="form-grup full"><label class="form-label">Referència / expedient</label><input type="text" class="form-control" id="grReferencia" placeholder="Núm. registre, expedient, comanda, rebut..."></div>
+        <div class="form-grup full">
+          <label class="form-label">Document</label>
+          <div class="upload-zona" onclick="document.getElementById('grDocument').click()"><div>📎 Fes clic per adjuntar l'escrit o justificant</div><div class="upload-text">PDF, Word o imatge</div><div class="upload-nom" id="grNomDocument"></div></div>
+          <input type="file" id="grDocument" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic" onchange="document.getElementById('grNomDocument').textContent = this.files[0]?.name ? '✓ ' + this.files[0].name : ''">
+          <div id="grDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
+        </div>
+        <div class="form-grup full"><label class="form-label">Notes</label><textarea class="form-control" id="grNotes" placeholder="Què s'ha presentat, què esperes, terminis, resposta rebuda..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-peu">
+      <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="tancarModalGestioReclamacio()">Cancel·lar</button>
+      <button class="btn btn-primary" id="btnGuardarGestioReclamacio" onclick="guardarGestioReclamacio()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal PIN Documents personals -->
 <div class="modal-overlay" id="modalPinDocumentsOverlay">
@@ -1193,10 +1294,12 @@ let factures    = [];
 let moviments   = [];
 let bancosResum = [];
 let documentsPersonals = [];
+let gestionsReclamacions = [];
 let prestecXavi = null;
 let despesaEdId = null;
 let facturaEdId = null;
 let documentPersonalEdId = null;
+let gestioReclamacioEdId = null;
 let despesaDocsSeleccionats = new DataTransfer();
 window._documentsPersonalsPinOk = false;
 let prefillLexDespesaActiu = false;
@@ -1226,10 +1329,11 @@ function canviarTab(tab) {
   document.getElementById('seccioBancs').style.display    = tab === 'bancs'    ? 'block' : 'none';
   document.getElementById('seccioPrestecXavi').style.display = tab === 'prestecXavi' ? 'block' : 'none';
   document.getElementById('seccioRenda').style.display    = tab === 'renda'    ? 'block' : 'none';
+  document.getElementById('seccioGestionsReclamacions').style.display = tab === 'gestionsReclamacions' ? 'block' : 'none';
   document.getElementById('seccioDocumentsPersonals').style.display = tab === 'documentsPersonals' ? 'block' : 'none';
   document.getElementById('seccioCredencials').style.display = tab === 'credencials' ? 'block' : 'none';
   document.getElementById('seccioAssegurances').style.display = tab === 'assegurances' ? 'block' : 'none';
-  ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabPrestecXavi','tabRenda','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+  ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabPrestecXavi','tabRenda','tabGestionsReclamacions','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
   document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('actiu');
 
   if (tab === 'despeses') {
@@ -1257,9 +1361,10 @@ function canviarTab(tab) {
     document.getElementById('seccioBancs').style.display = 'none';
     document.getElementById('seccioPrestecXavi').style.display = 'none';
     document.getElementById('seccioRenda').style.display = 'none';
+    document.getElementById('seccioGestionsReclamacions').style.display = 'none';
     document.getElementById('seccioDocumentsPersonals').style.display = 'none';
     document.getElementById('seccioCredencials').style.display = 'block';
-    ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabPrestecXavi','tabRenda','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+    ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabPrestecXavi','tabRenda','tabGestionsReclamacions','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
     document.getElementById('tabCredencials').classList.add('actiu');
     document.getElementById('btnNou').style.display = 'none';
     document.getElementById('btnExportCSV').style.display = 'none';
@@ -1276,6 +1381,12 @@ function canviarTab(tab) {
       return;
     }
     carregarDocumentsPersonals();
+  } else if (tab === 'gestionsReclamacions') {
+    document.getElementById('btnNou').textContent = '+ Nova gestió';
+    document.getElementById('btnNou').onclick = () => obrirModalGestioReclamacio();
+    document.getElementById('btnNou').style.display = '';
+    document.getElementById('btnExportCSV').style.display = 'none';
+    carregarGestionsReclamacions();
   } else if (tab === 'assegurances') {
     document.getElementById('btnNou').textContent = '+ Nou venciment';
     document.getElementById('btnNou').onclick = function(){ obrirModalAsseguranca(); };
@@ -1832,6 +1943,156 @@ async function treureDespesaRenda(id) {
   }
 }
 
+// ─── Gestions i reclamacions ──────────────────────────────────────────────────
+async function carregarGestionsReclamacions() {
+  const params = new URLSearchParams();
+  const estat = document.getElementById('filtreEstatGestions').value;
+  const tipus = document.getElementById('filtreTipusGestions').value;
+  if (estat) params.set('estat', estat);
+  if (tipus) params.set('tipus', tipus);
+  try {
+    const r = await fetch('/api/gestions-reclamacions?' + params);
+    if (!r.ok) throw new Error();
+    gestionsReclamacions = await r.json();
+    renderGestionsReclamacions(gestionsReclamacions);
+  } catch(e) {
+    toast('Error carregant gestions i reclamacions', 'error');
+  }
+}
+
+function estatGestioLabel(estat) {
+  const labels = {
+    pendent: 'Pendent',
+    presentat: 'Presentat',
+    contestat: 'Contestat',
+    resolt: 'Resolt',
+    arxivat: 'Arxivat'
+  };
+  return labels[estat] || estat || 'Pendent';
+}
+
+function estatGestioStyle(estat) {
+  if (estat === 'resolt') return 'background:#e6f4ee;color:#1a6b4a';
+  if (estat === 'contestat') return 'background:#e8f0fb;color:#1a4a7a';
+  if (estat === 'presentat') return 'background:#fff3e0;color:#e65100';
+  if (estat === 'arxivat') return 'background:#f1f5f9;color:#475569';
+  return 'background:#fef3c7;color:#92400e';
+}
+
+function actualitzarKpisGestions(llista) {
+  const totes = gestionsReclamacions || [];
+  document.getElementById('grTotal').textContent = totes.length;
+  document.getElementById('grPendents').textContent = totes.filter(g => g.estat === 'pendent').length;
+  document.getElementById('grPresentats').textContent = totes.filter(g => g.estat === 'presentat').length;
+  document.getElementById('grResolts').textContent = totes.filter(g => g.estat === 'resolt').length;
+  const info = document.getElementById('gestionsReclamacionsInfo');
+  if (info) info.textContent = llista.length + (llista.length === 1 ? ' gestió visible' : ' gestions visibles');
+}
+
+function renderGestionsReclamacions(llista) {
+  const cos = document.getElementById('taulaGestionsReclamacionsCos');
+  actualitzarKpisGestions(llista);
+  if (!llista.length) {
+    cos.innerHTML = '<tr><td colspan="9" class="buit"><div class="buit-icon">📝</div><div class="buit-text">Cap gestió o reclamació registrada</div></td></tr>';
+    return;
+  }
+  cos.innerHTML = llista.map(g => `
+    <tr>
+      <td style="white-space:nowrap;color:var(--gray-3)">${g.data_presentacio ? formatData(g.data_presentacio) : '—'}</td>
+      <td style="max-width:260px"><div style="font-weight:600">${esc(g.titol)}</div>${g.notes ? `<div style="font-size:.75rem;color:var(--gray-3);margin-top:2px">${esc(g.notes.substring(0,70))}${g.notes.length>70?'…':''}</div>` : ''}</td>
+      <td><span class="badge badge-pers">${esc(g.tipus || 'Reclamació')}</span></td>
+      <td style="color:var(--gray-4);font-size:.85rem">${esc(g.destinatari || '') || '—'}</td>
+      <td><span style="padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600;${estatGestioStyle(g.estat)}">${estatGestioLabel(g.estat)}</span></td>
+      <td class="import-cell" style="font-size:.9rem">${g.import_afectat !== null && g.import_afectat !== undefined ? formatImport(g.import_afectat) : '—'}</td>
+      <td style="font-size:.8rem;color:var(--gray-4)">${esc(g.referencia || '') || '—'}</td>
+      <td>${g.document_url ? `<a href="${g.document_url}" target="_blank" class="doc-link">📎 ${esc(g.document_nom || 'Document')}</a>` : '—'}</td>
+      <td class="accions">
+        <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarGestioReclamacio(${g.id})">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminarGestioReclamacio(${g.id})">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+function filtrarGestionsReclamacions() {
+  const q = normalitzarText(document.getElementById('cercaGestionsReclamacions').value);
+  if (!q) { renderGestionsReclamacions(gestionsReclamacions); return; }
+  renderGestionsReclamacions(gestionsReclamacions.filter(g => normalitzarText([
+    g.titol, g.tipus, g.destinatari, g.estat, g.referencia, g.notes, g.document_nom
+  ].join(' ')).includes(q)));
+}
+
+function obrirModalGestioReclamacio(g = null) {
+  gestioReclamacioEdId = g ? g.id : null;
+  document.getElementById('modalGestioReclamacioTitol').textContent = g ? 'Editar gestió o reclamació' : 'Nova gestió o reclamació';
+  document.getElementById('grTitol').value = g ? g.titol : '';
+  document.getElementById('grTipus').value = g ? (g.tipus || 'Reclamació') : 'Reclamació';
+  document.getElementById('grDataPresentacio').value = g ? (g.data_presentacio || '') : new Date().toISOString().slice(0,10);
+  document.getElementById('grDestinatari').value = g ? (g.destinatari || '') : '';
+  document.getElementById('grEstat').value = g ? (g.estat || 'pendent') : 'pendent';
+  document.getElementById('grImportAfectat').value = g && g.import_afectat !== null && g.import_afectat !== undefined ? g.import_afectat : '';
+  document.getElementById('grReferencia').value = g ? (g.referencia || '') : '';
+  document.getElementById('grNotes').value = g ? (g.notes || '') : '';
+  document.getElementById('grDocument').value = '';
+  document.getElementById('grNomDocument').textContent = '';
+  document.getElementById('grDocActual').innerHTML = g && g.document_url ? 'Document actual: <a href="' + g.document_url + '" target="_blank" style="color:var(--blue)">' + esc(g.document_nom || 'veure') + '</a>' : '';
+  document.getElementById('modalGestioReclamacioOverlay').classList.add('actiu');
+}
+
+function tancarModalGestioReclamacio() {
+  document.getElementById('modalGestioReclamacioOverlay').classList.remove('actiu');
+  gestioReclamacioEdId = null;
+}
+
+function editarGestioReclamacio(id) {
+  const g = gestionsReclamacions.find(x => x.id === id);
+  if (g) obrirModalGestioReclamacio(g);
+}
+
+async function guardarGestioReclamacio() {
+  const titol = document.getElementById('grTitol').value.trim();
+  if (!titol) { toast('Indica el títol de la gestió', 'error'); return; }
+  const btn = document.getElementById('btnGuardarGestioReclamacio');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant...';
+  const fd = new FormData();
+  fd.append('titol', titol);
+  fd.append('tipus', document.getElementById('grTipus').value);
+  fd.append('data_presentacio', document.getElementById('grDataPresentacio').value || new Date().toISOString().slice(0,10));
+  fd.append('destinatari', document.getElementById('grDestinatari').value);
+  fd.append('estat', document.getElementById('grEstat').value);
+  fd.append('import_afectat', document.getElementById('grImportAfectat').value);
+  fd.append('referencia', document.getElementById('grReferencia').value);
+  fd.append('notes', document.getElementById('grNotes').value);
+  const fitxer = document.getElementById('grDocument').files[0];
+  if (fitxer) fd.append('document', fitxer);
+  try {
+    const url = gestioReclamacioEdId ? '/api/gestions-reclamacions/' + gestioReclamacioEdId : '/api/gestions-reclamacions';
+    const method = gestioReclamacioEdId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, body: fd });
+    if (!r.ok) throw new Error();
+    toast(gestioReclamacioEdId ? 'Gestió actualitzada' : 'Gestió guardada', 'ok');
+    tancarModalGestioReclamacio();
+    carregarGestionsReclamacions();
+  } catch(e) {
+    toast('Error guardant la gestió', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '💾 Guardar';
+  }
+}
+
+async function eliminarGestioReclamacio(id) {
+  const g = gestionsReclamacions.find(x => x.id === id);
+  if (!confirm('Eliminar "' + (g ? g.titol : '') + '"?')) return;
+  try {
+    const r = await fetch('/api/gestions-reclamacions/' + id, { method: 'DELETE' });
+    if (!r.ok) throw new Error();
+    toast('Gestió eliminada', 'ok');
+    carregarGestionsReclamacions();
+  } catch(e) {
+    toast('Error eliminant la gestió', 'error');
+  }
+}
+
 // ─── Documents personals ─────────────────────────────────────────────────────
 function obrirPinDocuments() {
   document.getElementById('pinDocumentsInput').value = '';
@@ -1859,8 +2120,8 @@ async function verificarPinDocuments() {
       window._documentsPersonalsPinOk = true;
       document.getElementById('modalPinDocumentsOverlay').classList.remove('actiu');
       document.getElementById('seccioDocumentsPersonals').style.display = 'block';
-      ['seccioDespeses','seccioFactures','seccioBancs','seccioPrestecXavi','seccioRenda','seccioCredencials','seccioAssegurances'].forEach(id => document.getElementById(id).style.display = 'none');
-      ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabPrestecXavi','tabRenda','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+      ['seccioDespeses','seccioFactures','seccioTornOfici','seccioBancs','seccioPrestecXavi','seccioRenda','seccioGestionsReclamacions','seccioCredencials','seccioAssegurances'].forEach(id => document.getElementById(id).style.display = 'none');
+      ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabPrestecXavi','tabRenda','tabGestionsReclamacions','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
       document.getElementById('tabDocumentsPersonals').classList.add('actiu');
       carregarDocumentsPersonals();
     } else {
@@ -2512,8 +2773,14 @@ async function verificarPinBancs() {
       document.getElementById('seccioBancs').style.display = 'block';
       document.getElementById('seccioDespeses').style.display = 'none';
       document.getElementById('seccioFactures').style.display = 'none';
+      document.getElementById('seccioTornOfici').style.display = 'none';
       document.getElementById('seccioPrestecXavi').style.display = 'none';
-      ['tabDespeses','tabFactures','tabBancs','tabPrestecXavi','tabDocumentsPersonals'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+      document.getElementById('seccioRenda').style.display = 'none';
+      document.getElementById('seccioGestionsReclamacions').style.display = 'none';
+      document.getElementById('seccioDocumentsPersonals').style.display = 'none';
+      document.getElementById('seccioCredencials').style.display = 'none';
+      document.getElementById('seccioAssegurances').style.display = 'none';
+      ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabPrestecXavi','tabRenda','tabGestionsReclamacions','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
       document.getElementById('tabBancs').classList.add('actiu');
       carregarBancs();
     } else {
@@ -3516,8 +3783,8 @@ async function verificarPinCredencials() {
       window._credencialsPinOk = true;
       document.getElementById('modalPinCredencialsOverlay').classList.remove('actiu');
       document.getElementById('seccioCredencials').style.display = 'block';
-      ['seccioDespeses','seccioFactures','seccioBancs','seccioPrestecXavi','seccioDocumentsPersonals'].forEach(id => document.getElementById(id).style.display = 'none');
-      ['tabDespeses','tabFactures','tabBancs','tabPrestecXavi','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
+      ['seccioDespeses','seccioFactures','seccioTornOfici','seccioBancs','seccioPrestecXavi','seccioRenda','seccioGestionsReclamacions','seccioDocumentsPersonals','seccioAssegurances'].forEach(id => document.getElementById(id).style.display = 'none');
+      ['tabDespeses','tabFactures','tabTornOfici','tabBancs','tabPrestecXavi','tabRenda','tabGestionsReclamacions','tabDocumentsPersonals','tabCredencials','tabAssegurances'].forEach(id => document.getElementById(id).classList.remove('actiu'));
       document.getElementById('tabCredencials').classList.add('actiu');
       carregarCredencials();
     } else {
