@@ -427,39 +427,6 @@ class DocumentPersonal(db.Model):
         }
 
 
-class GestioReclamacio(db.Model):
-    __tablename__ = 'gestions_reclamacions'
-
-    id             = db.Column(db.Integer, primary_key=True)
-    titol          = db.Column(db.String(255), nullable=False)
-    tipus          = db.Column(db.String(80), nullable=False, default='Reclamació')
-    destinatari    = db.Column(db.String(200))
-    data_presentacio = db.Column(db.Date, nullable=False, default=date.today)
-    estat          = db.Column(db.String(40), nullable=False, default='pendent')
-    import_afectat = db.Column(db.Numeric(10, 2))
-    referencia     = db.Column(db.String(200))
-    notes          = db.Column(db.Text)
-    document_url   = db.Column(db.String(500))
-    document_nom   = db.Column(db.String(200))
-    creat_el       = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'titol': self.titol,
-            'tipus': self.tipus or 'Reclamació',
-            'destinatari': self.destinatari or '',
-            'data_presentacio': self.data_presentacio.isoformat() if self.data_presentacio else '',
-            'estat': self.estat or 'pendent',
-            'import_afectat': float(self.import_afectat) if self.import_afectat is not None else None,
-            'referencia': self.referencia or '',
-            'notes': self.notes or '',
-            'document_url': self.document_url or '',
-            'document_nom': self.document_nom or '',
-            'creat_el': self.creat_el.isoformat() if self.creat_el else '',
-        }
-
-
 class FotografiaBanc(db.Model):
     """Saldo real d'un banc en una data concreta"""
     __tablename__ = 'fotografies_banc'
@@ -527,22 +494,6 @@ with app.app_context():
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS tema VARCHAR(255)'))
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(_text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
-        db.session.execute(_text('''
-            CREATE TABLE IF NOT EXISTS gestions_reclamacions (
-                id SERIAL PRIMARY KEY,
-                titol VARCHAR(255) NOT NULL,
-                tipus VARCHAR(80) NOT NULL DEFAULT 'Reclamació',
-                destinatari VARCHAR(200),
-                data_presentacio DATE NOT NULL,
-                estat VARCHAR(40) NOT NULL DEFAULT 'pendent',
-                import_afectat NUMERIC(10, 2),
-                referencia VARCHAR(200),
-                notes TEXT,
-                document_url VARCHAR(500),
-                document_nom VARCHAR(200),
-                creat_el TIMESTAMP DEFAULT NOW()
-            )
-        '''))
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -597,22 +548,6 @@ with app.app_context():
         db.session.execute(text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS tema VARCHAR(255)'))
         db.session.execute(text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
-        db.session.execute(text('''
-            CREATE TABLE IF NOT EXISTS gestions_reclamacions (
-                id SERIAL PRIMARY KEY,
-                titol VARCHAR(255) NOT NULL,
-                tipus VARCHAR(80) NOT NULL DEFAULT 'Reclamació',
-                destinatari VARCHAR(200),
-                data_presentacio DATE NOT NULL,
-                estat VARCHAR(40) NOT NULL DEFAULT 'pendent',
-                import_afectat NUMERIC(10, 2),
-                referencia VARCHAR(200),
-                notes TEXT,
-                document_url VARCHAR(500),
-                document_nom VARCHAR(200),
-                creat_el TIMESTAMP DEFAULT NOW()
-            )
-        '''))
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -1590,97 +1525,6 @@ def delete_document_personal(id):
     db.session.delete(doc)
     db.session.commit()
     return jsonify({'ok': True})
-
-
-@app.route('/api/gestions-reclamacions', methods=['GET'])
-def get_gestions_reclamacions():
-    estat = request.args.get('estat')
-    tipus = request.args.get('tipus')
-    q = GestioReclamacio.query
-    if estat:
-        q = q.filter(GestioReclamacio.estat == estat)
-    if tipus:
-        q = q.filter(GestioReclamacio.tipus == tipus)
-    gestions = q.order_by(GestioReclamacio.data_presentacio.desc(), GestioReclamacio.id.desc()).all()
-    return jsonify([g.to_dict() for g in gestions])
-
-
-@app.route('/api/gestions-reclamacions', methods=['POST'])
-def create_gestio_reclamacio():
-    titol = (request.form.get('titol') or '').strip()
-    if not titol:
-        return jsonify({'error': 'Cal indicar un títol'}), 400
-    try:
-        data_presentacio = datetime.strptime(
-            request.form.get('data_presentacio') or date.today().isoformat(),
-            '%Y-%m-%d'
-        ).date()
-        fitxer = request.files.get('document')
-        document_url = None
-        document_nom = None
-        if fitxer and fitxer.filename:
-            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/gestions-reclamacions')
-            document_url = result.get('secure_url')
-            document_nom = fitxer.filename
-        import_raw = request.form.get('import_afectat')
-        gestio = GestioReclamacio(
-            titol=titol,
-            tipus=request.form.get('tipus') or 'Reclamació',
-            destinatari=request.form.get('destinatari') or None,
-            data_presentacio=data_presentacio,
-            estat=request.form.get('estat') or 'pendent',
-            import_afectat=float(import_raw) if import_raw else None,
-            referencia=request.form.get('referencia') or None,
-            notes=request.form.get('notes') or None,
-            document_url=document_url,
-            document_nom=document_nom,
-        )
-        db.session.add(gestio)
-        db.session.commit()
-        return jsonify(gestio.to_dict()), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
-
-
-@app.route('/api/gestions-reclamacions/<int:id>', methods=['PUT'])
-def update_gestio_reclamacio(id):
-    gestio = GestioReclamacio.query.get_or_404(id)
-    titol = (request.form.get('titol') or '').strip()
-    if not titol:
-        return jsonify({'error': 'Cal indicar un títol'}), 400
-    try:
-        gestio.titol = titol
-        gestio.tipus = request.form.get('tipus') or 'Reclamació'
-        gestio.destinatari = request.form.get('destinatari') or None
-        gestio.data_presentacio = datetime.strptime(
-            request.form.get('data_presentacio') or date.today().isoformat(),
-            '%Y-%m-%d'
-        ).date()
-        gestio.estat = request.form.get('estat') or 'pendent'
-        import_raw = request.form.get('import_afectat')
-        gestio.import_afectat = float(import_raw) if import_raw else None
-        gestio.referencia = request.form.get('referencia') or None
-        gestio.notes = request.form.get('notes') or None
-        fitxer = request.files.get('document')
-        if fitxer and fitxer.filename:
-            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/gestions-reclamacions')
-            gestio.document_url = result.get('secure_url')
-            gestio.document_nom = fitxer.filename
-        db.session.commit()
-        return jsonify(gestio.to_dict())
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
-
-
-@app.route('/api/gestions-reclamacions/<int:id>', methods=['DELETE'])
-def delete_gestio_reclamacio(id):
-    gestio = GestioReclamacio.query.get_or_404(id)
-    db.session.delete(gestio)
-    db.session.commit()
-    return jsonify({'ok': True})
-
 
 @app.route('/api/bancs/fotografies', methods=['GET'])
 def get_fotografies():
