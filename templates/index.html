@@ -2576,10 +2576,24 @@ function renderTaulaDinamica(t) {
   }
 
   const totalDates = t.dates.length;
-  const idxsVisibles = t.dates.map((_, i) => i);
-  const hiHaSeparador = false;
+  const filtreDates = Array.isArray(window._bancsDatesSeleccionades)
+    ? window._bancsDatesSeleccionades.filter(i => i >= 0 && i < totalDates)
+    : [];
+  const mostrantSeleccio = filtreDates.length >= 2;
+  let idxsVisibles;
+  let hiHaSeparador = false;
+  if (mostrantSeleccio) {
+    idxsVisibles = [...new Set(filtreDates)].sort((a, b) => a - b);
+  } else if (totalDates > 9) {
+    idxsVisibles = [0];
+    for (let i = totalDates - 8; i < totalDates; i++) idxsVisibles.push(i);
+    hiHaSeparador = true;
+  } else {
+    idxsVisibles = t.dates.map((_, i) => i);
+  }
 
-  info.textContent = totalDates + ' dates · ' + t.bancs.length + ' bancs · mostrant-ho tot';
+  info.textContent = totalDates + ' dates · ' + t.bancs.length + ' bancs' +
+    (mostrantSeleccio ? ' · mostrant les 2 dates seleccionades' : (hiHaSeparador ? ' · mostrant 1a + últimes 8' : ''));
 
   // Capçalera
   const thDates = idxsVisibles.map((idx, posVis) => {
@@ -2609,7 +2623,12 @@ function renderTaulaDinamica(t) {
       }
       return cellSep + `<td style="text-align:right;font-weight:500;cursor:pointer" onclick="obrirEditCellaPerId('${esc(banc)}','${d}')" title="Clic per editar">${fmtN(val)}</td>`;
     }).join('');
-    const varTotal = t.total_variacio[banc] || 0;
+    const valsVisibles = idxsVisibles
+      .map(idx => t.files[banc][idx])
+      .filter(v => v !== null && v !== undefined);
+    const varTotal = mostrantSeleccio && valsVisibles.length >= 2
+      ? valsVisibles[valsVisibles.length - 1] - valsVisibles[0]
+      : (t.total_variacio[banc] || 0);
     const varCls = varTotal > 0 ? 'color:var(--green)' : varTotal < 0 ? 'color:var(--red)' : 'color:var(--gray-3)';
     const varTxt = varTotal > 0 ? '+' + fmtN(varTotal) : fmtN(varTotal);
     return `<tr data-banc-row="${esc(banc).toLowerCase()}"><td style="font-weight:600">${esc(banc)}</td>${tds}<td style="text-align:right;font-weight:700;${varCls}">${varTxt}</td></tr>`;
@@ -2622,7 +2641,9 @@ function renderTaulaDinamica(t) {
       : '';
     return cellSep + `<td style="text-align:right;font-weight:700;font-family:var(--font-head)">${fmtN(t.totals[idx])}</td>`;
   }).join('');
-  const totVar = t.total_variacio['__total__'] || 0;
+  const totVar = mostrantSeleccio && idxsVisibles.length >= 2
+    ? t.totals[idxsVisibles[idxsVisibles.length - 1]] - t.totals[idxsVisibles[0]]
+    : (t.total_variacio['__total__'] || 0);
   const totVarCls = totVar > 0 ? 'color:var(--green)' : totVar < 0 ? 'color:var(--red)' : '';
   const totVarTxt = totVar > 0 ? '+' + fmtN(totVar) : fmtN(totVar);
   const filaTotals = `<tr style="border-top:2px solid var(--gray-2)">
@@ -2632,7 +2653,9 @@ function renderTaulaDinamica(t) {
 
   // Fila VARIACIÓ groga
   const tdVars = idxsVisibles.map((idx, posVis) => {
-    const v = t.variacions[idx];
+    const v = mostrantSeleccio
+      ? (posVis === 0 ? null : t.totals[idx] - t.totals[idxsVisibles[posVis - 1]])
+      : t.variacions[idx];
     const cellSep = (hiHaSeparador && posVis === 1)
       ? '<td style="background:#f5e6b0;text-align:center;color:var(--gray-3)">…</td>'
       : '';
@@ -2760,6 +2783,8 @@ function calcularComparacio() {
   // Si l'usuari ha posat la final abans que la inicial, les girem
   const [iA, iB] = idxIni < idxFi ? [idxIni, idxFi] : [idxFi, idxIni];
   const dA = t.dates[iA], dB = t.dates[iB];
+  window._bancsDatesSeleccionades = [iA, iB];
+  renderTaulaDinamica(t);
 
   let saldoA, saldoB, etiqueta, dSaldoA = dA, dSaldoB = dB;
   let registresBanc = [];
