@@ -2575,23 +2575,11 @@ function renderTaulaDinamica(t) {
     return;
   }
 
-  // Paginació: si hi ha més de 9 dates, mostrem la 1a (referència) + les 8 últimes
-  // amb un separador visual "…" entre mig per indicar les amagades.
-  const MAX_VISIBLES = 9;       // 1 referència + 8 últimes
-  const ULTIMES = 8;
   const totalDates = t.dates.length;
-  let idxsVisibles;             // índexs de les dates a mostrar dins de t.dates
-  let hiHaSeparador = false;
-  if (totalDates > MAX_VISIBLES) {
-    idxsVisibles = [0];
-    for (let i = totalDates - ULTIMES; i < totalDates; i++) idxsVisibles.push(i);
-    hiHaSeparador = true;
-  } else {
-    idxsVisibles = t.dates.map((_, i) => i);
-  }
+  const idxsVisibles = t.dates.map((_, i) => i);
+  const hiHaSeparador = false;
 
-  info.textContent = totalDates + ' dates · ' + t.bancs.length + ' bancs' +
-    (hiHaSeparador ? ` · mostrant 1a + últimes ${ULTIMES}` : '');
+  info.textContent = totalDates + ' dates · ' + t.bancs.length + ' bancs · mostrant-ho tot';
 
   // Capçalera
   const thDates = idxsVisibles.map((idx, posVis) => {
@@ -2775,10 +2763,54 @@ function calcularComparacio() {
 
   let saldoA, saldoB, etiqueta, dSaldoA = dA, dSaldoB = dB;
   let registresBanc = [];
+  let detallTotalBancs = '';
   if (banc === '__total__') {
     saldoA = t.totals[iA];
     saldoB = t.totals[iB];
     etiqueta = 'Tots els bancs';
+    const filesDetall = t.bancs.map(nomBanc => {
+      const fila = t.files[nomBanc] || [];
+      const idxAmbSaldo = [];
+      for (let i = iA; i <= iB; i++) {
+        if (fila[i] !== null && fila[i] !== undefined) idxAmbSaldo.push(i);
+      }
+      if (!idxAmbSaldo.length) return null;
+      const idxPrimer = idxAmbSaldo[0];
+      const idxUltim = idxAmbSaldo[idxAmbSaldo.length - 1];
+      const saldoIni = fila[idxPrimer];
+      const saldoFi = fila[idxUltim];
+      const dif = saldoFi - saldoIni;
+      const signeDif = dif > 0 ? '+' : '';
+      const colorDif = dif > 0 ? '#10b981' : dif < 0 ? '#ef4444' : 'var(--gray-3)';
+      return `
+        <tr>
+          <td style="font-weight:700;color:var(--navy)">${esc(nomBanc)}</td>
+          <td style="white-space:nowrap;color:var(--gray-3)">${formatData(t.dates[idxPrimer])}</td>
+          <td style="text-align:right">${fmtN(saldoIni)} €</td>
+          <td style="white-space:nowrap;color:var(--gray-3)">${formatData(t.dates[idxUltim])}</td>
+          <td style="text-align:right">${fmtN(saldoFi)} €</td>
+          <td style="text-align:right;font-weight:800;color:${colorDif}">${signeDif}${fmtN(dif)} €</td>
+        </tr>`;
+    }).filter(Boolean).join('');
+    detallTotalBancs = filesDetall ? `
+      <div style="margin-top:1rem;border-top:1px solid rgba(28,43,74,.14);padding-top:.9rem">
+        <div style="font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-3);font-weight:700;margin-bottom:.55rem">Detall per banc dins el període</div>
+        <div style="overflow-x:auto;background:white;border:1px solid var(--gray-1);border-radius:8px">
+          <table style="width:100%;min-width:720px">
+            <thead>
+              <tr>
+                <th style="background:var(--navy);color:white">Banc</th>
+                <th style="background:var(--navy);color:white">Data inicial</th>
+                <th style="background:var(--navy);color:white;text-align:right">Saldo inicial</th>
+                <th style="background:var(--navy);color:white">Data final</th>
+                <th style="background:var(--navy);color:white;text-align:right">Saldo final</th>
+                <th style="background:var(--navy);color:white;text-align:right">Variació</th>
+              </tr>
+            </thead>
+            <tbody>${filesDetall}</tbody>
+          </table>
+        </div>
+      </div>` : '';
   } else {
     const fila = t.files[banc] || [];
     const idxAmbSaldo = [];
@@ -2814,7 +2846,6 @@ function calcularComparacio() {
 
   const variacio = saldoB - saldoA;
   const pct = saldoA !== 0 ? (variacio / Math.abs(saldoA)) * 100 : null;
-  const formatData = d => { const p = d.split('-'); return `${p[2]}/${p[1]}/${p[0].slice(2)}`; };
 
   const colorPrincipal = variacio > 0 ? '#10b981' : variacio < 0 ? '#ef4444' : 'var(--gray-3)';
   const signe = variacio > 0 ? '+' : '';
@@ -2858,6 +2889,7 @@ function calcularComparacio() {
         </div>
       </div>
       ${detallRegistres}
+      ${detallTotalBancs}
     </div>`;
 }
 
