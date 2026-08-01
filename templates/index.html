@@ -432,7 +432,7 @@
       <div class="taula-cap"><h2>Llistat de pagaments ICAB</h2></div>
       <div style="overflow-x:auto">
         <table>
-          <thead><tr><th>Descripció</th><th>Data pagament</th><th>Brut (Total general)</th><th>IRPF</th><th>Líquid</th><th>Doc.</th><th style="text-align:center">Accions</th></tr></thead>
+          <thead><tr><th>Descripció</th><th>Data pagament</th><th>Brut cobrat</th><th>IRPF</th><th>Líquid</th><th>Doc.</th><th style="text-align:center">Accions</th></tr></thead>
           <tbody id="taulaTornCos"><tr><td colspan="7" class="buit"><div class="buit-icon">⚖️</div><div class="buit-text">Carregant…</div></td></tr></tbody>
         </table>
       </div>
@@ -911,6 +911,8 @@
         <div class="form-grup full"><label class="form-label">Descripció <span>*</span></label><input type="text" class="form-control" id="ftDescripcio" placeholder="Ex: 100% ASSISTENCIA i 100% OFICI Febrer 2026"></div>
         <div class="form-grup"><label class="form-label">Data pagament <span>*</span></label><input type="date" class="form-control" id="ftDataPagament"></div>
         <div class="form-grup"><label class="form-label">Total general brut (€) <span>*</span></label><input type="number" class="form-control" id="ftImportBrut" step="0.01" min="0" placeholder="0,00" oninput="calcularTotalsTorn()"></div>
+        <div class="form-grup"><label class="form-label">Percentatge pagat (%)</label><input type="number" class="form-control" id="ftPercentatgePagament" value="100" step="0.01" min="0" max="100" oninput="calcularTotalsTorn()"></div>
+        <div class="form-grup"><label class="form-label">Brut efectivament cobrat</label><div class="form-control" id="ftBrutCobrat" style="background:#f1f5f9;color:var(--gray-3);font-weight:600">0,00 €</div></div>
         <div class="form-grup"><label class="form-label">IRPF (%)</label><input type="number" class="form-control" id="ftIrpfPct" value="15" step="0.1" min="0" oninput="calcularTotalsTorn()"></div>
         <div class="form-grup"><label class="form-label">IRPF retingut</label><div class="form-control" id="ftIrpfCalc" style="background:#f1f5f9;color:var(--gray-3);font-weight:600">0,00 €</div></div>
         <div class="form-grup full"><label class="form-label">Total líquid (al compte)</label><div class="form-control" id="ftLiquid" style="background:var(--navy);color:var(--gold);font-family:var(--font-head);font-size:1.1rem;font-weight:700">0,00 €</div></div>
@@ -2199,7 +2201,7 @@ async function carregarTornOfici() {
 
 function renderTornOfici(llista) {
   const cos = document.getElementById('taulaTornCos');
-  const totalBrut   = llista.reduce((s,t) => s + t.import_brut, 0);
+  const totalBrut   = llista.reduce((s,t) => s + t.import_brut_cobrat, 0);
   const totalIrpf   = llista.reduce((s,t) => s + t.import_irpf, 0);
   const totalLiquid = llista.reduce((s,t) => s + t.import_liquid, 0);
   document.getElementById('tornTotalBrut').textContent   = formatImport(totalBrut);
@@ -2211,7 +2213,7 @@ function renderTornOfici(llista) {
     <tr>
       <td style="font-weight:500">${esc(t.descripcio)}</td>
       <td style="color:var(--gray-3);white-space:nowrap">${formatData(t.data_pagament)}</td>
-      <td class="import-cell">${formatImport(t.import_brut)}</td>
+      <td class="import-cell">${formatImport(t.import_brut_cobrat)}${t.percentatge_pagament !== 100 ? `<div style="font-size:.72rem;color:var(--gray-3);font-weight:400">${t.percentatge_pagament}% de ${formatImport(t.import_brut)}</div>` : ''}</td>
       <td style="font-size:.85rem;color:var(--red)">-${formatImport(t.import_irpf)} <span style="color:var(--gray-3)">(${t.irpf_pct}%)</span></td>
       <td class="import-cell" style="color:var(--blue)">${formatImport(t.import_liquid)}</td>
       <td>${t.document_download_url ? `<a href="${t.document_download_url}" target="_blank" style="color:var(--blue);font-size:.8rem">📎 ${esc(t.document_nom||'Doc')}</a>` : '—'}</td>
@@ -2408,9 +2410,13 @@ async function eliminarComunicacioTorn(id) {
 
 function calcularTotalsTorn() {
   const brut = parseFloat(document.getElementById('ftImportBrut').value) || 0;
+  const percentatgePagament = parseFloat(document.getElementById('ftPercentatgePagament').value);
+  const pctPagat = Number.isFinite(percentatgePagament) ? percentatgePagament : 100;
   const pct  = parseFloat(document.getElementById('ftIrpfPct').value) || 0;
-  const irpf = brut * pct / 100;
-  const liq  = brut - irpf;
+  const brutCobrat = brut * pctPagat / 100;
+  const irpf = brutCobrat * pct / 100;
+  const liq  = brutCobrat - irpf;
+  document.getElementById('ftBrutCobrat').textContent = formatImport(brutCobrat);
   document.getElementById('ftIrpfCalc').textContent = formatImport(irpf);
   document.getElementById('ftLiquid').textContent   = formatImport(liq);
 }
@@ -2421,6 +2427,7 @@ function obrirModalTornOfici(t = null) {
   document.getElementById('ftDescripcio').value  = t ? t.descripcio : '';
   document.getElementById('ftDataPagament').value = t ? t.data_pagament : new Date().toISOString().slice(0,10);
   document.getElementById('ftImportBrut').value  = t ? t.import_brut : '';
+  document.getElementById('ftPercentatgePagament').value = t ? t.percentatge_pagament : 100;
   document.getElementById('ftIrpfPct').value     = t ? t.irpf_pct : 15;
   document.getElementById('ftNotes').value       = t ? t.notes : '';
   document.getElementById('ftNomDocument').textContent = '';
@@ -2446,6 +2453,8 @@ async function guardarTorn() {
   fd.append('descripcio', descripcio);
   fd.append('data_pagament', dataPagament);
   fd.append('import_brut', parseFloat(importBrut));
+  const pctPagat = parseFloat(document.getElementById('ftPercentatgePagament').value);
+  fd.append('percentatge_pagament', Number.isFinite(pctPagat) ? pctPagat : 100);
   fd.append('irpf_pct', parseFloat(document.getElementById('ftIrpfPct').value) || 0);
   fd.append('notes', document.getElementById('ftNotes').value);
   const fitxer = document.getElementById('ftDocument').files[0];

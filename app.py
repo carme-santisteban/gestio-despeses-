@@ -257,6 +257,7 @@ class TornOfici(db.Model):
     descripcio     = db.Column(db.String(255), nullable=False)
     data_pagament  = db.Column(db.Date, nullable=False, default=date.today)
     import_brut    = db.Column(db.Numeric(10, 2), nullable=False)  # Total general ICAB
+    percentatge_pagament = db.Column(db.Numeric(5, 2), default=100)
     irpf_pct       = db.Column(db.Numeric(5, 2), default=15)
     notes          = db.Column(db.Text)
     document_url   = db.Column(db.String(500))
@@ -266,12 +267,17 @@ class TornOfici(db.Model):
     creat_el       = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
+    def import_brut_cobrat(self):
+        percentatge = 100 if self.percentatge_pagament is None else float(self.percentatge_pagament)
+        return float(self.import_brut) * percentatge / 100
+
+    @property
     def import_irpf(self):
-        return float(self.import_brut) * float(self.irpf_pct) / 100
+        return self.import_brut_cobrat * float(self.irpf_pct) / 100
 
     @property
     def import_liquid(self):
-        return float(self.import_brut) - self.import_irpf
+        return self.import_brut_cobrat - self.import_irpf
 
     def to_dict(self):
         return {
@@ -279,6 +285,8 @@ class TornOfici(db.Model):
             'descripcio':    self.descripcio,
             'data_pagament': self.data_pagament.isoformat() if self.data_pagament else None,
             'import_brut':   float(self.import_brut),
+            'percentatge_pagament': 100 if self.percentatge_pagament is None else float(self.percentatge_pagament),
+            'import_brut_cobrat': round(self.import_brut_cobrat, 2),
             'irpf_pct':      float(self.irpf_pct),
             'import_irpf':   round(self.import_irpf, 2),
             'import_liquid': round(self.import_liquid, 2),
@@ -491,6 +499,7 @@ with app.app_context():
         db.session.execute(_text('ALTER TABLE despeses ADD COLUMN IF NOT EXISTS subcategoria VARCHAR(100)'))
         db.session.execute(_text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(_text("ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
+        db.session.execute(_text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS percentatge_pagament NUMERIC(5, 2) DEFAULT 100'))
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS tema VARCHAR(255)'))
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(_text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
@@ -519,6 +528,7 @@ with app.app_context():
                 descripcio VARCHAR(255) NOT NULL,
                 data_pagament DATE NOT NULL,
                 import_brut NUMERIC(10, 2) NOT NULL,
+                percentatge_pagament NUMERIC(5, 2) DEFAULT 100,
                 irpf_pct NUMERIC(5, 2) DEFAULT 15,
                 notes TEXT,
                 document_url VARCHAR(500),
@@ -530,6 +540,7 @@ with app.app_context():
         '''))
         db.session.execute(text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(text("ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
+        db.session.execute(text('ALTER TABLE torn_ofici ADD COLUMN IF NOT EXISTS percentatge_pagament NUMERIC(5, 2) DEFAULT 100'))
         db.session.execute(text('''
             CREATE TABLE IF NOT EXISTS torn_comunicacions (
                 id SERIAL PRIMARY KEY,
@@ -1028,6 +1039,7 @@ def create_torn_ofici():
             descripcio    = data['descripcio'],
             data_pagament = datetime.strptime(data['data_pagament'], '%Y-%m-%d').date(),
             import_brut   = float(data['import_brut']),
+            percentatge_pagament = float(data.get('percentatge_pagament', 100)),
             irpf_pct      = float(data.get('irpf_pct', 15)),
             notes         = data.get('notes', ''),
             document_url  = document_url,
@@ -1060,6 +1072,7 @@ def update_torn_ofici(id):
         torn.descripcio    = data['descripcio']
         torn.data_pagament = datetime.strptime(data['data_pagament'], '%Y-%m-%d').date()
         torn.import_brut   = float(data['import_brut'])
+        torn.percentatge_pagament = float(data.get('percentatge_pagament', 100))
         torn.irpf_pct      = float(data.get('irpf_pct', 15))
         torn.notes         = data.get('notes', '')
         db.session.commit()
@@ -1199,7 +1212,7 @@ def resum_smi():
     total_factures = sum(float(f.base) for f in factures)
     # Import brut del torn d'ofici l'any indicat (per data de pagament)
     torns = TornOfici.query.filter(extract('year', TornOfici.data_pagament) == any_).all()
-    total_torn = sum(float(t.import_brut) for t in torns)
+    total_torn = sum(t.import_brut_cobrat for t in torns)
     total_general = total_factures + total_torn
     smi = SMI_ANUAL.get(any_, 0)
     percent = (total_general / smi * 100) if smi else 0
@@ -1232,7 +1245,7 @@ def api_renda():
     total_base = sum(float(f.base or 0) for f in factures)
     total_iva = sum(float(f.iva or 0) for f in factures)
     total_irpf_factures = sum(float(f.irpf or 0) for f in factures)
-    total_torn_brut = sum(float(t.import_brut or 0) for t in torns)
+    total_torn_brut = sum(t.import_brut_cobrat for t in torns)
     total_torn_irpf = sum(float(t.import_irpf or 0) for t in torns)
     total_despeses_prof = sum(float(d.import_ or 0) for d in despeses_prof)
     total_despeses_marcades = sum(float(d.import_ or 0) for d in despeses_renda)
