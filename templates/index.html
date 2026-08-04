@@ -794,7 +794,7 @@
             <div class="upload-text">PDF, JPG, PNG · pots seleccionar-ne més d'un</div>
             <div class="upload-nom" id="nomDocument"></div>
           </div>
-          <input type="file" id="fDocument" accept=".pdf,.jpg,.jpeg,.png" multiple onchange="afegirDocumentsDespesaInput()">
+          <input type="file" id="fDocument" accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx" multiple onchange="afegirDocumentsDespesaInput()">
           <div id="docActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
         </div>
         <!-- Multi-documents despesa -->
@@ -1199,7 +1199,7 @@ let prestecXavi = null;
 let despesaEdId = null;
 let facturaEdId = null;
 let documentPersonalEdId = null;
-let despesaDocsSeleccionats = new DataTransfer();
+let despesaDocsSeleccionats = [];
 window._documentsPersonalsPinOk = false;
 let prefillLexDespesaActiu = false;
 const MESOS = ['','Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
@@ -1603,7 +1603,7 @@ function normalitzarText(s) {
 }
 
 function mostrarNomFitxer() {
-  const files = Array.from(despesaDocsSeleccionats.files || []);
+  const files = despesaDocsSeleccionats;
   const nomEl = document.getElementById('nomDocument');
   if (!files.length) {
     nomEl.innerHTML = '';
@@ -1628,43 +1628,35 @@ function clauDocumentDespesa(fitxer) {
   return [fitxer.name, fitxer.size, fitxer.lastModified].join('|');
 }
 
-function sincronitzarInputDocumentsDespesa() {
-  const input = document.getElementById('fDocument');
-  if (input) input.files = despesaDocsSeleccionats.files;
-}
-
 function afegirDocumentsDespesaInput() {
   const input = document.getElementById('fDocument');
   if (!input) return;
-  afegirDocumentsDespesa(input.files);
+  const nousFitxers = Array.from(input.files || []);
+  afegirDocumentsDespesa(nousFitxers);
+  input.value = '';
 }
 
 function afegirDocumentsDespesa(fitxers) {
-  const existents = new Set(Array.from(despesaDocsSeleccionats.files || []).map(clauDocumentDespesa));
+  const existents = new Set(despesaDocsSeleccionats.map(clauDocumentDespesa));
   Array.from(fitxers || []).forEach(fitxer => {
     const clau = clauDocumentDespesa(fitxer);
     if (!existents.has(clau)) {
-      despesaDocsSeleccionats.items.add(fitxer);
+      despesaDocsSeleccionats.push(fitxer);
       existents.add(clau);
     }
   });
-  sincronitzarInputDocumentsDespesa();
   mostrarNomFitxer();
 }
 
 function treureDocumentDespesaSeleccionat(index) {
-  const nou = new DataTransfer();
-  Array.from(despesaDocsSeleccionats.files || []).forEach((fitxer, i) => {
-    if (i !== index) nou.items.add(fitxer);
-  });
-  despesaDocsSeleccionats = nou;
-  sincronitzarInputDocumentsDespesa();
+  despesaDocsSeleccionats = despesaDocsSeleccionats.filter((_, i) => i !== index);
   mostrarNomFitxer();
 }
 
 function netejarDocumentsDespesaSeleccionats() {
-  despesaDocsSeleccionats = new DataTransfer();
-  sincronitzarInputDocumentsDespesa();
+  despesaDocsSeleccionats = [];
+  const input = document.getElementById('fDocument');
+  if (input) input.value = '';
   mostrarNomFitxer();
 }
 
@@ -1710,7 +1702,7 @@ async function guardarDespesa(event) {
     fd.append('incloure_renda', '1');
     fd.append('renda_exercici', document.getElementById('fRendaExercici').value || new Date(data).getFullYear());
   }
-  const fitxers = Array.from(despesaDocsSeleccionats.files || []);
+  const fitxers = despesaDocsSeleccionats;
   fitxers.forEach(fitxer => fd.append('documents', fitxer));
   try {
     const url    = despesaEdId ? `/api/despeses/${despesaEdId}` : '/api/despeses';
