@@ -419,9 +419,19 @@ class DocumentPersonal(db.Model):
     notes          = db.Column(db.Text)
     document_url   = db.Column(db.String(500), nullable=False)
     document_nom   = db.Column(db.String(200))
+    solucionat     = db.Column(db.Boolean, default=False)
+    data_solucio   = db.Column(db.Date)
     creat_el       = db.Column(db.DateTime, default=datetime.utcnow)
+    adjunts        = db.relationship('DocumentPersonalAdjunt', backref='document_personal', cascade='all,delete-orphan', order_by='DocumentPersonalAdjunt.creat_el')
 
     def to_dict(self):
+        fitxers = [{
+            'id': None,
+            'document_url': self.document_url or '',
+            'document_nom': self.document_nom or 'Document',
+            'principal': True,
+        }] if self.document_url else []
+        fitxers.extend([a.to_dict() for a in self.adjunts])
         return {
             'id': self.id,
             'nom': self.nom,
@@ -431,6 +441,28 @@ class DocumentPersonal(db.Model):
             'notes': self.notes or '',
             'document_url': self.document_url or '',
             'document_nom': self.document_nom or '',
+            'fitxers': fitxers,
+            'solucionat': bool(self.solucionat),
+            'data_solucio': self.data_solucio.isoformat() if self.data_solucio else '',
+            'creat_el': self.creat_el.isoformat() if self.creat_el else '',
+        }
+
+
+class DocumentPersonalAdjunt(db.Model):
+    __tablename__ = 'documents_personals_adjunts'
+
+    id                   = db.Column(db.Integer, primary_key=True)
+    document_personal_id = db.Column(db.Integer, db.ForeignKey('documents_personals.id'), nullable=False)
+    document_url         = db.Column(db.String(500), nullable=False)
+    document_nom         = db.Column(db.String(200))
+    creat_el             = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'document_url': self.document_url or '',
+            'document_nom': self.document_nom or 'Document',
+            'principal': False,
             'creat_el': self.creat_el.isoformat() if self.creat_el else '',
         }
 
@@ -503,6 +535,8 @@ with app.app_context():
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS tema VARCHAR(255)'))
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(_text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
+        db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS solucionat BOOLEAN DEFAULT FALSE'))
+        db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS data_solucio DATE'))
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -1482,14 +1516,15 @@ def get_documents_personals():
 def create_document_personal():
     if not documents_personals_autoritzat():
         return jsonify({'error': 'No autoritzat'}), 401
-    fitxer = request.files.get('document')
-    if not fitxer or not fitxer.filename:
+    fitxers = uploaded_documents()
+    if not fitxers:
         return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
     nom = (request.form.get('nom') or '').strip()
     if not nom:
         return jsonify({'error': 'Cal indicar un nom'}), 400
     try:
         data_doc = datetime.strptime(request.form.get('data_document', ''), '%Y-%m-%d').date() if request.form.get('data_document') else None
+        fitxer = fitxers[0]
         result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/documents-personals')
         doc = DocumentPersonal(
             nom=nom,
@@ -1499,8 +1534,18 @@ def create_document_personal():
             notes=request.form.get('notes') or None,
             document_url=result.get('secure_url'),
             document_nom=fitxer.filename,
+            solucionat=(request.form.get('solucionat') == 'true'),
+            data_solucio=datetime.strptime(request.form.get('data_solucio', ''), '%Y-%m-%d').date() if request.form.get('data_solucio') else None,
         )
         db.session.add(doc)
+        db.session.flush()
+        for fitxer_extra in fitxers[1:]:
+            pujat = pujar_arxiu_cloudinary(fitxer_extra, 'gestiodespeses/documents-personals')
+            db.session.add(DocumentPersonalAdjunt(
+                document_personal_id=doc.id,
+                document_url=pujat.get('secure_url'),
+                document_nom=fitxer_extra.filename,
+            ))
         db.session.commit()
         return jsonify(doc.to_dict()), 201
     except Exception as e:
@@ -1519,11 +1564,15 @@ def update_document_personal(id):
         doc.data_document = data_doc
         doc.entitat = request.form.get('entitat') or None
         doc.notes = request.form.get('notes') or None
-        fitxer = request.files.get('document')
-        if fitxer and fitxer.filename:
+        doc.solucionat = request.form.get('solucionat') == 'true'
+        doc.data_solucio = datetime.strptime(request.form.get('data_solucio', ''), '%Y-%m-%d').date() if request.form.get('data_solucio') else None
+        for fitxer in uploaded_documents():
             result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/documents-personals')
-            doc.document_url = result.get('secure_url')
-            doc.document_nom = fitxer.filename
+            db.session.add(DocumentPersonalAdjunt(
+                document_personal_id=doc.id,
+                document_url=result.get('secure_url'),
+                document_nom=fitxer.filename,
+            ))
         db.session.commit()
         return jsonify(doc.to_dict())
     except Exception as e:
@@ -1536,6 +1585,15 @@ def delete_document_personal(id):
         return jsonify({'error': 'No autoritzat'}), 401
     doc = DocumentPersonal.query.get_or_404(id)
     db.session.delete(doc)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/documents-personals/adjunts/<int:adjunt_id>', methods=['DELETE'])
+def delete_document_personal_adjunt(adjunt_id):
+    if not documents_personals_autoritzat():
+        return jsonify({'error': 'No autoritzat'}), 401
+    adjunt = DocumentPersonalAdjunt.query.get_or_404(adjunt_id)
+    db.session.delete(adjunt)
     db.session.commit()
     return jsonify({'ok': True})
 

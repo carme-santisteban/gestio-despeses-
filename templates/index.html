@@ -642,6 +642,7 @@
           <option value="Identitat">Identitat</option>
           <option value="Patrimoni">Patrimoni</option>
           <option value="Assegurances">Assegurances</option>
+          <option value="Queixa / petició personal">Queixa / petició personal</option>
           <option value="Altres">Altres</option>
         </select>
         <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="obrirModalPinDocuments()">🔒 Contrasenya</button>
@@ -655,8 +656,8 @@
       </div>
       <div style="overflow-x:auto">
         <table>
-          <thead><tr><th>Nom</th><th>Categoria</th><th>Data</th><th>Entitat</th><th>Notes</th><th>Fitxer</th><th style="text-align:center">Accions</th></tr></thead>
-          <tbody id="taulaDocumentsPersonalsCos"><tr><td colspan="7" class="buit"><div class="buit-icon">📂</div><div class="buit-text">Carregant...</div></td></tr></tbody>
+          <thead><tr><th>Nom</th><th>Categoria</th><th>Estat</th><th>Data</th><th>Entitat</th><th>Notes</th><th>Fitxers</th><th style="text-align:center">Accions</th></tr></thead>
+          <tbody id="taulaDocumentsPersonalsCos"><tr><td colspan="8" class="buit"><div class="buit-icon">📂</div><div class="buit-text">Carregant...</div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -833,15 +834,21 @@
             <option value="Identitat">Identitat</option>
             <option value="Patrimoni">Patrimoni</option>
             <option value="Assegurances">Assegurances</option>
+            <option value="Queixa / petició personal">Queixa / petició personal</option>
             <option value="Altres">Altres</option>
           </select>
         </div>
         <div class="form-grup"><label class="form-label">Data document</label><input type="date" class="form-control" id="dpDataDocument"></div>
         <div class="form-grup full"><label class="form-label">Entitat / organisme</label><input type="text" class="form-control" id="dpEntitat" placeholder="Ex: Generalitat, INSS, Ajuntament..."></div>
+        <div class="form-grup">
+          <label class="form-label">Estat</label>
+          <label style="display:flex;align-items:center;gap:8px;padding-top:10px"><input type="checkbox" id="dpSolucionat" onchange="actualitzarCampsSolucio()"> ✅ Solucionat</label>
+        </div>
+        <div class="form-grup" id="dpDataSolucioGrup" style="display:none"><label class="form-label">Data de solució</label><input type="date" class="form-control" id="dpDataSolucio"></div>
         <div class="form-grup full">
-          <label class="form-label">Fitxer <span>*</span></label>
-          <div class="upload-zona" onclick="document.getElementById('dpDocument').click()"><div>📎 Fes clic per adjuntar el document</div><div class="upload-text">PDF, imatge o Word</div><div class="upload-nom" id="dpNomDocument"></div></div>
-          <input type="file" id="dpDocument" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic" onchange="document.getElementById('dpNomDocument').textContent = this.files[0]?.name ? '✓ ' + this.files[0].name : ''">
+          <label class="form-label">Fitxers <span>*</span></label>
+          <div class="upload-zona" onclick="document.getElementById('dpDocument').click()"><div>📎 Fes clic per afegir documents</div><div class="upload-text">Pots seleccionar diversos fitxers; els nous no substituiran els anteriors</div><div class="upload-nom" id="dpNomDocument"></div></div>
+          <input type="file" id="dpDocument" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic" onchange="mostrarFitxersDocumentPersonal()">
           <div id="dpDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
         </div>
         <div class="form-grup full"><label class="form-label">Notes</label><textarea class="form-control" id="dpNotes" placeholder="Observacions, vigència, on s'ha presentat..."></textarea></div>
@@ -1918,17 +1925,18 @@ function renderDocumentsPersonals(llista) {
   const info = document.getElementById('documentsPersonalsInfo');
   if (info) info.textContent = llista.length + (llista.length === 1 ? ' document' : ' documents');
   if (!llista.length) {
-    cos.innerHTML = '<tr><td colspan="7" class="buit"><div class="buit-icon">📂</div><div class="buit-text">Cap document personal registrat</div></td></tr>';
+    cos.innerHTML = '<tr><td colspan="8" class="buit"><div class="buit-icon">📂</div><div class="buit-text">Cap document personal registrat</div></td></tr>';
     return;
   }
   cos.innerHTML = llista.map(d => `
-    <tr>
+    <tr style="${d.categoria === 'Queixa / petició personal' ? 'background:#fff8e1;border-left:4px solid var(--gold)' : ''}">
       <td><div style="font-weight:500">${esc(d.nom)}</div></td>
-      <td><span class="badge badge-pers">${esc(d.categoria || 'Administratiu')}</span></td>
+      <td><span class="badge badge-pers" style="${d.categoria === 'Queixa / petició personal' ? 'background:#fff0b8;color:#7a5200' : ''}">${d.categoria === 'Queixa / petició personal' ? '📣 ' : ''}${esc(d.categoria || 'Administratiu')}</span></td>
+      <td style="white-space:nowrap">${d.solucionat ? `<span class="badge" style="background:#dff4e8;color:#176b45">✅ Solucionat<br>${d.data_solucio ? formatData(d.data_solucio) : ''}</span>` : '<span class="badge" style="background:#fff0e8;color:#9a4b1f">⏳ Pendent</span>'}</td>
       <td style="white-space:nowrap;color:var(--gray-3)">${d.data_document ? formatData(d.data_document) : '—'}</td>
       <td style="color:var(--gray-4);font-size:.85rem">${esc(d.entitat || '') || '—'}</td>
       <td style="max-width:260px;color:var(--gray-4);font-size:.85rem">${d.notes ? esc(d.notes.substring(0,90)) + (d.notes.length > 90 ? '…' : '') : '—'}</td>
-      <td>${d.document_url ? `<a href="${d.document_url}" target="_blank" class="doc-link">📎 ${esc(d.document_nom || 'Document')}</a>` : '—'}</td>
+      <td>${(d.fitxers || []).length ? (d.fitxers || []).map(f => `<div style="margin-bottom:4px"><a href="${f.document_url}" target="_blank" class="doc-link">📎 ${esc(f.document_nom || 'Document')}</a></div>`).join('') : '—'}</td>
       <td class="accions">
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDocumentPersonal(${d.id})">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="eliminarDocumentPersonal(${d.id})">🗑</button>
@@ -1952,9 +1960,14 @@ function obrirModalDocumentPersonal(d = null) {
   document.getElementById('dpDataDocument').value = d ? (d.data_document || '') : '';
   document.getElementById('dpEntitat').value = d ? (d.entitat || '') : '';
   document.getElementById('dpNotes').value = d ? (d.notes || '') : '';
+  document.getElementById('dpSolucionat').checked = !!(d && d.solucionat);
+  document.getElementById('dpDataSolucio').value = d ? (d.data_solucio || '') : '';
+  actualitzarCampsSolucio();
   document.getElementById('dpDocument').value = '';
   document.getElementById('dpNomDocument').textContent = '';
-  document.getElementById('dpDocActual').innerHTML = d && d.document_url ? 'Document actual: <a href="' + d.document_url + '" target="_blank" style="color:var(--blue)">' + esc(d.document_nom || 'veure') + '</a>' : '';
+  document.getElementById('dpDocActual').innerHTML = d && (d.fitxers || []).length
+    ? '<strong>Fitxers guardats:</strong><br>' + d.fitxers.map(f => '<a href="' + f.document_url + '" target="_blank" style="color:var(--blue)">📎 ' + esc(f.document_nom || 'veure') + '</a>').join('<br>')
+    : '';
   document.getElementById('modalDocumentPersonalOverlay').classList.add('actiu');
 }
 
@@ -1970,9 +1983,9 @@ function editarDocumentPersonal(id) {
 
 async function guardarDocumentPersonal() {
   const nom = document.getElementById('dpNom').value.trim();
-  const fitxer = document.getElementById('dpDocument').files[0];
+  const fitxers = Array.from(document.getElementById('dpDocument').files || []);
   if (!nom) { toast('Indica el nom del document', 'error'); return; }
-  if (!documentPersonalEdId && !fitxer) { toast('Adjunta el fitxer del document', 'error'); return; }
+  if (!documentPersonalEdId && !fitxers.length) { toast('Adjunta el fitxer del document', 'error'); return; }
   const btn = document.getElementById('btnGuardarDocumentPersonal');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardant...';
   const fd = new FormData();
@@ -1981,7 +1994,9 @@ async function guardarDocumentPersonal() {
   fd.append('data_document', document.getElementById('dpDataDocument').value);
   fd.append('entitat', document.getElementById('dpEntitat').value);
   fd.append('notes', document.getElementById('dpNotes').value);
-  if (fitxer) fd.append('document', fitxer);
+  fd.append('solucionat', document.getElementById('dpSolucionat').checked ? 'true' : 'false');
+  fd.append('data_solucio', document.getElementById('dpDataSolucio').value);
+  fitxers.forEach(fitxer => fd.append('documents', fitxer));
   try {
     const url = documentPersonalEdId ? '/api/documents-personals/' + documentPersonalEdId : '/api/documents-personals';
     const method = documentPersonalEdId ? 'PUT' : 'POST';
@@ -1996,6 +2011,19 @@ async function guardarDocumentPersonal() {
     btn.disabled = false;
     btn.innerHTML = '💾 Guardar';
   }
+}
+
+function actualitzarCampsSolucio() {
+  const solucionat = document.getElementById('dpSolucionat').checked;
+  document.getElementById('dpDataSolucioGrup').style.display = solucionat ? 'block' : 'none';
+  if (solucionat && !document.getElementById('dpDataSolucio').value) {
+    document.getElementById('dpDataSolucio').value = new Date().toISOString().slice(0, 10);
+  }
+}
+
+function mostrarFitxersDocumentPersonal() {
+  const fitxers = Array.from(document.getElementById('dpDocument').files || []);
+  document.getElementById('dpNomDocument').innerHTML = fitxers.map(f => '✓ ' + esc(f.name)).join('<br>');
 }
 
 async function eliminarDocumentPersonal(id) {
