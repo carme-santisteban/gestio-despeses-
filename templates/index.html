@@ -634,7 +634,7 @@
     <div class="page-header">
       <div><div class="page-title">Documents personals <span style="color:var(--gold)">· Arxiu privat</span></div></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input type="text" class="cerca-input" placeholder="Cercar document..." id="cercaDocumentsPersonals" oninput="filtrarDocumentsPersonals()" style="width:230px">
+        <input type="text" class="cerca-input" placeholder="Cercar títol, fitxer, entitat..." id="cercaDocumentsPersonals" oninput="filtrarDocumentsPersonals()" style="width:260px">
         <select class="form-control" id="filtreCategoriaDocuments" onchange="carregarDocumentsPersonals()" style="width:170px">
           <option value="">Totes les categories</option>
           <option value="Administratiu">Administratiu</option>
@@ -645,6 +645,14 @@
           <option value="Queixa / petició personal">Queixa / petició personal</option>
           <option value="Altres">Altres</option>
         </select>
+        <select class="form-control" id="filtreEstatDocuments" onchange="filtrarDocumentsPersonals()" style="width:145px">
+          <option value="">Tots els estats</option>
+          <option value="pendent">Pendents</option>
+          <option value="solucionat">Solucionats</option>
+        </select>
+        <label style="font-size:.75rem;color:var(--gray-3)">Des de <input type="date" class="form-control" id="filtreDataDesDocuments" onchange="filtrarDocumentsPersonals()" style="width:145px"></label>
+        <label style="font-size:.75rem;color:var(--gray-3)">Fins a <input type="date" class="form-control" id="filtreDataFinsDocuments" onchange="filtrarDocumentsPersonals()" style="width:145px"></label>
+        <button class="btn btn-outline" onclick="netejarFiltresDocumentsPersonals()" title="Netejar la cerca i els filtres">Netejar filtres</button>
         <button class="btn btn-outline" style="background:var(--navy);color:white" onclick="obrirModalPinDocuments()">🔒 Contrasenya</button>
         <button class="btn btn-primary" onclick="obrirModalDocumentPersonal()">+ Nou document</button>
       </div>
@@ -1936,7 +1944,7 @@ function renderDocumentsPersonals(llista) {
       <td style="white-space:nowrap;color:var(--gray-3)">${d.data_document ? formatData(d.data_document) : '—'}</td>
       <td style="color:var(--gray-4);font-size:.85rem">${esc(d.entitat || '') || '—'}</td>
       <td style="max-width:260px;color:var(--gray-4);font-size:.85rem">${d.notes ? esc(d.notes.substring(0,90)) + (d.notes.length > 90 ? '…' : '') : '—'}</td>
-      <td>${(d.fitxers || []).length ? (d.fitxers || []).map(f => `<div style="margin-bottom:5px;display:flex;align-items:center;gap:5px"><a href="${f.document_url}" target="_blank" class="doc-link">📎 ${esc(f.document_nom || 'Document')}</a><button class="btn btn-sm btn-danger" style="padding:2px 6px" title="Eliminar només aquest arxiu" onclick="eliminarFitxerDocumentPersonal(${d.id},${f.id === null ? 'null' : f.id},${f.principal ? 'true' : 'false'})">🗑</button></div>`).join('') : '—'}</td>
+      <td>${(d.fitxers || []).length ? (d.fitxers || []).map(f => `<div style="margin-bottom:5px;display:flex;align-items:center;gap:5px"><a href="${f.document_url}" target="_blank" class="doc-link">📎 ${esc(f.document_nom || 'Document')}</a><button class="btn btn-sm btn-outline" style="padding:2px 6px" title="Modificar el nom de l'arxiu" onclick="reanomenarFitxerDocumentPersonal(${d.id},${f.id === null ? 'null' : f.id},${f.principal ? 'true' : 'false'})">✏️</button><button class="btn btn-sm btn-danger" style="padding:2px 6px" title="Eliminar només aquest arxiu" onclick="eliminarFitxerDocumentPersonal(${d.id},${f.id === null ? 'null' : f.id},${f.principal ? 'true' : 'false'})">🗑</button></div>`).join('') : '—'}</td>
       <td class="accions">
         <button class="btn btn-sm btn-outline" title="Afegir arxius sense substituir els existents" onclick="afegirFitxersDocumentPersonal(${d.id})">📎+</button>
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDocumentPersonal(${d.id})">✏️</button>
@@ -1947,10 +1955,55 @@ function renderDocumentsPersonals(llista) {
 
 function filtrarDocumentsPersonals() {
   const q = normalitzarText(document.getElementById('cercaDocumentsPersonals').value);
-  if (!q) { renderDocumentsPersonals(documentsPersonals); return; }
-  renderDocumentsPersonals(documentsPersonals.filter(d => normalitzarText([
-    d.nom, d.categoria, d.entitat, d.notes, d.document_nom
-  ].join(' ')).includes(q)));
+  const estat = document.getElementById('filtreEstatDocuments').value;
+  const dataDes = document.getElementById('filtreDataDesDocuments').value;
+  const dataFins = document.getElementById('filtreDataFinsDocuments').value;
+  renderDocumentsPersonals(documentsPersonals.filter(d => {
+    const nomsFitxers = (d.fitxers || []).map(f => f.document_nom || '').join(' ');
+    const coincideixText = !q || normalitzarText([
+      d.nom, d.categoria, d.entitat, d.notes, nomsFitxers
+    ].join(' ')).includes(q);
+    const coincideixEstat = !estat || (estat === 'solucionat' ? !!d.solucionat : !d.solucionat);
+    const data = d.data_document || '';
+    const coincideixDes = !dataDes || (data && data >= dataDes);
+    const coincideixFins = !dataFins || (data && data <= dataFins);
+    return coincideixText && coincideixEstat && coincideixDes && coincideixFins;
+  }));
+}
+
+function netejarFiltresDocumentsPersonals() {
+  document.getElementById('cercaDocumentsPersonals').value = '';
+  document.getElementById('filtreCategoriaDocuments').value = '';
+  document.getElementById('filtreEstatDocuments').value = '';
+  document.getElementById('filtreDataDesDocuments').value = '';
+  document.getElementById('filtreDataFinsDocuments').value = '';
+  carregarDocumentsPersonals();
+}
+
+async function reanomenarFitxerDocumentPersonal(documentId, fitxerId, principal) {
+  const registre = documentsPersonals.find(d => d.id === documentId);
+  const fitxer = registre && (registre.fitxers || []).find(f => principal ? f.principal : f.id === fitxerId);
+  const nomActual = fitxer ? (fitxer.document_nom || 'Document') : 'Document';
+  const nomNou = prompt("Nou nom de l'arxiu:", nomActual);
+  if (nomNou === null) return;
+  const nomNet = nomNou.trim();
+  if (!nomNet) { toast("El nom de l'arxiu no pot quedar buit", 'error'); return; }
+  const url = principal
+    ? '/api/documents-personals/' + documentId + '/fitxer-principal/nom'
+    : '/api/documents-personals/adjunts/' + fitxerId + '/nom';
+  try {
+    const r = await fetch(url, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({nom: nomNet})
+    });
+    const resposta = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(resposta.error || "No s'ha pogut modificar el nom");
+    toast("Nom de l'arxiu modificat", 'ok');
+    await carregarDocumentsPersonals();
+  } catch(e) {
+    toast(e.message || "Error modificant el nom de l'arxiu", 'error');
+  }
 }
 
 function obrirModalDocumentPersonal(d = null) {

@@ -1632,6 +1632,18 @@ def delete_document_personal_adjunt(adjunt_id):
     db.session.commit()
     return jsonify({'ok': True})
 
+@app.route('/api/documents-personals/adjunts/<int:adjunt_id>/nom', methods=['PUT'])
+def rename_document_personal_adjunt(adjunt_id):
+    if not documents_personals_autoritzat():
+        return jsonify({'error': 'No autoritzat'}), 401
+    adjunt = DocumentPersonalAdjunt.query.get_or_404(adjunt_id)
+    nom = ((request.get_json(silent=True) or {}).get('nom') or '').strip()
+    if not nom:
+        return jsonify({'error': "Cal indicar un nom d'arxiu"}), 400
+    adjunt.document_nom = nom[:200]
+    db.session.commit()
+    return jsonify({'ok': True, 'fitxer': adjunt.to_dict()})
+
 @app.route('/api/documents-personals/<int:id>/fitxer-principal', methods=['DELETE'])
 def delete_document_personal_fitxer_principal(id):
     if not documents_personals_autoritzat():
@@ -1639,6 +1651,20 @@ def delete_document_personal_fitxer_principal(id):
     doc = DocumentPersonal.query.get_or_404(id)
     doc.document_url = None
     doc.document_nom = None
+    db.session.commit()
+    return jsonify({'ok': True, 'document': doc.to_dict()})
+
+@app.route('/api/documents-personals/<int:id>/fitxer-principal/nom', methods=['PUT'])
+def rename_document_personal_fitxer_principal(id):
+    if not documents_personals_autoritzat():
+        return jsonify({'error': 'No autoritzat'}), 401
+    doc = DocumentPersonal.query.get_or_404(id)
+    if not doc.document_url:
+        return jsonify({'error': 'Aquest registre no té fitxer principal'}), 404
+    nom = ((request.get_json(silent=True) or {}).get('nom') or '').strip()
+    if not nom:
+        return jsonify({'error': "Cal indicar un nom d'arxiu"}), 400
+    doc.document_nom = nom[:200]
     db.session.commit()
     return jsonify({'ok': True, 'document': doc.to_dict()})
 
