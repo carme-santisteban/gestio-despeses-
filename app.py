@@ -417,7 +417,7 @@ class DocumentPersonal(db.Model):
     data_document  = db.Column(db.Date)
     entitat        = db.Column(db.String(200))
     notes          = db.Column(db.Text)
-    document_url   = db.Column(db.String(500), nullable=False)
+    document_url   = db.Column(db.String(500), nullable=True)
     document_nom   = db.Column(db.String(200))
     solucionat     = db.Column(db.Boolean, default=False)
     data_solucio   = db.Column(db.Date)
@@ -537,6 +537,7 @@ with app.app_context():
         db.session.execute(_text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS solucionat BOOLEAN DEFAULT FALSE'))
         db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS data_solucio DATE'))
+        db.session.execute(_text('ALTER TABLE documents_personals ALTER COLUMN document_url DROP NOT NULL'))
         db.session.execute(_text('''
             CREATE TABLE IF NOT EXISTS documents_personals_adjunts (
                 id SERIAL PRIMARY KEY,
@@ -1630,6 +1631,16 @@ def delete_document_personal_adjunt(adjunt_id):
     db.session.delete(adjunt)
     db.session.commit()
     return jsonify({'ok': True})
+
+@app.route('/api/documents-personals/<int:id>/fitxer-principal', methods=['DELETE'])
+def delete_document_personal_fitxer_principal(id):
+    if not documents_personals_autoritzat():
+        return jsonify({'error': 'No autoritzat'}), 401
+    doc = DocumentPersonal.query.get_or_404(id)
+    doc.document_url = None
+    doc.document_nom = None
+    db.session.commit()
+    return jsonify({'ok': True, 'document': doc.to_dict()})
 
 @app.route('/api/bancs/fotografies', methods=['GET'])
 def get_fotografies():

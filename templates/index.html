@@ -1936,7 +1936,7 @@ function renderDocumentsPersonals(llista) {
       <td style="white-space:nowrap;color:var(--gray-3)">${d.data_document ? formatData(d.data_document) : '—'}</td>
       <td style="color:var(--gray-4);font-size:.85rem">${esc(d.entitat || '') || '—'}</td>
       <td style="max-width:260px;color:var(--gray-4);font-size:.85rem">${d.notes ? esc(d.notes.substring(0,90)) + (d.notes.length > 90 ? '…' : '') : '—'}</td>
-      <td>${(d.fitxers || []).length ? (d.fitxers || []).map(f => `<div style="margin-bottom:4px"><a href="${f.document_url}" target="_blank" class="doc-link">📎 ${esc(f.document_nom || 'Document')}</a></div>`).join('') : '—'}</td>
+      <td>${(d.fitxers || []).length ? (d.fitxers || []).map(f => `<div style="margin-bottom:5px;display:flex;align-items:center;gap:5px"><a href="${f.document_url}" target="_blank" class="doc-link">📎 ${esc(f.document_nom || 'Document')}</a><button class="btn btn-sm btn-danger" style="padding:2px 6px" title="Eliminar només aquest arxiu" onclick="eliminarFitxerDocumentPersonal(${d.id},${f.id === null ? 'null' : f.id},${f.principal ? 'true' : 'false'})">🗑</button></div>`).join('') : '—'}</td>
       <td class="accions">
         <button class="btn btn-sm btn-outline" title="Afegir arxius sense substituir els existents" onclick="afegirFitxersDocumentPersonal(${d.id})">📎+</button>
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDocumentPersonal(${d.id})">✏️</button>
@@ -2049,6 +2049,22 @@ function afegirFitxersDocumentPersonal(id) {
     }
   };
   input.click();
+}
+
+async function eliminarFitxerDocumentPersonal(documentId, fitxerId, principal) {
+  if (!confirm('Vols eliminar només aquest arxiu? La resta del registre i dels adjunts es conservaran.')) return;
+  const url = principal
+    ? '/api/documents-personals/' + documentId + '/fitxer-principal'
+    : '/api/documents-personals/adjunts/' + fitxerId;
+  try {
+    const r = await fetch(url, {method:'DELETE'});
+    const resposta = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(resposta.error || 'No s’ha pogut eliminar l’arxiu');
+    toast('Arxiu eliminat; els altres es conserven', 'ok');
+    await carregarDocumentsPersonals();
+  } catch(e) {
+    toast(e.message || 'Error eliminant l’arxiu', 'error');
+  }
 }
 
 async function eliminarDocumentPersonal(id) {
