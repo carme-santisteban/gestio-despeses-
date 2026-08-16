@@ -1938,6 +1938,7 @@ function renderDocumentsPersonals(llista) {
       <td style="max-width:260px;color:var(--gray-4);font-size:.85rem">${d.notes ? esc(d.notes.substring(0,90)) + (d.notes.length > 90 ? '…' : '') : '—'}</td>
       <td>${(d.fitxers || []).length ? (d.fitxers || []).map(f => `<div style="margin-bottom:4px"><a href="${f.document_url}" target="_blank" class="doc-link">📎 ${esc(f.document_nom || 'Document')}</a></div>`).join('') : '—'}</td>
       <td class="accions">
+        <button class="btn btn-sm btn-outline" title="Afegir arxius sense substituir els existents" onclick="afegirFitxersDocumentPersonal(${d.id})">📎+</button>
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDocumentPersonal(${d.id})">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="eliminarDocumentPersonal(${d.id})">🗑</button>
       </td>
@@ -2024,6 +2025,30 @@ function actualitzarCampsSolucio() {
 function mostrarFitxersDocumentPersonal() {
   const fitxers = Array.from(document.getElementById('dpDocument').files || []);
   document.getElementById('dpNomDocument').innerHTML = fitxers.map(f => '✓ ' + esc(f.name)).join('<br>');
+}
+
+function afegirFitxersDocumentPersonal(id) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png,.heic';
+  input.onchange = async () => {
+    const fitxers = Array.from(input.files || []);
+    if (!fitxers.length) return;
+    const fd = new FormData();
+    fitxers.forEach(fitxer => fd.append('documents', fitxer));
+    try {
+      toast('Afegint ' + fitxers.length + (fitxers.length === 1 ? ' arxiu...' : ' arxius...'), 'ok');
+      const r = await fetch('/api/documents-personals/' + id + '/adjunts', {method:'POST', body:fd});
+      const resposta = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(resposta.error || 'No s’han pogut afegir els arxius');
+      toast(fitxers.length === 1 ? 'Arxiu afegit' : fitxers.length + ' arxius afegits', 'ok');
+      await carregarDocumentsPersonals();
+    } catch(e) {
+      toast(e.message || 'Error afegint els arxius', 'error');
+    }
+  };
+  input.click();
 }
 
 async function eliminarDocumentPersonal(id) {

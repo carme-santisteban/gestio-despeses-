@@ -537,6 +537,15 @@ with app.app_context():
         db.session.execute(_text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS solucionat BOOLEAN DEFAULT FALSE'))
         db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS data_solucio DATE'))
+        db.session.execute(_text('''
+            CREATE TABLE IF NOT EXISTS documents_personals_adjunts (
+                id SERIAL PRIMARY KEY,
+                document_personal_id INTEGER NOT NULL REFERENCES documents_personals(id) ON DELETE CASCADE,
+                document_url VARCHAR(500) NOT NULL,
+                document_nom VARCHAR(200),
+                creat_el TIMESTAMP DEFAULT NOW()
+            )
+        '''))
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -1575,6 +1584,31 @@ def update_document_personal(id):
             ))
         db.session.commit()
         return jsonify(doc.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/documents-personals/<int:id>/adjunts', methods=['POST'])
+def add_document_personal_adjunts(id):
+    if not documents_personals_autoritzat():
+        return jsonify({'error': 'No autoritzat'}), 401
+    doc = DocumentPersonal.query.get_or_404(id)
+    fitxers = uploaded_documents()
+    if not fitxers:
+        return jsonify({'error': 'Cal seleccionar almenys un fitxer'}), 400
+    try:
+        afegits = []
+        for fitxer in fitxers:
+            result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/documents-personals')
+            adjunt = DocumentPersonalAdjunt(
+                document_personal_id=doc.id,
+                document_url=result.get('secure_url'),
+                document_nom=fitxer.filename,
+            )
+            db.session.add(adjunt)
+            afegits.append(adjunt)
+        db.session.commit()
+        return jsonify({'ok': True, 'afegits': len(afegits), 'document': doc.to_dict()}), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
