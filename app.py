@@ -18,7 +18,7 @@ import cloudinary.api
 
 app = Flask(__name__)
 CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
-APP_VERSION = '2026-08-16-documents-vista-previa'
+APP_VERSION = '2026-08-16-vista-previa-despeses'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 
@@ -1447,6 +1447,16 @@ def delete_despesa_document(doc_id):
     db.session.delete(doc)
     db.session.commit()
     return jsonify({'ok': True})
+
+@app.route('/api/despeses/<int:despesa_id>/fitxer-principal/veure', methods=['GET'])
+def preview_despesa_fitxer_principal(despesa_id):
+    despesa = Despesa.query.get_or_404(despesa_id)
+    return _preview_document_personal(despesa.document_url, despesa.document_nom)
+
+@app.route('/api/despeses/documents/<int:doc_id>/veure', methods=['GET'])
+def preview_despesa_document(doc_id):
+    doc = DespesaDocument.query.get_or_404(doc_id)
+    return _preview_document_personal(doc.document_url, doc.document_nom)
 
 @app.route('/api/factures/<int:factura_id>/documents', methods=['GET'])
 def get_factura_documents(factura_id):

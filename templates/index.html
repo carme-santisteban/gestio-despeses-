@@ -1386,7 +1386,7 @@ function renderTaula(llista) {
 function docsDespesa(d) {
   const docs = Array.isArray(d && d.documents) ? d.documents : [];
   if (docs.length) return docs;
-  return d && d.document_url ? [{ document_url: d.document_url, document_nom: d.document_nom || 'Doc' }] : [];
+  return d && d.document_url ? [{ document_url: d.document_url, document_nom: d.document_nom || 'Doc', principal: true }] : [];
 }
 
 function htmlDocsDespesa(d, compacte = false) {
@@ -1395,7 +1395,10 @@ function htmlDocsDespesa(d, compacte = false) {
   return docs.map(doc => {
     const nom = esc(doc.document_nom || 'Doc');
     const text = compacte ? '📎' : '📎 ' + nom;
-    return `<a href="${doc.document_url}" target="_blank" class="doc-link" title="${nom}">${text}</a>`;
+    const urlVista = doc.principal
+      ? '/api/despeses/' + d.id + '/fitxer-principal/veure'
+      : '/api/despeses/documents/' + doc.id + '/veure';
+    return `<span style="display:inline-flex;align-items:center;gap:5px"><a href="${doc.document_url}" target="_blank" class="doc-link" title="Descarregar: ${nom}">${text}</a><a href="${urlVista}" target="_blank" class="btn btn-sm btn-outline" style="padding:2px 6px;text-decoration:none" title="Veure sense descarregar">👁️</a></span>`;
   }).join(compacte ? ' ' : '<br>');
 }
 
