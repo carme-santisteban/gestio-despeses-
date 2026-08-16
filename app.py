@@ -18,7 +18,7 @@ import cloudinary.api
 
 app = Flask(__name__)
 CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
-APP_VERSION = '2026-08-16-documents-filtres-i-noms'
+APP_VERSION = '2026-08-16-documents-vista-previa'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 
@@ -1667,6 +1667,35 @@ def rename_document_personal_fitxer_principal(id):
     doc.document_nom = nom[:200]
     db.session.commit()
     return jsonify({'ok': True, 'document': doc.to_dict()})
+
+def _preview_document_personal(url, nom):
+    if not url:
+        abort(404)
+    try:
+        with urllib.request.urlopen(url, timeout=20) as resposta:
+            dades = resposta.read()
+            tipus = resposta.headers.get_content_type()
+        tipus_detectat = mimetypes.guess_type(nom or '')[0]
+        if not tipus or tipus == 'application/octet-stream':
+            tipus = tipus_detectat or 'application/octet-stream'
+        return respond_document(nom or 'document', tipus, dades)
+    except Exception as exc:
+        print(f'Error vista prèvia document personal: {exc}')
+        abort(502)
+
+@app.route('/api/documents-personals/<int:id>/fitxer-principal/veure', methods=['GET'])
+def preview_document_personal_fitxer_principal(id):
+    if not documents_personals_autoritzat():
+        return jsonify({'error': 'No autoritzat'}), 401
+    doc = DocumentPersonal.query.get_or_404(id)
+    return _preview_document_personal(doc.document_url, doc.document_nom)
+
+@app.route('/api/documents-personals/adjunts/<int:adjunt_id>/veure', methods=['GET'])
+def preview_document_personal_adjunt(adjunt_id):
+    if not documents_personals_autoritzat():
+        return jsonify({'error': 'No autoritzat'}), 401
+    adjunt = DocumentPersonalAdjunt.query.get_or_404(adjunt_id)
+    return _preview_document_personal(adjunt.document_url, adjunt.document_nom)
 
 @app.route('/api/bancs/fotografies', methods=['GET'])
 def get_fotografies():
