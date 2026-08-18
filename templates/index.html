@@ -1391,8 +1391,9 @@ function docsDespesa(d) {
 
 function htmlDocsDespesa(d, compacte = false) {
   const docs = docsDespesa(d);
-  if (!docs.length) return '<span style="color:var(--gray-2)">—</span>';
-  return docs.map(doc => {
+  const botoAfegir = `<button type="button" class="btn btn-sm btn-outline" onclick="seleccionarDocsDespesaDirecte(${d.id}, event)" style="padding:2px 7px;margin-left:4px" title="Afegir factura o un altre document">＋</button>`;
+  if (!docs.length) return '<span style="color:var(--gray-2)">—</span>' + botoAfegir;
+  const llista = docs.map(doc => {
     const nom = esc(doc.document_nom || 'Doc');
     const text = compacte ? '📎' : '📎 ' + nom;
     const urlVista = doc.principal
@@ -1400,6 +1401,35 @@ function htmlDocsDespesa(d, compacte = false) {
       : '/api/despeses/documents/' + doc.id + '/veure';
     return `<span style="display:inline-flex;align-items:center;gap:5px"><a href="${doc.document_url}" target="_blank" class="doc-link" title="Descarregar: ${nom}">${text}</a><a href="${urlVista}" target="_blank" class="btn btn-sm btn-outline" style="padding:2px 6px;text-decoration:none" title="Veure sense descarregar">👁️</a></span>`;
   }).join(compacte ? ' ' : '<br>');
+  return llista + botoAfegir;
+}
+
+function seleccionarDocsDespesaDirecte(despesaId, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.accept = '.pdf,.jpg,.jpeg,.png,.heic,.doc,.docx';
+  input.onchange = async () => {
+    const fitxers = Array.from(input.files || []);
+    if (!fitxers.length) return;
+    const fd = new FormData();
+    fitxers.forEach(fitxer => fd.append('documents', fitxer));
+    try {
+      toast('Pujant ' + (fitxers.length === 1 ? 'el document…' : fitxers.length + ' documents…'), 'ok');
+      const r = await fetch('/api/despeses/' + despesaId + '/documents', { method: 'POST', body: fd });
+      const resultat = await r.json();
+      if (!r.ok) throw new Error(resultat.error || 'No s’ha pogut pujar');
+      toast((fitxers.length === 1 ? 'Document afegit' : fitxers.length + ' documents afegits') + ' ✓', 'ok');
+      await carregarDespeses();
+    } catch (err) {
+      toast('Error afegint el document: ' + err.message, 'error');
+    }
+  };
+  input.click();
 }
 
 function actualitzarKPIs(llista) {

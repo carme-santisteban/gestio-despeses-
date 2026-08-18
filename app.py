@@ -767,15 +767,22 @@ def update_despesa(id):
 
     cloudinary_error = None
     docs_afegits = 0
-    if fitxers:
+    fitxers_extres = fitxers
+    # En editar una despesa, no substituïm mai el document principal existent.
+    # El primer fitxer només esdevé principal quan la despesa encara no en té cap;
+    # la resta s'afegeixen a despesa_documents.
+    if fitxers and not despesa.document_url:
         try:
             result = pujar_arxiu_cloudinary(fitxers[0], 'gestiodespeses')
             despesa.document_url = result.get('secure_url')
             despesa.document_nom = fitxers[0].filename
             docs_afegits += 1
+            fitxers_extres = fitxers[1:]
         except Exception as e:
             cloudinary_error = str(e)
-        for fitxer_extra in fitxers[1:]:
+            fitxers_extres = fitxers[1:]
+    if fitxers_extres:
+        for fitxer_extra in fitxers_extres:
             try:
                 result_extra = pujar_arxiu_cloudinary(fitxer_extra, 'gestiodespeses/despeses')
                 db.session.add(DespesaDocument(
