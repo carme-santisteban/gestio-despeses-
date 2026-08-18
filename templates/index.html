@@ -1377,6 +1377,7 @@ function renderTaula(llista) {
       <td class="import-cell">${formatImport(d.import_)}</td>
       <td>${htmlDocsDespesa(d)}</td>
       <td class="accions">
+        <button type="button" class="btn btn-sm btn-primary" onclick="seleccionarDocsDespesaDirecte(${d.id}, event)" title="Afegir factura o un altre document" style="white-space:nowrap">📎 ＋</button>
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})" title="Editar">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="eliminarDespesa(${d.id})" title="Eliminar">🗑</button>
       </td>
