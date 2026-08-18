@@ -145,7 +145,29 @@
 
     .doc-link { display: inline-flex; align-items: center; gap: 4px; font-size: .8rem; color: var(--blue); text-decoration: none; }
     .doc-link:hover { color: var(--gold); }
-    .accions { display: flex; gap: 6px; justify-content: center; }
+    .despeses-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #taulaDespeses { min-width: 1220px; table-layout: fixed; }
+    #taulaDespeses th:nth-child(1), #taulaDespeses td:nth-child(1) { width: 95px; }
+    #taulaDespeses th:nth-child(2), #taulaDespeses td:nth-child(2) { width: 205px; }
+    #taulaDespeses th:nth-child(3), #taulaDespeses td:nth-child(3) { width: 130px; }
+    #taulaDespeses th:nth-child(4), #taulaDespeses td:nth-child(4) { width: 125px; }
+    #taulaDespeses th:nth-child(5), #taulaDespeses td:nth-child(5) { width: 85px; }
+    #taulaDespeses th:nth-child(6), #taulaDespeses td:nth-child(6) { width: 135px; }
+    #taulaDespeses th:nth-child(7), #taulaDespeses td:nth-child(7) { width: 105px; }
+    #taulaDespeses th:nth-child(8), #taulaDespeses td:nth-child(8) { width: 195px; }
+    #taulaDespeses th:nth-child(9), #taulaDespeses td:nth-child(9) {
+      width: 145px;
+      position: sticky;
+      right: 0;
+      z-index: 2;
+      background: var(--white);
+      box-shadow: -8px 0 12px rgba(15,31,61,.08);
+    }
+    #taulaDespeses th:nth-child(9) { background: var(--navy); z-index: 3; }
+    #taulaDespeses tbody tr:hover td:nth-child(9) { background: var(--cream); }
+    #taulaDespeses .doc-link { display: inline; overflow-wrap: anywhere; word-break: break-word; line-height: 1.25; }
+    td.accions { text-align: center; white-space: nowrap; }
+    .accions-grup { display: flex; gap: 6px; align-items: center; justify-content: center; }
     .venciments-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .taula-venciments { min-width: 1180px; table-layout: fixed; }
     .taula-venciments th:nth-child(1), .taula-venciments td:nth-child(1) { width: 150px; }
@@ -353,7 +375,7 @@
         <h2>Llistat de despeses</h2>
         <input type="text" class="cerca-input" placeholder="Cercar…" id="cercaInput" oninput="filtrarTaula()">
       </div>
-      <div style="overflow-x:auto">
+      <div class="despeses-scroll">
         <table id="taulaDespeses">
           <thead><tr><th>Data</th><th>Descripció</th><th>Categoria</th><th>Subapartat</th><th>Tipus</th><th>Proveïdor</th><th>Import</th><th>Doc.</th><th style="text-align:center">Accions</th></tr></thead>
           <tbody id="taulaCos"><tr><td colspan="9" class="buit"><div class="buit-icon">📊</div><div class="buit-text">Carregant…</div></td></tr></tbody>
@@ -1376,11 +1398,11 @@ function renderTaula(llista) {
       <td style="color:var(--gray-4);font-size:.85rem">${esc(d.proveidor)||'—'}</td>
       <td class="import-cell">${formatImport(d.import_)}</td>
       <td>${htmlDocsDespesa(d)}</td>
-      <td class="accions">
+      <td class="accions"><div class="accions-grup">
         <button type="button" class="btn btn-sm btn-primary" onclick="seleccionarDocsDespesaDirecte(${d.id}, event)" title="Afegir factura o un altre document" style="white-space:nowrap">📎 ＋</button>
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDespesa(${d.id})" title="Editar">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="eliminarDespesa(${d.id})" title="Eliminar">🗑</button>
-      </td>
+      </div></td>
     </tr>`).join('');
 }
 
@@ -1392,8 +1414,7 @@ function docsDespesa(d) {
 
 function htmlDocsDespesa(d, compacte = false) {
   const docs = docsDespesa(d);
-  const botoAfegir = `<button type="button" class="btn btn-sm btn-outline" onclick="seleccionarDocsDespesaDirecte(${d.id}, event)" style="padding:2px 7px;margin-left:4px" title="Afegir factura o un altre document">＋</button>`;
-  if (!docs.length) return '<span style="color:var(--gray-2)">—</span>' + botoAfegir;
+  if (!docs.length) return '<span style="color:var(--gray-2)">—</span>';
   const llista = docs.map(doc => {
     const nom = esc(doc.document_nom || 'Doc');
     const text = compacte ? '📎' : '📎 ' + nom;
@@ -1402,7 +1423,7 @@ function htmlDocsDespesa(d, compacte = false) {
       : '/api/despeses/documents/' + doc.id + '/veure';
     return `<span style="display:inline-flex;align-items:center;gap:5px"><a href="${doc.document_url}" target="_blank" class="doc-link" title="Descarregar: ${nom}">${text}</a><a href="${urlVista}" target="_blank" class="btn btn-sm btn-outline" style="padding:2px 6px;text-decoration:none" title="Veure sense descarregar">👁️</a></span>`;
   }).join(compacte ? ' ' : '<br>');
-  return llista + botoAfegir;
+  return llista;
 }
 
 function seleccionarDocsDespesaDirecte(despesaId, event) {
@@ -1424,8 +1445,12 @@ function seleccionarDocsDespesaDirecte(despesaId, event) {
       const r = await fetch('/api/despeses/' + despesaId + '/documents', { method: 'POST', body: fd });
       const resultat = await r.json();
       if (!r.ok) throw new Error(resultat.error || 'No s’ha pogut pujar');
-      toast((fitxers.length === 1 ? 'Document afegit' : fitxers.length + ' documents afegits') + ' ✓', 'ok');
       await carregarDespeses();
+      const actualitzada = despeses.find(d => Number(d.id) === Number(despesaId));
+      const nomsGuardats = new Set(docsDespesa(actualitzada).map(doc => doc.document_nom));
+      const falten = fitxers.filter(fitxer => !nomsGuardats.has(fitxer.name));
+      if (falten.length) throw new Error('el servidor no ha confirmat que el document hagi quedat guardat');
+      toast((fitxers.length === 1 ? 'Document guardat' : fitxers.length + ' documents guardats') + ' ✓', 'ok');
     } catch (err) {
       toast('Error afegint el document: ' + err.message, 'error');
     }

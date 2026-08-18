@@ -547,6 +547,16 @@ with app.app_context():
                 creat_el TIMESTAMP DEFAULT NOW()
             )
         '''))
+        db.session.execute(_text('''
+            CREATE TABLE IF NOT EXISTS despesa_documents (
+                id SERIAL PRIMARY KEY,
+                despesa_id INTEGER NOT NULL REFERENCES despeses(id) ON DELETE CASCADE,
+                document_url VARCHAR(500) NOT NULL,
+                document_nom VARCHAR(200),
+                notes TEXT,
+                creat_el TIMESTAMP DEFAULT NOW()
+            )
+        '''))
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -1434,15 +1444,20 @@ def create_despesa_document(despesa_id):
         docs = []
         for fitxer in fitxers:
             result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/despeses')
+            document_url = result.get('secure_url') or result.get('url')
+            if not document_url:
+                raise RuntimeError('El servidor de documents no ha retornat cap enllaç vàlid')
             doc = DespesaDocument(
                 despesa_id=despesa_id,
-                document_url=result.get('secure_url'),
+                document_url=document_url,
                 document_nom=fitxer.filename,
                 notes=request.form.get('notes') or None,
             )
             db.session.add(doc)
             docs.append(doc)
         db.session.commit()
+        for doc in docs:
+            db.session.refresh(doc)
         return jsonify([doc.to_dict() for doc in docs]), 201
     except Exception as e:
         db.session.rollback()
