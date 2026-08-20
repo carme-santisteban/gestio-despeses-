@@ -51,7 +51,13 @@ def valid_app_password(value):
 
 @app.route('/api/version')
 def api_version():
-    return jsonify({'version': APP_VERSION})
+    correu = _config_correu_recordatoris()
+    return jsonify({
+        'version': APP_VERSION,
+        'recordatoris_configurats': bool(
+            correu['usuari'] and correu['contrasenya'] and correu['destinatari'] and correu['remitent']
+        ),
+    })
 
 
 @app.route('/api/template-version')
