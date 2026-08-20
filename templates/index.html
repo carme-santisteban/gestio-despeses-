@@ -1999,7 +1999,14 @@ function renderDocumentsPersonals(llista) {
     <tr style="${d.categoria === 'Queixa / petició personal' ? 'background:#fff8e1;border-left:4px solid var(--gold)' : ''}">
       <td><div style="font-weight:500">${esc(d.nom)}</div></td>
       <td><span class="badge badge-pers" style="${d.categoria === 'Queixa / petició personal' ? 'background:#fff0b8;color:#7a5200' : ''}">${d.categoria === 'Queixa / petició personal' ? '📣 ' : ''}${esc(d.categoria || 'Administratiu')}</span></td>
-      <td style="white-space:nowrap">${d.solucionat ? `<span class="badge" style="background:#dff4e8;color:#176b45">✅ Solucionat<br>${d.data_solucio ? formatData(d.data_solucio) : ''}</span>` : '<span class="badge" style="background:#fff0e8;color:#9a4b1f">⏳ Pendent</span>'}</td>
+      <td style="white-space:nowrap">${d.solucionat
+        ? `<span class="badge" style="background:#dff4e8;color:#176b45">✅ Solucionat<br>${d.data_solucio ? formatData(d.data_solucio) : ''}</span>`
+        : `<span class="badge" style="background:#fff0e8;color:#9a4b1f">⏳ Pendent</span>
+           <div style="margin-top:7px;font-size:.72rem;color:${d.recordatori_enviat_el ? '#176b45' : '#82651c'}">
+             ${d.recordatori_enviat_el
+               ? '🔔 Avís enviat ' + formatData(d.recordatori_enviat_el.slice(0,10))
+               : (d.recordatori_previst ? '🔔 Avís previst ' + formatData(d.recordatori_previst.slice(0,10)) : '')}
+           </div>`}</td>
       <td style="white-space:nowrap;color:var(--gray-3)">${d.data_document ? formatData(d.data_document) : '—'}</td>
       <td style="color:var(--gray-4);font-size:.85rem">${esc(d.entitat || '') || '—'}</td>
       <td style="max-width:260px;color:var(--gray-4);font-size:.85rem">${d.notes ? esc(d.notes.substring(0,90)) + (d.notes.length > 90 ? '…' : '') : '—'}</td>

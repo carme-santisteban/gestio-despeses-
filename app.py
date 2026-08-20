@@ -8,6 +8,11 @@ import urllib.request
 import json
 import tarfile
 import tempfile
+import smtplib
+import ssl
+import threading
+import time
+from email.message import EmailMessage
 from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, Response, abort, after_this_request
 from flask_sqlalchemy import SQLAlchemy
@@ -18,7 +23,7 @@ import cloudinary.api
 
 app = Flask(__name__)
 CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
-APP_VERSION = '2026-08-16-vista-previa-despeses'
+APP_VERSION = '2026-08-20-recordatoris-documents-personals'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 
@@ -422,9 +427,15 @@ class DocumentPersonal(db.Model):
     solucionat     = db.Column(db.Boolean, default=False)
     data_solucio   = db.Column(db.Date)
     creat_el       = db.Column(db.DateTime, default=datetime.utcnow)
+    recordatori_enviat_el = db.Column(db.DateTime)
     adjunts        = db.relationship('DocumentPersonalAdjunt', backref='document_personal', cascade='all,delete-orphan', order_by='DocumentPersonalAdjunt.creat_el')
 
     def to_dict(self):
+        ultima_activitat = self.creat_el
+        for adjunt in self.adjunts:
+            if adjunt.creat_el and (not ultima_activitat or adjunt.creat_el > ultima_activitat):
+                ultima_activitat = adjunt.creat_el
+        recordatori_previst = ultima_activitat + timedelta(days=15) if ultima_activitat else None
         fitxers = [{
             'id': None,
             'document_url': self.document_url or '',
@@ -445,6 +456,9 @@ class DocumentPersonal(db.Model):
             'solucionat': bool(self.solucionat),
             'data_solucio': self.data_solucio.isoformat() if self.data_solucio else '',
             'creat_el': self.creat_el.isoformat() if self.creat_el else '',
+            'ultima_documentacio_el': ultima_activitat.isoformat() if ultima_activitat else '',
+            'recordatori_previst': recordatori_previst.isoformat() if recordatori_previst and not self.solucionat and not self.recordatori_enviat_el else '',
+            'recordatori_enviat_el': self.recordatori_enviat_el.isoformat() if self.recordatori_enviat_el else '',
         }
 
 
@@ -465,6 +479,100 @@ class DocumentPersonalAdjunt(db.Model):
             'principal': False,
             'creat_el': self.creat_el.isoformat() if self.creat_el else '',
         }
+
+
+RECORDATORI_DIES = 15
+
+
+def _config_correu_recordatoris():
+    usuari = os.environ.get('REMINDER_SMTP_USER') or os.environ.get('INVITES_IMAP_USER')
+    contrasenya = os.environ.get('REMINDER_SMTP_PASSWORD') or os.environ.get('INVITES_IMAP_PASSWORD')
+    destinatari = os.environ.get('REMINDER_EMAIL_TO') or os.environ.get('INVITES_FROM') or usuari
+    remitent = os.environ.get('REMINDER_EMAIL_FROM') or os.environ.get('INVITES_FROM') or usuari
+    return {
+        'host': os.environ.get('REMINDER_SMTP_HOST', 'smtp.gmail.com'),
+        'port': int(os.environ.get('REMINDER_SMTP_PORT', '465')),
+        'usuari': usuari,
+        'contrasenya': contrasenya,
+        'destinatari': destinatari,
+        'remitent': remitent,
+    }
+
+
+def _ultima_documentacio_document_personal(doc):
+    dates = [doc.creat_el] if doc.creat_el else []
+    dates.extend(a.creat_el for a in doc.adjunts if a.creat_el)
+    return max(dates) if dates else None
+
+
+def _enviar_recordatori_document_personal(doc, ultima_documentacio):
+    config = _config_correu_recordatoris()
+    if not all((config['usuari'], config['contrasenya'], config['destinatari'], config['remitent'])):
+        raise RuntimeError('Falta configurar el correu dels recordatoris')
+    missatge = EmailMessage()
+    missatge['Subject'] = f'Recordatori: 15 dies sense resposta — {doc.nom}'
+    missatge['From'] = config['remitent']
+    missatge['To'] = config['destinatari']
+    missatge.set_content(
+        "Han passat 15 dies des de l'últim document afegit i aquest assumpte "
+        "encara consta com a pendent a GestióDespeses.\n\n"
+        f"Assumpte: {doc.nom}\n"
+        f"Entitat: {doc.entitat or '—'}\n"
+        f"Última documentació: {ultima_documentacio.strftime('%d/%m/%Y')}\n\n"
+        "Quan rebis resposta, marca'l com a Solucionat i no se n'enviaran més avisos."
+    )
+    context_ssl = ssl.create_default_context()
+    with smtplib.SMTP_SSL(config['host'], config['port'], context=context_ssl, timeout=30) as servidor:
+        servidor.login(config['usuari'], config['contrasenya'])
+        servidor.send_message(missatge)
+
+
+def comprovar_recordatoris_documents_personals():
+    limit = datetime.utcnow() - timedelta(days=RECORDATORI_DIES)
+    candidats = DocumentPersonal.query.filter_by(solucionat=False, recordatori_enviat_el=None).all()
+    for doc in candidats:
+        ultima_documentacio = _ultima_documentacio_document_personal(doc)
+        if not ultima_documentacio or ultima_documentacio > limit:
+            continue
+        # Reserva atòmica: evita duplicats encara que Railway tingui més d'un worker.
+        ara = datetime.utcnow()
+        reservat = DocumentPersonal.query.filter_by(
+            id=doc.id, solucionat=False, recordatori_enviat_el=None
+        ).update({'recordatori_enviat_el': ara}, synchronize_session=False)
+        db.session.commit()
+        if not reservat:
+            continue
+        try:
+            _enviar_recordatori_document_personal(doc, ultima_documentacio)
+            print(f'Recordatori enviat per al document personal {doc.id}')
+        except Exception as exc:
+            db.session.rollback()
+            DocumentPersonal.query.filter_by(id=doc.id, recordatori_enviat_el=ara).update(
+                {'recordatori_enviat_el': None}, synchronize_session=False
+            )
+            db.session.commit()
+            print(f'No s’ha pogut enviar el recordatori del document personal {doc.id}: {exc}')
+
+
+def _bucle_recordatoris_documents_personals():
+    time.sleep(30)
+    while True:
+        try:
+            with app.app_context():
+                comprovar_recordatoris_documents_personals()
+        except Exception as exc:
+            print(f'Error comprovant recordatoris de documents personals: {exc}')
+        time.sleep(int(os.environ.get('REMINDER_CHECK_SECONDS', '3600')))
+
+
+def iniciar_recordatoris_documents_personals():
+    if os.environ.get('REMINDERS_ENABLED', 'true').lower() not in ('1', 'true', 'yes', 'si'):
+        return
+    threading.Thread(
+        target=_bucle_recordatoris_documents_personals,
+        name='recordatoris-documents-personals',
+        daemon=True,
+    ).start()
 
 
 class FotografiaBanc(db.Model):
@@ -537,6 +645,7 @@ with app.app_context():
         db.session.execute(_text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
         db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS solucionat BOOLEAN DEFAULT FALSE'))
         db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS data_solucio DATE'))
+        db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS recordatori_enviat_el TIMESTAMP'))
         db.session.execute(_text('ALTER TABLE documents_personals ALTER COLUMN document_url DROP NOT NULL'))
         db.session.execute(_text('''
             CREATE TABLE IF NOT EXISTS documents_personals_adjunts (
@@ -1600,6 +1709,8 @@ def update_document_personal(id):
         return jsonify({'error': 'No autoritzat'}), 401
     doc = DocumentPersonal.query.get_or_404(id)
     try:
+        estava_solucionat = bool(doc.solucionat)
+        fitxers_nous = uploaded_documents()
         data_doc = datetime.strptime(request.form.get('data_document', ''), '%Y-%m-%d').date() if request.form.get('data_document') else None
         doc.nom = (request.form.get('nom') or doc.nom).strip()
         doc.categoria = request.form.get('categoria') or 'Administratiu'
@@ -1608,7 +1719,9 @@ def update_document_personal(id):
         doc.notes = request.form.get('notes') or None
         doc.solucionat = request.form.get('solucionat') == 'true'
         doc.data_solucio = datetime.strptime(request.form.get('data_solucio', ''), '%Y-%m-%d').date() if request.form.get('data_solucio') else None
-        for fitxer in uploaded_documents():
+        if fitxers_nous or (estava_solucionat and not doc.solucionat):
+            doc.recordatori_enviat_el = None
+        for fitxer in fitxers_nous:
             result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/documents-personals')
             db.session.add(DocumentPersonalAdjunt(
                 document_personal_id=doc.id,
@@ -1640,6 +1753,7 @@ def add_document_personal_adjunts(id):
             )
             db.session.add(adjunt)
             afegits.append(adjunt)
+        doc.recordatori_enviat_el = None
         db.session.commit()
         return jsonify({'ok': True, 'afegits': len(afegits), 'document': doc.to_dict()}), 201
     except Exception as e:
@@ -2690,6 +2804,8 @@ def delete_asseguranca(id):
     db.session.delete(a)
     db.session.commit()
     return jsonify({'ok': True})
+
+iniciar_recordatoris_documents_personals()
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
