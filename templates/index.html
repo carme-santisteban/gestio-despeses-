@@ -877,7 +877,7 @@
         <div class="form-grup" id="dpDataSolucioGrup" style="display:none"><label class="form-label">Data de solució</label><input type="date" class="form-control" id="dpDataSolucio"></div>
         <div class="form-grup full">
           <label class="form-label">Fitxers <span>*</span></label>
-          <div class="upload-zona" onclick="document.getElementById('dpDocument').click()"><div>📎 Fes clic per afegir documents</div><div class="upload-text">Pots seleccionar diversos fitxers; els nous no substituiran els anteriors</div><div class="upload-nom" id="dpNomDocument"></div></div>
+          <div class="upload-zona" onclick="document.getElementById('dpDocument').click()"><div>📎 Fes clic per afegir documents</div><div class="upload-text">Pots marcar diversos fitxers alhora (⌘ o Majúscules) o afegir-los en diverses tandes; no se substituiran</div><div class="upload-nom" id="dpNomDocument"></div></div>
           <input type="file" id="dpDocument" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic" onchange="mostrarFitxersDocumentPersonal()">
           <div id="dpDocActual" style="font-size:.8rem;color:var(--gray-3);margin-top:4px"></div>
         </div>
@@ -1236,6 +1236,7 @@ let prestecXavi = null;
 let despesaEdId = null;
 let facturaEdId = null;
 let documentPersonalEdId = null;
+let documentPersonalFitxersSeleccionats = [];
 let despesaDocsSeleccionats = [];
 window._documentsPersonalsPinOk = false;
 let prefillLexDespesaActiu = false;
@@ -2084,6 +2085,7 @@ function obrirModalDocumentPersonal(d = null) {
   document.getElementById('dpDataSolucio').value = d ? (d.data_solucio || '') : '';
   actualitzarCampsSolucio();
   document.getElementById('dpDocument').value = '';
+  documentPersonalFitxersSeleccionats = [];
   document.getElementById('dpNomDocument').textContent = '';
   document.getElementById('dpDocActual').innerHTML = d && (d.fitxers || []).length
     ? '<strong>Fitxers guardats:</strong><br>' + d.fitxers.map(f => '<a href="' + f.document_url + '" target="_blank" style="color:var(--blue)">📎 ' + esc(f.document_nom || 'veure') + '</a>').join('<br>')
@@ -2103,7 +2105,7 @@ function editarDocumentPersonal(id) {
 
 async function guardarDocumentPersonal() {
   const nom = document.getElementById('dpNom').value.trim();
-  const fitxers = Array.from(document.getElementById('dpDocument').files || []);
+  const fitxers = documentPersonalFitxersSeleccionats;
   if (!nom) { toast('Indica el nom del document', 'error'); return; }
   if (!documentPersonalEdId && !fitxers.length) { toast('Adjunta el fitxer del document', 'error'); return; }
   const btn = document.getElementById('btnGuardarDocumentPersonal');
@@ -2142,8 +2144,36 @@ function actualitzarCampsSolucio() {
 }
 
 function mostrarFitxersDocumentPersonal() {
-  const fitxers = Array.from(document.getElementById('dpDocument').files || []);
-  document.getElementById('dpNomDocument').innerHTML = fitxers.map(f => '✓ ' + esc(f.name)).join('<br>');
+  const nous = Array.from(document.getElementById('dpDocument').files || []);
+  nous.forEach(fitxer => {
+    const repetit = documentPersonalFitxersSeleccionats.some(actual =>
+      actual.name === fitxer.name && actual.size === fitxer.size && actual.lastModified === fitxer.lastModified
+    );
+    if (!repetit) documentPersonalFitxersSeleccionats.push(fitxer);
+  });
+  document.getElementById('dpDocument').value = '';
+  mostrarLlistaFitxersDocumentPersonal();
+}
+
+function mostrarLlistaFitxersDocumentPersonal() {
+  const contenidor = document.getElementById('dpNomDocument');
+  if (!documentPersonalFitxersSeleccionats.length) {
+    contenidor.innerHTML = '';
+    return;
+  }
+  contenidor.innerHTML = '<strong>' + documentPersonalFitxersSeleccionats.length +
+    (documentPersonalFitxersSeleccionats.length === 1 ? ' arxiu seleccionat</strong>' : ' arxius seleccionats</strong>') +
+    '<br>' + documentPersonalFitxersSeleccionats.map((fitxer, index) =>
+      '<span style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
+      '<span>✓ ' + esc(fitxer.name) + '</span>' +
+      '<button type="button" class="btn btn-sm btn-danger" style="padding:1px 6px" ' +
+      'onclick="event.stopPropagation(); eliminarFitxerSeleccionatDocumentPersonal(' + index + ')" title="Treure de la selecció">✕</button></span>'
+    ).join('');
+}
+
+function eliminarFitxerSeleccionatDocumentPersonal(index) {
+  documentPersonalFitxersSeleccionats.splice(index, 1);
+  mostrarLlistaFitxersDocumentPersonal();
 }
 
 function afegirFitxersDocumentPersonal(id) {
