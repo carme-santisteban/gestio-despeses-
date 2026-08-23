@@ -2026,6 +2026,7 @@ function dataFitxerDocumentPersonal(f, dataRegistre) {
   if (m) return `${m[1]}-${m[2]}-${m[3]}`;
   m = nom.match(/(?:^|[^\d])([0-3]?\d)[-_. /]([01]?\d)[-_. /]((?:19|20)\d{2})(?:[^\d]|$)/);
   if (m) return `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+  if (f.creat_el) return f.creat_el.slice(0, 10);
   return dataRegistre || '';
 }
 

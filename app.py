@@ -448,6 +448,7 @@ class DocumentPersonal(db.Model):
             'document_url': self.document_url or '',
             'document_nom': self.document_nom or 'Document',
             'principal': True,
+            'creat_el': self.creat_el.isoformat() if self.creat_el else '',
         }] if self.document_url else []
         fitxers.extend([a.to_dict() for a in self.adjunts])
         return {
