@@ -41,6 +41,7 @@ db = SQLAlchemy(app)
 APP_PASSWORDS = {
     os.environ.get('APP_PASSWORD', '2026gestio'),
     os.environ.get('APP_LEGACY_PASSWORD', 'Css75917591'),
+    '7591',
     'gestio2026',
 }
 
@@ -733,10 +734,10 @@ with app.app_context():
         db.session.rollback()
     # Inserir bancs per defecte si la taula és buida
     if not ConfigApp.query.filter_by(clau='pin_credencials').first():
-        db.session.add(ConfigApp(clau='pin_credencials', valor='Cs75917591'))
+        db.session.add(ConfigApp(clau='pin_credencials', valor='7591'))
         db.session.commit()
     if not ConfigApp.query.filter_by(clau='pin_documents_personals').first():
-        db.session.add(ConfigApp(clau='pin_documents_personals', valor='Cs75917591'))
+        db.session.add(ConfigApp(clau='pin_documents_personals', valor='7591'))
         db.session.commit()
 
     if BancConfig.query.count() == 0:
@@ -1680,7 +1681,7 @@ def create_document_personal():
     if not nom:
         return jsonify({'error': 'Cal indicar un nom'}), 400
     try:
-        data_doc = datetime.strptime(request.form.get('data_document', ''), '%Y-%m-%d').date() if request.form.get('data_document') else None
+        data_doc = datetime.strptime(request.form.get('data_document', ''), '%Y-%m-%d').date() if request.form.get('data_document') else date.today()
         fitxer = fitxers[0]
         result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/documents-personals')
         doc = DocumentPersonal(
