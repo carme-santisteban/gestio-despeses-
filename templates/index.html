@@ -2011,13 +2011,42 @@ function renderDocumentsPersonals(llista) {
       <td style="white-space:nowrap;color:var(--gray-3)">${d.data_document ? formatData(d.data_document) : '—'}</td>
       <td style="color:var(--gray-4);font-size:.85rem">${esc(d.entitat || '') || '—'}</td>
       <td style="max-width:260px;color:var(--gray-4);font-size:.85rem">${d.notes ? esc(d.notes.substring(0,90)) + (d.notes.length > 90 ? '…' : '') : '—'}</td>
-      <td>${(d.fitxers || []).length ? (d.fitxers || []).map(f => `<div style="margin-bottom:5px;display:flex;align-items:center;gap:5px"><a href="${f.document_url}" target="_blank" class="doc-link" title="Descarregar">📎 ${esc(f.document_nom || 'Document')}</a><a class="btn btn-sm btn-outline" style="padding:2px 6px;text-decoration:none" title="Veure sense descarregar" target="_blank" href="${f.principal ? '/api/documents-personals/' + d.id + '/fitxer-principal/veure' : '/api/documents-personals/adjunts/' + f.id + '/veure'}">👁️</a><button class="btn btn-sm btn-outline" style="padding:2px 6px" title="Modificar el nom de l'arxiu" onclick="reanomenarFitxerDocumentPersonal(${d.id},${f.id === null ? 'null' : f.id},${f.principal ? 'true' : 'false'})">✏️</button><button class="btn btn-sm btn-danger" style="padding:2px 6px" title="Eliminar només aquest arxiu" onclick="eliminarFitxerDocumentPersonal(${d.id},${f.id === null ? 'null' : f.id},${f.principal ? 'true' : 'false'})">🗑</button></div>`).join('') : '—'}</td>
+      <td>${htmlFitxersDocumentPersonal(d)}</td>
       <td class="accions">
         <button class="btn btn-sm btn-outline" title="Afegir arxius sense substituir els existents" onclick="afegirFitxersDocumentPersonal(${d.id})">📎+</button>
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDocumentPersonal(${d.id})">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="eliminarDocumentPersonal(${d.id})">🗑</button>
       </td>
     </tr>`).join('');
+}
+
+function dataFitxerDocumentPersonal(f, dataRegistre) {
+  const nom = f.document_nom || '';
+  let m = nom.match(/(?:^|[^\d])((?:19|20)\d{2})[-_. ]?([01]\d)[-_. ]?([0-3]\d)(?:[^\d]|$)/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = nom.match(/(?:^|[^\d])([0-3]?\d)[-_. /]([01]?\d)[-_. /]((?:19|20)\d{2})(?:[^\d]|$)/);
+  if (m) return `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+  return dataRegistre || '';
+}
+
+function htmlFitxersDocumentPersonal(d) {
+  const fitxers = (d.fitxers || []).map((f, index) => ({
+    ...f,
+    _index: index,
+    _data: dataFitxerDocumentPersonal(f, d.data_document || '')
+  })).sort((a, b) => {
+    const da = a._data || '9999-12-31';
+    const db = b._data || '9999-12-31';
+    return da.localeCompare(db) || a._index - b._index;
+  });
+  if (!fitxers.length) return '—';
+  return fitxers.map(f => `<div style="margin-bottom:5px;display:flex;align-items:center;gap:5px">
+    <span style="min-width:82px;color:var(--gray-3);font-size:.76rem">${f._data ? formatData(f._data) : '—'}</span>
+    <a href="${f.document_url}" target="_blank" class="doc-link" title="Descarregar">📎 ${esc(f.document_nom || 'Document')}</a>
+    <a class="btn btn-sm btn-outline" style="padding:2px 6px;text-decoration:none" title="Veure sense descarregar" target="_blank" href="${f.principal ? '/api/documents-personals/' + d.id + '/fitxer-principal/veure' : '/api/documents-personals/adjunts/' + f.id + '/veure'}">👁️</a>
+    <button class="btn btn-sm btn-outline" style="padding:2px 6px" title="Modificar el nom de l'arxiu" onclick="reanomenarFitxerDocumentPersonal(${d.id},${f.id === null ? 'null' : f.id},${f.principal ? 'true' : 'false'})">✏️</button>
+    <button class="btn btn-sm btn-danger" style="padding:2px 6px" title="Eliminar només aquest arxiu" onclick="eliminarFitxerDocumentPersonal(${d.id},${f.id === null ? 'null' : f.id},${f.principal ? 'true' : 'false'})">🗑</button>
+  </div>`).join('');
 }
 
 function filtrarDocumentsPersonals() {
