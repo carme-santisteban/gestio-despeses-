@@ -4617,6 +4617,13 @@ async function carregarAlertesAssegurances() {
   try {
     const r = await fetch('/api/assegurances/alertes');
     const alertes = await r.json();
+    alertes.sort(function(a, b) {
+      const avisa = properAvisAsseguranca(a);
+      const avisb = properAvisAsseguranca(b);
+      const da = avisa ? avisa.dies : 999999;
+      const db = avisb ? avisb.dies : 999999;
+      return da - db || String(a.nom || '').localeCompare(String(b.nom || ''));
+    });
     const banner = document.getElementById('bannerAssegurances');
     const text   = document.getElementById('bannerAssegurancesText');
     if (alertes.length > 0) {
@@ -4772,7 +4779,7 @@ function renderAssegurances() {
     const avisb = properAvisAsseguranca(b);
     const da = avisa ? avisa.dies : 999999;
     const db = avisb ? avisb.dies : 999999;
-    return da - db;
+    return da - db || String(a.nom || '').localeCompare(String(b.nom || ''));
   });
   renderResumAssegurances(llista);
   if (!llista.length) {
@@ -4783,15 +4790,19 @@ function renderAssegurances() {
   const avui = new Date();
   cos.innerHTML = llista.map(function(a) {
     const stBadge = TIPUS_BADGE[a.tipus] || TIPUS_BADGE['Altres'];
-    const venc = a.data_venciment ? new Date(a.data_venciment) : null;
-    const dies = venc ? Math.ceil((venc - avui) / 86400000) : null;
-    let vencHtml = '-';
-    if (venc) {
+    const avisPrincipal = properAvisAsseguranca(a);
+    let avisHtml = '-';
+    if (avisPrincipal) {
+      const dies = avisPrincipal.dies;
       let color = 'color:var(--gray-4)';
       if (dies <= 0) color = 'color:var(--red);font-weight:700';
       else if (dies <= 15) color = 'color:#e65100;font-weight:700';
       else if (dies <= 45) color = 'color:#d4a017;font-weight:600';
-      vencHtml = '<span style="' + color + '">' + formatData(a.data_venciment) + (dies !== null ? '<br><small>' + (dies <= 0 ? 'VENCUDA' : dies + ' dies') + '</small>' : '') + '</span>';
+      avisHtml = '<span style="' + color + '">' +
+        '<small style="display:block;color:inherit">' + esc(avisPrincipal.tipus) + '</small>' +
+        formatData(avisPrincipal.data) +
+        '<br><small>' + (dies <= 0 ? 'CADUCAT' : dies + ' dies') + '</small>' +
+        '</span>';
     }
     const contextual = a.matricula ? '<small style="color:var(--gray-3)">' + esc(a.matricula) + '</small>' :
                        a.adreca    ? '<small style="color:var(--gray-3)">' + esc(a.adreca.substring(0,30)) + '</small>' : '-';
@@ -4801,7 +4812,7 @@ function renderAssegurances() {
       '<td style="font-size:.85rem">' + esc(a.companyia || '-') + '</td>' +
       '<td style="font-size:.8rem;font-family:monospace;color:var(--gray-4)">' + esc(a.numero_polissa || '-') + '</td>' +
       '<td>' + contextual + '</td>' +
-      '<td>' + vencHtml + '</td>' +
+      '<td>' + avisHtml + '</td>' +
       '<td>' + (function(){
         if (a.tipus !== 'Cotxe') return '<span style="color:#ddd">—</span>';
         if (!a.data_itv) return '<span style="color:#aaa;font-size:.8rem">— <small>(sense data)</small></span>';
