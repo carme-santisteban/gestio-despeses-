@@ -2036,9 +2036,9 @@ function htmlFitxersDocumentPersonal(d) {
     _index: index,
     _data: dataFitxerDocumentPersonal(f, d.data_document || '')
   })).sort((a, b) => {
-    const da = a._data || '9999-12-31';
-    const db = b._data || '9999-12-31';
-    return da.localeCompare(db) || a._index - b._index;
+    const da = a._data || '0000-00-00';
+    const db = b._data || '0000-00-00';
+    return db.localeCompare(da) || a._index - b._index;
   });
   if (!fitxers.length) return '—';
   return fitxers.map(f => `<div style="margin-bottom:5px;display:flex;align-items:center;gap:5px">
