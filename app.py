@@ -23,7 +23,7 @@ import cloudinary.api
 
 app = Flask(__name__)
 CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
-APP_VERSION = '2026-09-06-diners-reservats'
+APP_VERSION = '2026-09-06-variacions-reals'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 
@@ -1991,20 +1991,24 @@ def get_bancs_taula():
         totals_reservats.append(round(total_reservat, 2))
         totals.append(round(total_real - total_reservat, 2))
 
-    # Variació entre columnes consecutives
+    # La variació mesura el canvi dels saldos reals. Reservar diners no és una
+    # despesa ni una pèrdua i, per tant, no ha d'aparèixer com una baixada.
     variacions = []
     for i in range(len(dates)):
         if i == 0:
             variacions.append(None)
         else:
-            variacions.append(round(totals[i] - totals[i-1], 2))
+            variacions.append(round(totals_reals[i] - totals_reals[i-1], 2))
 
-    # Total variació per banc: última - penúltima fotografia amb valor
+    # Variació per banc entre les dues dates globals més recents. Si el banc no
+    # té registre actual, no inventem cap baixada: la interfície mostrarà un guió.
     total_variacio = {}
     for b in banc_noms:
-        valors = [v for v in disponibles[b] if v is not None]
-        total_variacio[b] = round(valors[-1] - valors[-2], 2) if len(valors) >= 2 else 0.0
-    total_variacio['__total__'] = round(totals[-1] - totals[-2], 2) if len(totals) >= 2 else 0.0
+        if len(dates) >= 2 and files[b][-1] is not None and files[b][-2] is not None:
+            total_variacio[b] = round(files[b][-1] - files[b][-2], 2)
+        else:
+            total_variacio[b] = None
+    total_variacio['__total__'] = round(totals_reals[-1] - totals_reals[-2], 2) if len(totals_reals) >= 2 else 0.0
 
     return jsonify({
         'bancs':          banc_noms,

@@ -2879,9 +2879,9 @@ function renderTaulaDinamica(t) {
     return cellSep + `<th style="text-align:right;white-space:nowrap;background:#1a3a5c;min-width:105px;font-size:.75rem">${p[2]}/${p[1]}/${p[0].slice(2)}</th>`;
   }).join('');
   head.innerHTML = `<tr>
-    <th style="background:var(--navy);min-width:130px">FECHA</th>
+    <th style="background:var(--navy);min-width:130px">BANC</th>
     ${thDates}
-    <th style="text-align:right;background:#2d4a1e;min-width:120px;white-space:nowrap;font-size:.75rem">TOTAL VARIACIÓ</th>
+    <th style="text-align:right;background:#2d4a1e;min-width:120px;white-space:nowrap;font-size:.75rem">VARIACIÓ REAL</th>
   </tr>`;
 
   // Files bancs — cada cel·la és clicable per editar
@@ -2902,12 +2902,14 @@ function renderTaulaDinamica(t) {
         : '';
       return cellSep + `<td style="text-align:right;font-weight:500;cursor:pointer" onclick="obrirEditCellaPerId('${esc(banc)}','${d}')" title="Clic per editar">${fmtN(val)}${detallReserva}</td>`;
     }).join('');
-    const valsVisibles = idxsVisibles
-      .map(idx => (t.disponibles?.[banc] || t.files[banc])[idx])
-      .filter(v => v !== null && v !== undefined);
-    const varTotal = mostrantSeleccio && valsVisibles.length >= 2
-      ? valsVisibles[valsVisibles.length - 1] - valsVisibles[0]
-      : (t.total_variacio[banc] || 0);
+    const valInici = t.files[banc][idxsVisibles[0]];
+    const valFinal = t.files[banc][idxsVisibles[idxsVisibles.length - 1]];
+    const varTotal = mostrantSeleccio
+      ? (valInici != null && valFinal != null ? valFinal - valInici : null)
+      : t.total_variacio[banc];
+    if (varTotal === null || varTotal === undefined) {
+      return `<tr data-banc-row="${esc(banc).toLowerCase()}"><td style="font-weight:600">${esc(banc)}</td>${tds}<td style="text-align:right;font-weight:700;color:var(--gray-3)" title="Sense registre en alguna de les dues dates">—</td></tr>`;
+    }
     const varCls = varTotal > 0 ? 'color:var(--green)' : varTotal < 0 ? 'color:var(--red)' : 'color:var(--gray-3)';
     const varTxt = varTotal > 0 ? '+' + fmtN(varTotal) : fmtN(varTotal);
     return `<tr data-banc-row="${esc(banc).toLowerCase()}"><td style="font-weight:600">${esc(banc)}</td>${tds}<td style="text-align:right;font-weight:700;${varCls}">${varTxt}</td></tr>`;
@@ -2926,7 +2928,7 @@ function renderTaulaDinamica(t) {
     return cellSep + `<td style="text-align:right;font-weight:700;font-family:var(--font-head)">${fmtN(t.totals[idx])}${detall}</td>`;
   }).join('');
   const totVar = mostrantSeleccio && idxsVisibles.length >= 2
-    ? t.totals[idxsVisibles[idxsVisibles.length - 1]] - t.totals[idxsVisibles[0]]
+      ? t.totals_reals[idxsVisibles[idxsVisibles.length - 1]] - t.totals_reals[idxsVisibles[0]]
     : (t.total_variacio['__total__'] || 0);
   const totVarCls = totVar > 0 ? 'color:var(--green)' : totVar < 0 ? 'color:var(--red)' : '';
   const totVarTxt = totVar > 0 ? '+' + fmtN(totVar) : fmtN(totVar);
@@ -2938,7 +2940,7 @@ function renderTaulaDinamica(t) {
   // Fila VARIACIÓ groga
   const tdVars = idxsVisibles.map((idx, posVis) => {
     const v = mostrantSeleccio
-      ? (posVis === 0 ? null : t.totals[idx] - t.totals[idxsVisibles[posVis - 1]])
+      ? (posVis === 0 ? null : t.totals_reals[idx] - t.totals_reals[idxsVisibles[posVis - 1]])
       : t.variacions[idx];
     const cellSep = (hiHaSeparador && posVis === 1)
       ? '<td style="background:#f5e6b0;text-align:center;color:var(--gray-3)">…</td>'
@@ -2948,7 +2950,7 @@ function renderTaulaDinamica(t) {
     return cellSep + `<td style="background:#f5e6b0;text-align:right;font-weight:600;font-size:.85rem;${cls}">${v > 0 ? '+' : ''}${fmtN(v)}</td>`;
   }).join('');
   const filaVar = `<tr>
-    <td style="background:#f5e6b0;font-size:.78rem;font-weight:600;color:#7a6010;letter-spacing:.04em">VARIACIÓ</td>
+    <td style="background:#f5e6b0;font-size:.78rem;font-weight:600;color:#7a6010;letter-spacing:.04em">VARIACIÓ REAL</td>
     ${tdVars}<td style="background:#f5e6b0"></td>
   </tr>`;
 
@@ -3076,11 +3078,11 @@ function calcularComparacio() {
   let registresBanc = [];
   let detallTotalBancs = '';
   if (banc === '__total__') {
-    saldoA = t.totals[iA];
-    saldoB = t.totals[iB];
+    saldoA = t.totals_reals[iA];
+    saldoB = t.totals_reals[iB];
     etiqueta = 'Tots els bancs';
     const filesDetall = t.bancs.map(nomBanc => {
-      const fila = (t.disponibles?.[nomBanc] || t.files[nomBanc]) || [];
+      const fila = t.files[nomBanc] || [];
       const idxAmbSaldo = [];
       for (let i = iA; i <= iB; i++) {
         if (fila[i] !== null && fila[i] !== undefined) idxAmbSaldo.push(i);
@@ -3123,7 +3125,7 @@ function calcularComparacio() {
         </div>
       </div>` : '';
   } else {
-    const fila = (t.disponibles?.[banc] || t.files[banc]) || [];
+    const fila = t.files[banc] || [];
     const idxAmbSaldo = [];
     for (let i = iA; i <= iB; i++) {
       if (fila[i] !== null && fila[i] !== undefined) idxAmbSaldo.push(i);
