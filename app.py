@@ -23,7 +23,7 @@ import cloudinary.api
 
 app = Flask(__name__)
 CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
-APP_VERSION = '2026-08-20-recordatoris-documents-personals'
+APP_VERSION = '2026-09-06-diners-reservats'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 
@@ -591,6 +591,9 @@ class FotografiaBanc(db.Model):
     banc   = db.Column(db.String(50), nullable=False)
     saldo  = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     nota   = db.Column(db.String(200))
+    reservat = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    reserva_motiu = db.Column(db.String(200))
+    reserva_data = db.Column(db.Date)
 
     def to_dict(self):
         return {
@@ -599,6 +602,10 @@ class FotografiaBanc(db.Model):
             'banc':  self.banc,
             'saldo': float(self.saldo) if self.saldo else 0,
             'nota':  self.nota or '',
+            'reservat': float(self.reservat or 0),
+            'disponible': float((self.saldo or 0) - (self.reservat or 0)),
+            'reserva_motiu': self.reserva_motiu or '',
+            'reserva_data': self.reserva_data.isoformat() if self.reserva_data else None,
         }
 
 
@@ -655,6 +662,9 @@ with app.app_context():
         db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS data_solucio DATE'))
         db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS recordatori_enviat_el TIMESTAMP'))
         db.session.execute(_text('ALTER TABLE documents_personals ALTER COLUMN document_url DROP NOT NULL'))
+        db.session.execute(_text('ALTER TABLE fotografies_banc ADD COLUMN IF NOT EXISTS reservat NUMERIC(12, 2) NOT NULL DEFAULT 0'))
+        db.session.execute(_text('ALTER TABLE fotografies_banc ADD COLUMN IF NOT EXISTS reserva_motiu VARCHAR(200)'))
+        db.session.execute(_text('ALTER TABLE fotografies_banc ADD COLUMN IF NOT EXISTS reserva_data DATE'))
         db.session.execute(_text('''
             CREATE TABLE IF NOT EXISTS documents_personals_adjunts (
                 id SERIAL PRIMARY KEY,
@@ -1867,14 +1877,27 @@ def create_fotografia():
         banc_nom  = data['banc']
         saldo     = float(data['saldo'])
         nota      = data.get('nota', '')
+        reservat  = float(data.get('reservat') or 0)
+        if reservat < 0:
+            raise ValueError("L'import reservat no pot ser negatiu")
+        if reservat > max(saldo, 0):
+            raise ValueError("L'import reservat no pot superar el saldo real")
+        reserva_motiu = (data.get('reserva_motiu') or '').strip()
+        reserva_data = datetime.strptime(data['reserva_data'], '%Y-%m-%d').date() if data.get('reserva_data') else None
         # Si ja existeix registre per aquest banc+data, actualitzar
         existent = FotografiaBanc.query.filter_by(banc=banc_nom, data=data_foto).first()
         if existent:
             existent.saldo = saldo
             existent.nota  = nota
+            existent.reservat = reservat
+            existent.reserva_motiu = reserva_motiu
+            existent.reserva_data = reserva_data
             db.session.commit()
             return jsonify(existent.to_dict())
-        foto = FotografiaBanc(data=data_foto, banc=banc_nom, saldo=saldo, nota=nota)
+        foto = FotografiaBanc(
+            data=data_foto, banc=banc_nom, saldo=saldo, nota=nota,
+            reservat=reservat, reserva_motiu=reserva_motiu, reserva_data=reserva_data
+        )
         db.session.add(foto)
         db.session.commit()
         return jsonify(foto.to_dict()), 201
@@ -1891,6 +1914,13 @@ def update_fotografia(id):
         foto.banc  = data['banc']
         foto.saldo = float(data['saldo'])
         foto.nota  = data.get('nota', '')
+        foto.reservat = float(data.get('reservat') or 0)
+        if foto.reservat < 0:
+            raise ValueError("L'import reservat no pot ser negatiu")
+        if foto.reservat > max(float(foto.saldo), 0):
+            raise ValueError("L'import reservat no pot superar el saldo real")
+        foto.reserva_motiu = (data.get('reserva_motiu') or '').strip()
+        foto.reserva_data = datetime.strptime(data['reserva_data'], '%Y-%m-%d').date() if data.get('reserva_data') else None
         db.session.commit()
         return jsonify(foto.to_dict())
     except Exception as e:
@@ -1922,26 +1952,44 @@ def get_bancs_taula():
     banc_noms = [b.nom for b in bancs_cfg if b.nom in bancs_amb_fotos]
 
     if not dates:
-        return jsonify({'bancs': banc_noms, 'dates': [], 'files': {}, 'totals': [], 'variacions': [], 'total_variacio': {}})
+        return jsonify({'bancs': banc_noms, 'dates': [], 'files': {}, 'reserves': {}, 'disponibles': {}, 'totals': [], 'totals_reals': [], 'totals_reservats': [], 'variacions': [], 'total_variacio': {}})
 
     # Construir diccionari {banc: {data_iso: saldo}}
     totes = FotografiaBanc.query.all()
     index = {}
+    index_reserves = {}
     for f in totes:
         if f.banc not in index:
             index[f.banc] = {}
         index[f.banc][f.data.isoformat()] = float(f.saldo)
+        index_reserves.setdefault(f.banc, {})[f.data.isoformat()] = {
+            'import': float(f.reservat or 0),
+            'motiu': f.reserva_motiu or '',
+            'data_prevista': f.reserva_data.isoformat() if f.reserva_data else None,
+        }
 
     # Files: per cada banc, saldo en cada data (None si no hi ha registre)
     files = {}
+    reserves = {}
+    disponibles = {}
     for b in banc_noms:
         files[b] = [index.get(b, {}).get(d.isoformat()) for d in dates]
+        reserves[b] = [index_reserves.get(b, {}).get(d.isoformat()) for d in dates]
+        disponibles[b] = [
+            None if files[b][i] is None else round(files[b][i] - ((reserves[b][i] or {}).get('import', 0)), 2)
+            for i in range(len(dates))
+        ]
 
     # Totals per columna (suma bancs amb registre)
+    totals_reals = []
+    totals_reservats = []
     totals = []
     for i in range(len(dates)):
-        t = sum(files[b][i] for b in banc_noms if files[b][i] is not None)
-        totals.append(round(t, 2))
+        total_real = sum(files[b][i] for b in banc_noms if files[b][i] is not None)
+        total_reservat = sum((reserves[b][i] or {}).get('import', 0) for b in banc_noms)
+        totals_reals.append(round(total_real, 2))
+        totals_reservats.append(round(total_reservat, 2))
+        totals.append(round(total_real - total_reservat, 2))
 
     # Variació entre columnes consecutives
     variacions = []
@@ -1954,7 +2002,7 @@ def get_bancs_taula():
     # Total variació per banc: última - penúltima fotografia amb valor
     total_variacio = {}
     for b in banc_noms:
-        valors = [v for v in files[b] if v is not None]
+        valors = [v for v in disponibles[b] if v is not None]
         total_variacio[b] = round(valors[-1] - valors[-2], 2) if len(valors) >= 2 else 0.0
     total_variacio['__total__'] = round(totals[-1] - totals[-2], 2) if len(totals) >= 2 else 0.0
 
@@ -1962,7 +2010,11 @@ def get_bancs_taula():
         'bancs':          banc_noms,
         'dates':          [d.isoformat() for d in dates],
         'files':          files,
+        'reserves':       reserves,
+        'disponibles':    disponibles,
         'totals':         totals,
+        'totals_reals':   totals_reals,
+        'totals_reservats': totals_reservats,
         'variacions':     variacions,
         'total_variacio': total_variacio,
     })

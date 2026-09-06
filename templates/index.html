@@ -473,7 +473,7 @@
     </div>
 
     <div style="background:var(--white);border-radius:var(--radius);padding:1rem 1.5rem;margin-bottom:1.5rem;box-shadow:var(--shadow);font-size:.85rem;color:var(--gray-4);border-left:4px solid var(--gold)">
-      <strong>Com funciona:</strong> Clica <em>📸 Nova fotografia</em> per introduir el saldo real de cada banc en una data. La taula mostra l'evolució. La fila groga és la variació entre dates. La columna dreta = diferència entre primera i última fotografia.
+      <strong>Com funciona:</strong> Introdueix el saldo real de cada banc. Si una part està destinada a un pagament futur, marca-la com a <strong>reservada</strong>: continuaràs veient el saldo real, però els totals mostraran només els diners disponibles.
     </div>
 
     <!-- Taula dinàmica -->
@@ -1107,7 +1107,7 @@
         <label class="form-label">Data <span>*</span></label>
         <input type="date" class="form-control" id="fotoData">
       </div>
-      <p style="font-size:.8rem;color:var(--gray-3);margin-bottom:1rem">Introdueix el saldo real de cada banc en aquesta data. Deixa en blanc els que no vulguis registrar.</p>
+      <p style="font-size:.8rem;color:var(--gray-3);margin-bottom:1rem">Introdueix el saldo real. Pots reservar-ne una part perquè no compti com a diners disponibles.</p>
       <div id="fotoSaldosGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
     </div>
     <div class="modal-peu">
@@ -1137,6 +1137,15 @@
       <div class="form-grup">
         <label class="form-label">Saldo (€) <span>*</span></label>
         <input type="number" class="form-control" id="editCellaSaldo" step="0.01" placeholder="0,00">
+      </div>
+      <div style="margin-top:1rem;padding:1rem;background:#fff8e1;border:1px solid #e5c76b;border-radius:8px">
+        <label class="form-label">🔒 Import reservat (€)</label>
+        <input type="number" class="form-control" id="editCellaReservat" min="0" step="0.01" placeholder="0,00">
+        <label class="form-label" style="margin-top:.75rem">Motiu</label>
+        <input type="text" class="form-control" id="editCellaReservaMotiu" placeholder="Per exemple: Renda / Hisenda">
+        <label class="form-label" style="margin-top:.75rem">Data prevista de pagament</label>
+        <input type="date" class="form-control" id="editCellaReservaData">
+        <p style="font-size:.74rem;color:var(--gray-3);margin-top:.6rem">Aquesta quantitat es resta del total disponible, però no altera el saldo real del banc.</p>
       </div>
     </div>
     <div class="modal-peu">
@@ -2805,11 +2814,27 @@ function omplirSelectsBancs() {
   const grid = document.getElementById('fotoSaldosGrid');
   if (grid) {
     grid.innerHTML = bancsCfg.map(b => `
-      <div class="form-grup">
+      <div class="form-grup" style="align-self:start">
         <label class="form-label">${esc(b.nom)}</label>
         <input type="number" class="form-control" id="fotoSaldo_${b.id}" step="0.01" placeholder="0,00">
+        <label style="display:flex;align-items:center;gap:7px;margin-top:7px;font-size:.75rem;color:#7a6010;cursor:pointer">
+          <input type="checkbox" id="fotoReservaCheck_${b.id}" onchange="toggleReservaFoto(${b.id})">
+          🔒 Reservar-ne una part
+        </label>
+        <div id="fotoReservaBox_${b.id}" style="display:none;margin-top:8px;padding:9px;background:#fff8e1;border:1px solid #e5c76b;border-radius:7px">
+          <input type="number" class="form-control" id="fotoReservat_${b.id}" min="0" step="0.01" placeholder="Import reservat" style="margin-bottom:6px">
+          <input type="text" class="form-control" id="fotoReservaMotiu_${b.id}" placeholder="Motiu: Renda / Hisenda" style="margin-bottom:6px">
+          <label style="font-size:.7rem;color:var(--gray-3)">Data prevista de pagament</label>
+          <input type="date" class="form-control" id="fotoReservaData_${b.id}">
+        </div>
       </div>`).join('');
   }
+}
+
+function toggleReservaFoto(id) {
+  const marcada = document.getElementById('fotoReservaCheck_' + id)?.checked;
+  const caixa = document.getElementById('fotoReservaBox_' + id);
+  if (caixa) caixa.style.display = marcada ? '' : 'none';
 }
 
 function renderTaulaDinamica(t) {
@@ -2864,16 +2889,21 @@ function renderTaulaDinamica(t) {
     const tds = idxsVisibles.map((idx, posVis) => {
       const d = t.dates[idx];
       const val = t.files[banc][idx];
+      const reserva = t.reserves?.[banc]?.[idx];
       const cellSep = (hiHaSeparador && posVis === 1)
         ? '<td style="text-align:center;color:var(--gray-2);background:#fafafa">…</td>'
         : '';
       if (val === null || val === undefined) {
         return cellSep + `<td style="text-align:right;color:var(--gray-2);cursor:pointer" onclick="obrirEditCella('${esc(banc)}','${d}',null)">—</td>`;
       }
-      return cellSep + `<td style="text-align:right;font-weight:500;cursor:pointer" onclick="obrirEditCellaPerId('${esc(banc)}','${d}')" title="Clic per editar">${fmtN(val)}</td>`;
+      const importReservat = reserva?.import || 0;
+      const detallReserva = importReservat > 0
+        ? `<div style="margin-top:4px;font-size:.69rem;line-height:1.35;color:#8a6500" title="${esc(reserva.motiu || 'Diners reservats')}">🔒 ${fmtN(importReservat)} reservats</div><div style="font-size:.69rem;color:var(--green);font-weight:700">Disponible: ${fmtN(t.disponibles[banc][idx])}</div>`
+        : '';
+      return cellSep + `<td style="text-align:right;font-weight:500;cursor:pointer" onclick="obrirEditCellaPerId('${esc(banc)}','${d}')" title="Clic per editar">${fmtN(val)}${detallReserva}</td>`;
     }).join('');
     const valsVisibles = idxsVisibles
-      .map(idx => t.files[banc][idx])
+      .map(idx => (t.disponibles?.[banc] || t.files[banc])[idx])
       .filter(v => v !== null && v !== undefined);
     const varTotal = mostrantSeleccio && valsVisibles.length >= 2
       ? valsVisibles[valsVisibles.length - 1] - valsVisibles[0]
@@ -2888,7 +2918,12 @@ function renderTaulaDinamica(t) {
     const cellSep = (hiHaSeparador && posVis === 1)
       ? '<td style="text-align:center;color:var(--gray-2);background:#fafafa">…</td>'
       : '';
-    return cellSep + `<td style="text-align:right;font-weight:700;font-family:var(--font-head)">${fmtN(t.totals[idx])}</td>`;
+    const reservat = t.totals_reservats?.[idx] || 0;
+    const real = t.totals_reals?.[idx] ?? t.totals[idx];
+    const detall = reservat > 0
+      ? `<div style="font-family:var(--font-body);font-size:.68rem;color:var(--gray-3);font-weight:500">Real ${fmtN(real)} · 🔒 ${fmtN(reservat)}</div>`
+      : '';
+    return cellSep + `<td style="text-align:right;font-weight:700;font-family:var(--font-head)">${fmtN(t.totals[idx])}${detall}</td>`;
   }).join('');
   const totVar = mostrantSeleccio && idxsVisibles.length >= 2
     ? t.totals[idxsVisibles[idxsVisibles.length - 1]] - t.totals[idxsVisibles[0]]
@@ -2896,7 +2931,7 @@ function renderTaulaDinamica(t) {
   const totVarCls = totVar > 0 ? 'color:var(--green)' : totVar < 0 ? 'color:var(--red)' : '';
   const totVarTxt = totVar > 0 ? '+' + fmtN(totVar) : fmtN(totVar);
   const filaTotals = `<tr style="border-top:2px solid var(--gray-2)">
-    <td style="font-weight:700">TOTAL</td>${tdTotals}
+    <td style="font-weight:700">TOTAL DISPONIBLE</td>${tdTotals}
     <td style="text-align:right;font-weight:700;font-family:var(--font-head);${totVarCls}">${totVarTxt}</td>
   </tr>`;
 
@@ -2963,11 +2998,13 @@ function filtrarTaulaBancs() {
       return `<div><strong>${esc(banc)}</strong>: cap saldo registrat</div>`;
     }
     const saldo = fila[idxUltim];
+    const disponible = t.disponibles?.[banc]?.[idxUltim] ?? saldo;
+    const reservat = t.reserves?.[banc]?.[idxUltim]?.import || 0;
     const variacio = t.total_variacio[banc] || 0;
     const signe = variacio > 0 ? '+' : '';
     return `<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline">
       <div><strong>${esc(banc)}</strong><span style="color:var(--gray-3)"> · últim registre ${formatData(t.dates[idxUltim])}</span></div>
-      <div style="text-align:right"><strong>${fmtN(saldo)} €</strong><span style="color:${variacio >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:700;margin-left:10px">${signe}${fmtN(variacio)} €</span></div>
+      <div style="text-align:right"><strong>${fmtN(disponible)} € disponibles</strong>${reservat > 0 ? `<span style="color:#8a6500;margin-left:8px">🔒 ${fmtN(reservat)}</span>` : ''}<span style="color:${variacio >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:700;margin-left:10px">${signe}${fmtN(variacio)} €</span></div>
     </div>`;
   }).join('');
 
@@ -3043,7 +3080,7 @@ function calcularComparacio() {
     saldoB = t.totals[iB];
     etiqueta = 'Tots els bancs';
     const filesDetall = t.bancs.map(nomBanc => {
-      const fila = t.files[nomBanc] || [];
+      const fila = (t.disponibles?.[nomBanc] || t.files[nomBanc]) || [];
       const idxAmbSaldo = [];
       for (let i = iA; i <= iB; i++) {
         if (fila[i] !== null && fila[i] !== undefined) idxAmbSaldo.push(i);
@@ -3086,7 +3123,7 @@ function calcularComparacio() {
         </div>
       </div>` : '';
   } else {
-    const fila = t.files[banc] || [];
+    const fila = (t.disponibles?.[banc] || t.files[banc]) || [];
     const idxAmbSaldo = [];
     for (let i = iA; i <= iB; i++) {
       if (fila[i] !== null && fila[i] !== undefined) idxAmbSaldo.push(i);
@@ -3363,6 +3400,13 @@ function obrirModalFotografia() {
   bancsCfg.forEach(b => {
     const el = document.getElementById('fotoSaldo_' + b.id);
     if (el) el.value = '';
+    const check = document.getElementById('fotoReservaCheck_' + b.id);
+    if (check) check.checked = false;
+    ['fotoReservat_', 'fotoReservaMotiu_', 'fotoReservaData_'].forEach(prefix => {
+      const camp = document.getElementById(prefix + b.id);
+      if (camp) camp.value = '';
+    });
+    toggleReservaFoto(b.id);
   });
   document.getElementById('modalFotografiaOverlay').classList.add('actiu');
 }
@@ -3380,13 +3424,21 @@ async function guardarFotografia() {
   for (const b of bancsCfg) {
     const el = document.getElementById('fotoSaldo_' + b.id);
     if (!el || el.value === '') continue;
+    const reservaActiva = document.getElementById('fotoReservaCheck_' + b.id)?.checked;
+    const reservat = reservaActiva ? parseFloat(document.getElementById('fotoReservat_' + b.id)?.value || 0) : 0;
+    const reserva_motiu = reservaActiva ? (document.getElementById('fotoReservaMotiu_' + b.id)?.value || '') : '';
+    const reserva_data = reservaActiva ? (document.getElementById('fotoReservaData_' + b.id)?.value || '') : '';
     try {
       const r = await fetch('/api/bancs/fotografies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data, banc: b.nom, saldo: parseFloat(el.value) })
+        body: JSON.stringify({ data, banc: b.nom, saldo: parseFloat(el.value), reservat, reserva_motiu, reserva_data })
       });
-      if (r.ok) guardats++; else errors++;
+      if (r.ok) guardats++; else {
+        const res = await r.json().catch(() => ({}));
+        toast(`${b.nom}: ${res.error || 'no s’ha pogut guardar'}`, 'error');
+        errors++;
+      }
     } catch(e) { errors++; }
   }
   btn.disabled = false; btn.innerHTML = '📸 Guardar';
@@ -3409,6 +3461,9 @@ async function obrirEditCellaPerId(banc, data) {
       document.getElementById('editCellaBanc').value  = banc;
       document.getElementById('editCellaData').value  = data;
       document.getElementById('editCellaSaldo').value = foto.saldo;
+      document.getElementById('editCellaReservat').value = foto.reservat || '';
+      document.getElementById('editCellaReservaMotiu').value = foto.reserva_motiu || '';
+      document.getElementById('editCellaReservaData').value = foto.reserva_data || '';
       document.getElementById('modalEditCellaTitol').textContent = `✏️ ${banc} · ${data.split('-').reverse().join('/')}`;
       document.getElementById('modalEditCellaOverlay').classList.add('actiu');
     }
@@ -3421,6 +3476,9 @@ function obrirEditCella(banc, data, val) {
   document.getElementById('editCellaBanc').value  = banc;
   document.getElementById('editCellaData').value  = data;
   document.getElementById('editCellaSaldo').value = val || '';
+  document.getElementById('editCellaReservat').value = '';
+  document.getElementById('editCellaReservaMotiu').value = '';
+  document.getElementById('editCellaReservaData').value = '';
   document.getElementById('modalEditCellaTitol').textContent = `✏️ ${banc} · ${data.split('-').reverse().join('/')}`;
   document.getElementById('modalEditCellaOverlay').classList.add('actiu');
 }
@@ -3438,27 +3496,37 @@ async function guardarEditCella() {
   const banc  = document.getElementById('editCellaBanc').value;
   const data  = document.getElementById('editCellaData').value;
   const saldo = document.getElementById('editCellaSaldo').value;
+  const reservat = parseFloat(document.getElementById('editCellaReservat').value || 0);
+  const reserva_motiu = document.getElementById('editCellaReservaMotiu').value.trim();
+  const reserva_data = document.getElementById('editCellaReservaData').value;
   if (!saldo) { toast('Introdueix un saldo', 'error'); return; }
+  if (reservat < 0 || reservat > Math.max(parseFloat(saldo), 0)) {
+    toast("L'import reservat no pot superar el saldo real", 'error'); return;
+  }
+  const payload = { data, banc, saldo: parseFloat(saldo), reservat, reserva_motiu, reserva_data };
   try {
     let r;
     if (id) {
       r = await fetch(`/api/bancs/fotografies/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data, banc, saldo: parseFloat(saldo) })
+        body: JSON.stringify(payload)
       });
     } else {
       r = await fetch('/api/bancs/fotografies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data, banc, saldo: parseFloat(saldo) })
+        body: JSON.stringify(payload)
       });
     }
-    if (!r.ok) throw new Error();
+    if (!r.ok) {
+      const res = await r.json().catch(() => ({}));
+      throw new Error(res.error || 'No s’ha pogut guardar');
+    }
     toast('Saldo actualitzat ✓', 'ok');
     tancarModalEditCella();
     carregarTaulaBancs();
-  } catch(e) { toast('Error guardant', 'error'); }
+  } catch(e) { toast('Error guardant: ' + e.message, 'error'); }
 }
 
 async function eliminarCella() {
