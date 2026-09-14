@@ -23,7 +23,7 @@ import cloudinary.api
 
 app = Flask(__name__)
 CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
-APP_VERSION = '2026-09-06-variacions-reals'
+APP_VERSION = '2026-09-14-documents-incidencies'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 
@@ -423,6 +423,8 @@ class FacturaDocument(db.Model):
 class DocumentPersonal(db.Model):
     __tablename__ = 'documents_personals'
 
+    tipus = db.Column(db.String(20), nullable=False, default='incidencia', server_default='incidencia')
+
     id             = db.Column(db.Integer, primary_key=True)
     nom            = db.Column(db.String(255), nullable=False)
     categoria      = db.Column(db.String(100), nullable=False, default='Administratiu')
@@ -454,6 +456,7 @@ class DocumentPersonal(db.Model):
         return {
             'id': self.id,
             'nom': self.nom,
+            'tipus': self.tipus or 'incidencia',
             'categoria': self.categoria or 'Administratiu',
             'data_document': self.data_document.isoformat() if self.data_document else '',
             'entitat': self.entitat or '',
@@ -658,6 +661,7 @@ with app.app_context():
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS tema VARCHAR(255)'))
         db.session.execute(_text('ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_data TEXT'))
         db.session.execute(_text("ALTER TABLE torn_comunicacions ADD COLUMN IF NOT EXISTS document_mimetype VARCHAR(100) DEFAULT 'application/pdf'"))
+        db.session.execute(_text("ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS tipus VARCHAR(20) NOT NULL DEFAULT 'incidencia'"))
         db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS solucionat BOOLEAN DEFAULT FALSE'))
         db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS data_solucio DATE'))
         db.session.execute(_text('ALTER TABLE documents_personals ADD COLUMN IF NOT EXISTS recordatori_enviat_el TIMESTAMP'))
@@ -1676,6 +1680,11 @@ def get_documents_personals():
         return jsonify({'error': 'No autoritzat'}), 401
     categoria = request.args.get('categoria')
     q = DocumentPersonal.query
+    tipus = request.args.get('tipus')
+    if tipus:
+        if tipus not in ('personal', 'incidencia'):
+            return jsonify({'error': 'Tipus no vàlid'}), 400
+        q = q.filter(DocumentPersonal.tipus == tipus)
     if categoria:
         q = q.filter(DocumentPersonal.categoria == categoria)
     docs = q.order_by(DocumentPersonal.data_document.desc().nullslast(), DocumentPersonal.creat_el.desc()).all()
@@ -1685,6 +1694,9 @@ def get_documents_personals():
 def create_document_personal():
     if not documents_personals_autoritzat():
         return jsonify({'error': 'No autoritzat'}), 401
+    tipus = request.form.get('tipus', 'incidencia')
+    if tipus not in ('personal', 'incidencia'):
+        return jsonify({'error': 'Tipus no vàlid'}), 400
     fitxers = uploaded_documents()
     if not fitxers:
         return jsonify({'error': 'Cal adjuntar un fitxer'}), 400
@@ -1696,6 +1708,7 @@ def create_document_personal():
         fitxer = fitxers[0]
         result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/documents-personals')
         doc = DocumentPersonal(
+            tipus=tipus,
             nom=nom,
             categoria=request.form.get('categoria') or 'Administratiu',
             data_document=data_doc,
@@ -1726,7 +1739,11 @@ def update_document_personal(id):
     if not documents_personals_autoritzat():
         return jsonify({'error': 'No autoritzat'}), 401
     doc = DocumentPersonal.query.get_or_404(id)
+    tipus = request.form.get('tipus', doc.tipus)
+    if tipus not in ('personal', 'incidencia'):
+        return jsonify({'error': 'Tipus no vàlid'}), 400
     try:
+        doc.tipus = tipus
         estava_solucionat = bool(doc.solucionat)
         fitxers_nous = uploaded_documents()
         data_doc = datetime.strptime(request.form.get('data_document', ''), '%Y-%m-%d').date() if request.form.get('data_document') else None
