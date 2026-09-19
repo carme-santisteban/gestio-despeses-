@@ -2823,6 +2823,27 @@ async function carregarTaulaBancs() {
   } catch(e) { toast('Error carregant taula', 'error'); }
 }
 
+function valorDisponibleBanc(t, banc, idx) {
+  const fila = t.disponibles && t.disponibles[banc];
+  const v = fila ? fila[idx] : null;
+  return (v !== null && v !== undefined) ? v : ((t.files[banc] || [])[idx]);
+}
+
+function totalDisponibleBancs(t, idx) {
+  const totals = t.totals_disponibles || t.totals || [];
+  return totals[idx];
+}
+
+function htmlSaldoBanc(t, banc, idx) {
+  const saldo = (t.files[banc] || [])[idx];
+  const reserva = t.reserves?.[banc]?.[idx];
+  const reservat = reserva?.import || ((t.reservats && t.reservats[banc]) || [])[idx] || 0;
+  if (saldo === null || saldo === undefined) return '—';
+  if (!reservat) return fmtN(saldo);
+  const disponible = valorDisponibleBanc(t, banc, idx);
+  return `${fmtN(saldo)}<div style="font-size:.72rem;color:#8a6500;font-weight:600" title="${esc(reserva?.motiu || 'Diners reservats')}">🔒 ${fmtN(reservat)} reservats</div><div style="font-size:.72rem;color:var(--green);font-weight:700">Disponible: ${fmtN(disponible)}</div>`;
+}
+
 function omplirSelectsBancs() {
   const selForm = document.getElementById('mBanc');
   if (selForm) {
@@ -2900,7 +2921,7 @@ function renderTaulaDinamica(t) {
   head.innerHTML = `<tr>
     <th style="background:var(--navy);min-width:130px">BANC</th>
     ${thDates}
-    <th style="text-align:right;background:#2d4a1e;min-width:120px;white-space:nowrap;font-size:.75rem">VARIACIÓ REAL</th>
+    <th style="text-align:right;background:#2d4a1e;min-width:120px;white-space:nowrap;font-size:.75rem">VARIACIÓ DISP.</th>
   </tr>`;
 
   // Files bancs — cada cel·la és clicable per editar
@@ -2915,14 +2936,10 @@ function renderTaulaDinamica(t) {
       if (val === null || val === undefined) {
         return cellSep + `<td style="text-align:right;color:var(--gray-2);cursor:pointer" onclick="obrirEditCella('${esc(banc)}','${d}',null)">—</td>`;
       }
-      const importReservat = reserva?.import || 0;
-      const detallReserva = importReservat > 0
-        ? `<div style="margin-top:4px;font-size:.69rem;line-height:1.35;color:#8a6500" title="${esc(reserva.motiu || 'Diners reservats')}">🔒 ${fmtN(importReservat)} reservats</div><div style="font-size:.69rem;color:var(--green);font-weight:700">Disponible: ${fmtN(t.disponibles[banc][idx])}</div>`
-        : '';
-      return cellSep + `<td style="text-align:right;font-weight:500;cursor:pointer" onclick="obrirEditCellaPerId('${esc(banc)}','${d}')" title="Clic per editar">${fmtN(val)}${detallReserva}</td>`;
+      return cellSep + `<td style="text-align:right;font-weight:500;cursor:pointer" onclick="obrirEditCellaPerId('${esc(banc)}','${d}')" title="Clic per editar">${htmlSaldoBanc(t, banc, idx)}</td>`;
     }).join('');
-    const valInici = t.files[banc][idxsVisibles[0]];
-    const valFinal = t.files[banc][idxsVisibles[idxsVisibles.length - 1]];
+    const valInici = valorDisponibleBanc(t, banc, idxsVisibles[0]);
+    const valFinal = valorDisponibleBanc(t, banc, idxsVisibles[idxsVisibles.length - 1]);
     const varTotal = mostrantSeleccio
       ? (valInici != null && valFinal != null ? valFinal - valInici : null)
       : t.total_variacio[banc];
@@ -2947,7 +2964,7 @@ function renderTaulaDinamica(t) {
     return cellSep + `<td style="text-align:right;font-weight:700;font-family:var(--font-head)">${fmtN(t.totals[idx])}${detall}</td>`;
   }).join('');
   const totVar = mostrantSeleccio && idxsVisibles.length >= 2
-      ? t.totals_reals[idxsVisibles[idxsVisibles.length - 1]] - t.totals_reals[idxsVisibles[0]]
+    ? totalDisponibleBancs(t, idxsVisibles[idxsVisibles.length - 1]) - totalDisponibleBancs(t, idxsVisibles[0])
     : (t.total_variacio['__total__'] || 0);
   const totVarCls = totVar > 0 ? 'color:var(--green)' : totVar < 0 ? 'color:var(--red)' : '';
   const totVarTxt = totVar > 0 ? '+' + fmtN(totVar) : fmtN(totVar);
@@ -2959,7 +2976,7 @@ function renderTaulaDinamica(t) {
   // Fila VARIACIÓ groga
   const tdVars = idxsVisibles.map((idx, posVis) => {
     const v = mostrantSeleccio
-      ? (posVis === 0 ? null : t.totals_reals[idx] - t.totals_reals[idxsVisibles[posVis - 1]])
+      ? (posVis === 0 ? null : totalDisponibleBancs(t, idx) - totalDisponibleBancs(t, idxsVisibles[posVis - 1]))
       : t.variacions[idx];
     const cellSep = (hiHaSeparador && posVis === 1)
       ? '<td style="background:#f5e6b0;text-align:center;color:var(--gray-3)">…</td>'
@@ -2969,7 +2986,7 @@ function renderTaulaDinamica(t) {
     return cellSep + `<td style="background:#f5e6b0;text-align:right;font-weight:600;font-size:.85rem;${cls}">${v > 0 ? '+' : ''}${fmtN(v)}</td>`;
   }).join('');
   const filaVar = `<tr>
-    <td style="background:#f5e6b0;font-size:.78rem;font-weight:600;color:#7a6010;letter-spacing:.04em">VARIACIÓ REAL</td>
+    <td style="background:#f5e6b0;font-size:.78rem;font-weight:600;color:#7a6010;letter-spacing:.04em">VARIACIÓ DISP.</td>
     ${tdVars}<td style="background:#f5e6b0"></td>
   </tr>`;
 
@@ -3097,8 +3114,8 @@ function calcularComparacio() {
   let registresBanc = [];
   let detallTotalBancs = '';
   if (banc === '__total__') {
-    saldoA = t.totals_reals[iA];
-    saldoB = t.totals_reals[iB];
+    saldoA = totalDisponibleBancs(t, iA);
+    saldoB = totalDisponibleBancs(t, iB);
     etiqueta = 'Tots els bancs';
     const filesDetall = t.bancs.map(nomBanc => {
       const fila = t.files[nomBanc] || [];
@@ -3109,8 +3126,10 @@ function calcularComparacio() {
       if (!idxAmbSaldo.length) return null;
       const idxPrimer = idxAmbSaldo[0];
       const idxUltim = idxAmbSaldo[idxAmbSaldo.length - 1];
-      const saldoIni = fila[idxPrimer];
-      const saldoFi = fila[idxUltim];
+      const saldoIni = valorDisponibleBanc(t, nomBanc, idxPrimer);
+      const saldoFi = valorDisponibleBanc(t, nomBanc, idxUltim);
+      const saldoBrutIni = fila[idxPrimer];
+      const saldoBrutFi = fila[idxUltim];
       const dif = saldoFi - saldoIni;
       const signeDif = dif > 0 ? '+' : '';
       const colorDif = dif > 0 ? '#10b981' : dif < 0 ? '#ef4444' : 'var(--gray-3)';
@@ -3118,9 +3137,9 @@ function calcularComparacio() {
         <tr>
           <td style="font-weight:700;color:var(--navy)">${esc(nomBanc)}</td>
           <td style="white-space:nowrap;color:var(--gray-3)">${formatData(t.dates[idxPrimer])}</td>
-          <td style="text-align:right">${fmtN(saldoIni)} €</td>
+          <td style="text-align:right">${fmtN(saldoIni)} €${Math.abs(saldoIni - saldoBrutIni) > 0.009 ? `<div style="font-size:11px;color:var(--gray-3)">saldo ${fmtN(saldoBrutIni)} €</div>` : ''}</td>
           <td style="white-space:nowrap;color:var(--gray-3)">${formatData(t.dates[idxUltim])}</td>
-          <td style="text-align:right">${fmtN(saldoFi)} €</td>
+          <td style="text-align:right">${fmtN(saldoFi)} €${Math.abs(saldoFi - saldoBrutFi) > 0.009 ? `<div style="font-size:11px;color:var(--gray-3)">saldo ${fmtN(saldoBrutFi)} €</div>` : ''}</td>
           <td style="text-align:right;font-weight:800;color:${colorDif}">${signeDif}${fmtN(dif)} €</td>
         </tr>`;
     }).filter(Boolean).join('');
@@ -3133,9 +3152,9 @@ function calcularComparacio() {
               <tr>
                 <th style="background:var(--navy);color:white">Banc</th>
                 <th style="background:var(--navy);color:white">Data inicial</th>
-                <th style="background:var(--navy);color:white;text-align:right">Saldo inicial</th>
+                <th style="background:var(--navy);color:white;text-align:right">Disponible inicial</th>
                 <th style="background:var(--navy);color:white">Data final</th>
-                <th style="background:var(--navy);color:white;text-align:right">Saldo final</th>
+                <th style="background:var(--navy);color:white;text-align:right">Disponible final</th>
                 <th style="background:var(--navy);color:white;text-align:right">Variació</th>
               </tr>
             </thead>
@@ -3160,14 +3179,16 @@ function calcularComparacio() {
     }
     const idxPrimer = idxAmbSaldo[0];
     const idxUltim = idxAmbSaldo[idxAmbSaldo.length - 1];
-    saldoA = fila[idxPrimer];
-    saldoB = fila[idxUltim];
+    saldoA = valorDisponibleBanc(t, banc, idxPrimer);
+    saldoB = valorDisponibleBanc(t, banc, idxUltim);
     dSaldoA = t.dates[idxPrimer];
     dSaldoB = t.dates[idxUltim];
     etiqueta = banc;
     registresBanc = idxAmbSaldo.map(idx => ({
       data: t.dates[idx],
-      saldo: fila[idx]
+      saldo: fila[idx],
+      disponible: valorDisponibleBanc(t, banc, idx),
+      reservat: t.reserves?.[banc]?.[idx]?.import || ((t.reservats && t.reservats[banc]) || [])[idx] || 0
     }));
   }
 
@@ -3188,12 +3209,12 @@ function calcularComparacio() {
       <div style="font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-3);font-weight:700;margin-bottom:.55rem">Registres dins el període</div>
       <div style="display:grid;gap:.45rem">
         ${registresBanc.map((r, i) => {
-          const anterior = i > 0 ? registresBanc[i - 1].saldo : 0;
-          const increment = r.saldo - anterior;
+          const anterior = i > 0 ? registresBanc[i - 1].disponible : 0;
+          const increment = r.disponible - anterior;
           const signeInc = increment > 0 ? '+' : '';
           const colorInc = increment > 0 ? '#10b981' : increment < 0 ? '#ef4444' : 'var(--gray-3)';
           return `<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;font-size:.88rem">
-            <div><strong>${formatData(r.data)}</strong><span style="color:var(--gray-3)"> · saldo ${fmtN(r.saldo)} €</span></div>
+            <div><strong>${formatData(r.data)}</strong><span style="color:var(--gray-3)"> · disponible ${fmtN(r.disponible)} €${r.reservat ? ` · saldo ${fmtN(r.saldo)} € · reservat ${fmtN(r.reservat)} €` : ''}</span></div>
             <div style="font-weight:700;color:${colorInc}">${signeInc}${fmtN(increment)} €</div>
           </div>`;
         }).join('')}
@@ -3205,11 +3226,11 @@ function calcularComparacio() {
       <div style="font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-3);font-weight:600;margin-bottom:.4rem">${esc(etiqueta)}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1rem">
         <div>
-          <div style="font-size:.72rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em">Saldo ${formatData(dSaldoA)}</div>
+          <div style="font-size:.72rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em">Disponible ${formatData(dSaldoA)}</div>
           <div style="font-family:var(--font-head);font-size:1.3rem;font-weight:700;color:var(--navy)">${fmtN(saldoA)} €</div>
         </div>
         <div>
-          <div style="font-size:.72rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em">Saldo ${formatData(dSaldoB)}</div>
+          <div style="font-size:.72rem;color:var(--gray-3);text-transform:uppercase;letter-spacing:.05em">Disponible ${formatData(dSaldoB)}</div>
           <div style="font-family:var(--font-head);font-size:1.3rem;font-weight:700;color:var(--navy)">${fmtN(saldoB)} €</div>
         </div>
       </div>

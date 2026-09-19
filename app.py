@@ -12,6 +12,7 @@ import smtplib
 import ssl
 import threading
 import time
+import re
 from email.message import EmailMessage
 from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, Response, abort, after_this_request
@@ -1969,9 +1970,9 @@ def get_bancs_taula():
     banc_noms = [b.nom for b in bancs_cfg if b.nom in bancs_amb_fotos]
 
     if not dates:
-        return jsonify({'bancs': banc_noms, 'dates': [], 'files': {}, 'reserves': {}, 'disponibles': {}, 'totals': [], 'totals_reals': [], 'totals_reservats': [], 'variacions': [], 'total_variacio': {}})
+        return jsonify({'bancs': banc_noms, 'dates': [], 'files': {}, 'reserves': {}, 'disponibles': {}, 'totals': [], 'totals_reals': [], 'totals_reservats': [], 'totals_disponibles': [], 'variacions': [], 'total_variacio': {}})
 
-    # Construir diccionari {banc: {data_iso: saldo}}
+    # Construir diccionaris {banc: {data_iso: saldo/reservat/disponible}}
     totes = FotografiaBanc.query.all()
     index = {}
     index_reserves = {}
@@ -2001,31 +2002,33 @@ def get_bancs_taula():
     totals_reals = []
     totals_reservats = []
     totals = []
+    totals_disponibles = []
     for i in range(len(dates)):
         total_real = sum(files[b][i] for b in banc_noms if files[b][i] is not None)
         total_reservat = sum((reserves[b][i] or {}).get('import', 0) for b in banc_noms)
         totals_reals.append(round(total_real, 2))
         totals_reservats.append(round(total_reservat, 2))
         totals.append(round(total_real - total_reservat, 2))
+        totals_disponibles.append(round(total_real - total_reservat, 2))
 
-    # La variació mesura el canvi dels saldos reals. Reservar diners no és una
-    # despesa ni una pèrdua i, per tant, no ha d'aparèixer com una baixada.
+    # La variació mesura el canvi del saldo disponible. Si uns diners ja estaven
+    # reservats, pagar-los no ha d'aparèixer com una nova pèrdua.
     variacions = []
     for i in range(len(dates)):
         if i == 0:
             variacions.append(None)
         else:
-            variacions.append(round(totals_reals[i] - totals_reals[i-1], 2))
+            variacions.append(round(totals[i] - totals[i-1], 2))
 
-    # Variació per banc entre les dues dates globals més recents. Si el banc no
-    # té registre actual, no inventem cap baixada: la interfície mostrarà un guió.
+    # Variació per banc entre les dues dates globals més recents, calculada amb
+    # el saldo disponible. Si falta una data, la interfície mostrarà un guió.
     total_variacio = {}
     for b in banc_noms:
-        if len(dates) >= 2 and files[b][-1] is not None and files[b][-2] is not None:
-            total_variacio[b] = round(files[b][-1] - files[b][-2], 2)
+        if len(dates) >= 2 and disponibles[b][-1] is not None and disponibles[b][-2] is not None:
+            total_variacio[b] = round(disponibles[b][-1] - disponibles[b][-2], 2)
         else:
             total_variacio[b] = None
-    total_variacio['__total__'] = round(totals_reals[-1] - totals_reals[-2], 2) if len(totals_reals) >= 2 else 0.0
+    total_variacio['__total__'] = round(totals[-1] - totals[-2], 2) if len(totals) >= 2 else 0.0
 
     return jsonify({
         'bancs':          banc_noms,
@@ -2036,6 +2039,7 @@ def get_bancs_taula():
         'totals':         totals,
         'totals_reals':   totals_reals,
         'totals_reservats': totals_reservats,
+        'totals_disponibles': totals_disponibles,
         'variacions':     variacions,
         'total_variacio': total_variacio,
     })
