@@ -952,7 +952,7 @@
         <div class="form-grup"><label class="form-label">Total general brut (€) <span>*</span></label><input type="number" class="form-control" id="ftImportBrut" step="0.01" min="0" placeholder="0,00" oninput="calcularTotalsTorn()"></div>
         <div class="form-grup">
           <label class="form-label">Percentatge cobrat (%)</label>
-          <input type="number" class="form-control" id="ftPercentatgePagament" value="100" step="0.01" min="0" max="100" oninput="calcularTotalsTorn()">
+          <input type="text" inputmode="decimal" class="form-control" id="ftPercentatgePagament" value="100" placeholder="Ex: 91 o 91%" oninput="calcularTotalsTorn()">
         </div>
         <div class="form-grup"><label class="form-label">Brut efectivament cobrat</label><div class="form-control" id="ftBrutCobrat" style="background:#f1f5f9;color:var(--gray-3);font-weight:600">0,00 €</div></div>
         <div class="form-grup"><label class="form-label">IRPF (%)</label><input type="number" class="form-control" id="ftIrpfPct" value="15" step="0.1" min="0" oninput="calcularTotalsTorn()"></div>
@@ -2679,10 +2679,17 @@ async function eliminarComunicacioTorn(id) {
   } catch(e) { toast('Error eliminant', 'error'); }
 }
 
+function parsePercentatgeTorn(valor, defecte = 100) {
+  const text = String(valor ?? '').replace('%', '').replace(',', '.').trim();
+  if (!text) return defecte;
+  const n = parseFloat(text);
+  if (!Number.isFinite(n)) return defecte;
+  return Math.max(0, Math.min(100, n));
+}
+
 function calcularTotalsTorn() {
   const brut = parseFloat(document.getElementById('ftImportBrut').value) || 0;
-  const percentatgePagament = parseFloat(document.getElementById('ftPercentatgePagament').value);
-  const pctPagat = Number.isFinite(percentatgePagament) ? percentatgePagament : 100;
+  const pctPagat = parsePercentatgeTorn(document.getElementById('ftPercentatgePagament').value, 100);
   const pct  = parseFloat(document.getElementById('ftIrpfPct').value) || 0;
   const brutCobrat = brut * pctPagat / 100;
   const irpf = brutCobrat * pct / 100;
@@ -2724,8 +2731,8 @@ async function guardarTorn() {
   fd.append('descripcio', descripcio);
   fd.append('data_pagament', dataPagament);
   fd.append('import_brut', parseFloat(importBrut));
-  const pctPagat = parseFloat(document.getElementById('ftPercentatgePagament').value);
-  fd.append('percentatge_pagament', Number.isFinite(pctPagat) ? pctPagat : 100);
+  const pctPagat = parsePercentatgeTorn(document.getElementById('ftPercentatgePagament').value, 100);
+  fd.append('percentatge_pagament', pctPagat);
   fd.append('irpf_pct', parseFloat(document.getElementById('ftIrpfPct').value) || 0);
   fd.append('notes', document.getElementById('ftNotes').value);
   const fitxer = document.getElementById('ftDocument').files[0];
