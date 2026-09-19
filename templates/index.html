@@ -947,10 +947,14 @@
     </div>
     <div class="modal-cos">
       <div class="form-grid">
-        <div class="form-grup full"><label class="form-label">Descripció <span>*</span></label><input type="text" class="form-control" id="ftDescripcio" placeholder="Ex: 100% ASSISTENCIA i 100% OFICI Febrer 2026"></div>
+        <div class="form-grup full"><label class="form-label">Descripció <span>*</span></label><input type="text" class="form-control" id="ftDescripcio" placeholder="Ex: 100% ASSISTENCIA i 100% OFICI Febrer 2026" oninput="calcularTotalsTorn()"></div>
         <div class="form-grup"><label class="form-label">Data pagament <span>*</span></label><input type="date" class="form-control" id="ftDataPagament"></div>
         <div class="form-grup"><label class="form-label">Total general brut (€) <span>*</span></label><input type="number" class="form-control" id="ftImportBrut" step="0.01" min="0" placeholder="0,00" oninput="calcularTotalsTorn()"></div>
-        <div class="form-grup"><label class="form-label">Percentatge pagat (%)</label><input type="number" class="form-control" id="ftPercentatgePagament" value="100" step="0.01" min="0" max="100" oninput="calcularTotalsTorn()"></div>
+        <div class="form-grup">
+          <label class="form-label">Part del total cobrada (%)</label>
+          <input type="number" class="form-control" id="ftPercentatgePagament" value="100" step="0.01" min="0" max="100" oninput="calcularTotalsTorn()">
+          <div id="ftPercentatgeAvis" style="display:none;margin-top:5px;font-size:.75rem;color:#8a6500;line-height:1.3"></div>
+        </div>
         <div class="form-grup"><label class="form-label">Brut efectivament cobrat</label><div class="form-control" id="ftBrutCobrat" style="background:#f1f5f9;color:var(--gray-3);font-weight:600">0,00 €</div></div>
         <div class="form-grup"><label class="form-label">IRPF (%)</label><input type="number" class="form-control" id="ftIrpfPct" value="15" step="0.1" min="0" oninput="calcularTotalsTorn()"></div>
         <div class="form-grup"><label class="form-label">IRPF retingut</label><div class="form-control" id="ftIrpfCalc" style="background:#f1f5f9;color:var(--gray-3);font-weight:600">0,00 €</div></div>
@@ -2676,10 +2680,40 @@ async function eliminarComunicacioTorn(id) {
   } catch(e) { toast('Error eliminant', 'error'); }
 }
 
+function percentatgeConcepteTorn(descripcio) {
+  const m = String(descripcio || '').trim().match(/^(\d+(?:[.,]\d+)?)\s*%/);
+  return m ? parseFloat(m[1].replace(',', '.')) : null;
+}
+
+function percentatgePagamentTornSegur(descripcio, pct) {
+  const pctConcepte = percentatgeConcepteTorn(descripcio);
+  if (Number.isFinite(pct) && pctConcepte !== null && Math.abs(pct - pctConcepte) < 0.001 && pct < 100) {
+    return 100;
+  }
+  return Number.isFinite(pct) ? pct : 100;
+}
+
+function avisPercentatgeTorn(descripcio, pct) {
+  const avis = document.getElementById('ftPercentatgeAvis');
+  if (!avis) return;
+  const pctConcepte = percentatgeConcepteTorn(descripcio);
+  if (Number.isFinite(pct) && pctConcepte !== null && Math.abs(pct - pctConcepte) < 0.001 && pct < 100) {
+    avis.style.display = '';
+    avis.textContent = `He detectat que "${pctConcepte}%" forma part del concepte. Si has cobrat tot l'import del document, es guardarà com 100%.`;
+  } else if (Number.isFinite(pct) && pct < 100) {
+    avis.style.display = '';
+    avis.textContent = `Això vol dir que només has cobrat el ${pct}% del total general.`;
+  } else {
+    avis.style.display = 'none';
+    avis.textContent = '';
+  }
+}
+
 function calcularTotalsTorn() {
   const brut = parseFloat(document.getElementById('ftImportBrut').value) || 0;
+  const descripcio = document.getElementById('ftDescripcio').value.trim();
   const percentatgePagament = parseFloat(document.getElementById('ftPercentatgePagament').value);
-  const pctPagat = Number.isFinite(percentatgePagament) ? percentatgePagament : 100;
+  const pctPagat = percentatgePagamentTornSegur(descripcio, percentatgePagament);
   const pct  = parseFloat(document.getElementById('ftIrpfPct').value) || 0;
   const brutCobrat = brut * pctPagat / 100;
   const irpf = brutCobrat * pct / 100;
@@ -2687,6 +2721,7 @@ function calcularTotalsTorn() {
   document.getElementById('ftBrutCobrat').textContent = formatImport(brutCobrat);
   document.getElementById('ftIrpfCalc').textContent = formatImport(irpf);
   document.getElementById('ftLiquid').textContent   = formatImport(liq);
+  avisPercentatgeTorn(descripcio, percentatgePagament);
 }
 
 function obrirModalTornOfici(t = null) {
@@ -2722,7 +2757,8 @@ async function guardarTorn() {
   fd.append('data_pagament', dataPagament);
   fd.append('import_brut', parseFloat(importBrut));
   const pctPagat = parseFloat(document.getElementById('ftPercentatgePagament').value);
-  fd.append('percentatge_pagament', Number.isFinite(pctPagat) ? pctPagat : 100);
+  const pctSegur = percentatgePagamentTornSegur(descripcio, pctPagat);
+  fd.append('percentatge_pagament', pctSegur);
   fd.append('irpf_pct', parseFloat(document.getElementById('ftIrpfPct').value) || 0);
   fd.append('notes', document.getElementById('ftNotes').value);
   const fitxer = document.getElementById('ftDocument').files[0];
@@ -2737,7 +2773,11 @@ async function guardarTorn() {
       toast(msg, 'error');
       return;
     }
-    toast(tornEdId ? 'Pagament actualitzat' : 'Pagament guardat', 'ok');
+    if (pctSegur !== (Number.isFinite(pctPagat) ? pctPagat : 100)) {
+      toast('He guardat el pagament com a cobrat al 100%', 'ok');
+    } else {
+      toast(tornEdId ? 'Pagament actualitzat' : 'Pagament guardat', 'ok');
+    }
     tancarModalTorn();
     carregarTornOfici();
   } catch(e) {
