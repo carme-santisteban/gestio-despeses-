@@ -1269,7 +1269,6 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarDespeses();
   carregarAlertesAssegurances();
   aplicarPrefillDespesa();
-  aplicarPrefillDocumentPersonal();
   restaurarEsborranyLexDespesa();
   activarEsborranyLexDespesa();
   activarDropDocumentsDespesa();
@@ -1588,39 +1587,6 @@ function aplicarPrefillDespesa() {
   guardarEsborranyLexDespesa();
   carregarAdjuntLexGestioDespesa(params);
   history.replaceState(null, '', window.location.pathname);
-}
-
-function aplicarPrefillDocumentPersonal() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('nou') !== 'document') return;
-  const tipus = params.get('tipus') === 'incidencia' ? 'incidencia' : 'personal';
-  canviarTab(tipus === 'incidencia' ? 'incidencies' : 'documentsPersonals');
-  obrirModalDocumentPersonal();
-  document.getElementById('dpTipus').value = tipus;
-  document.getElementById('dpNom').value = params.get('nom') || 'Document de LexGestió';
-  document.getElementById('dpNotes').value = params.get('notes') || '';
-  document.getElementById('dpEntitat').value = params.get('entitat') || '';
-  carregarAdjuntsLexGestioDocumentPersonal(params);
-  history.replaceState(null, '', window.location.pathname);
-}
-
-async function carregarAdjuntsLexGestioDocumentPersonal(params) {
-  const urls = params.getAll('lex_attachment_url');
-  const noms = params.getAll('lex_attachment_name');
-  for (let i = 0; i < urls.length; i++) {
-    try {
-      const response = await fetch(urls[i], { credentials: 'include' });
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      const blob = await response.blob();
-      const nom = noms[i] || ('adjunt-' + (i + 1) + '.pdf');
-      const file = new File([blob], nom, { type: blob.type || 'application/pdf' });
-      const repetit = documentPersonalFitxersSeleccionats.some(actual => actual.name === file.name && actual.size === file.size);
-      if (!repetit) documentPersonalFitxersSeleccionats.push(file);
-    } catch (err) {
-      toast('No he pogut carregar automàticament l’adjunt ' + (noms[i] || ''), 'error');
-    }
-  }
-  mostrarLlistaFitxersDocumentPersonal();
 }
 
 async function carregarAdjuntLexGestioDespesa(params) {
