@@ -24,7 +24,7 @@ import cloudinary.api
 
 app = Flask(__name__)
 CALENDAR_TOKEN = os.environ.get('CALENDAR_TOKEN', 'gestiodespeses-assegurances-2026')
-APP_VERSION = '2026-09-14-documents-incidencies'
+APP_VERSION = '2026-09-26-lexgestio-documents-incidencies'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 
