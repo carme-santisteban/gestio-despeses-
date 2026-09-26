@@ -32,6 +32,11 @@ app.jinja_env.auto_reload = True
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost/gestiodespeses')
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+# Railway pot proporcionar explícitament el dialecte psycopg (v3), però aquest
+# projecte utilitza psycopg2-binary. Forcem el dialecte instal·lat perquè
+# l'aplicació pugui arrencar sense dependre del format concret de la variable.
+if DATABASE_URL.startswith('postgresql+psycopg://'):
+    DATABASE_URL = DATABASE_URL.replace('postgresql+psycopg://', 'postgresql+psycopg2://', 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
