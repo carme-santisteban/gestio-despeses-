@@ -1969,10 +1969,11 @@ def get_bancs_taula():
     dates_q = db.session.query(FotografiaBanc.data).distinct().order_by(FotografiaBanc.data).all()
     dates = [r.data for r in dates_q]
 
-    bancs_amb_fotos_q = db.session.query(FotografiaBanc.banc).distinct().all()
-    bancs_amb_fotos = {r.banc for r in bancs_amb_fotos_q}
     bancs_cfg = BancConfig.query.order_by(BancConfig.ordre, BancConfig.id).all()
-    banc_noms = [b.nom for b in bancs_cfg if b.nom in bancs_amb_fotos]
+    # Mostrar sempre tots els bancs configurats. Els bancs acabats d'afegir
+    # encara no tenen cap fotografia de saldo, però han d'aparèixer a la taula
+    # perquè l'usuari hi pugui introduir el primer valor.
+    banc_noms = [b.nom for b in bancs_cfg]
 
     if not dates:
         return jsonify({'bancs': banc_noms, 'dates': [], 'files': {}, 'reserves': {}, 'disponibles': {}, 'totals': [], 'totals_reals': [], 'totals_reservats': [], 'totals_disponibles': [], 'variacions': [], 'total_variacio': {}})
