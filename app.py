@@ -500,7 +500,7 @@ RECORDATORI_DIES = 10
 def _config_correu_recordatoris():
     usuari = os.environ.get('REMINDER_SMTP_USER') or os.environ.get('INVITES_IMAP_USER')
     contrasenya = os.environ.get('REMINDER_SMTP_PASSWORD') or os.environ.get('INVITES_IMAP_PASSWORD')
-    destinatari = os.environ.get('REMINDER_EMAIL_TO') or os.environ.get('INVITES_FROM') or usuari
+    destinatari = os.environ.get('REMINDER_EMAIL_TO') or 'sarrialegal@gmail.com'
     remitent = os.environ.get('REMINDER_EMAIL_FROM') or os.environ.get('INVITES_FROM') or usuari
     return {
         'host': os.environ.get('REMINDER_SMTP_HOST', 'smtp.gmail.com'),
