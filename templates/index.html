@@ -2040,7 +2040,14 @@ function renderDocumentsPersonals(llista) {
       <td style="white-space:nowrap;color:var(--gray-3)">${d.data_document ? formatData(d.data_document) : '—'}</td>
       <td style="color:var(--gray-4);font-size:.85rem">${esc(d.entitat || '') || '—'}</td>
       <td style="max-width:260px;color:var(--gray-4);font-size:.85rem">${d.notes ? esc(d.notes.substring(0,90)) + (d.notes.length > 90 ? '…' : '') : '—'}</td>
-      <td>${htmlFitxersDocumentPersonal(d)}</td>
+      <td>${htmlFitxersDocumentPersonal(d)}
+        <button type="button" class="btn btn-sm btn-outline" style="display:block;margin-top:10px;padding:14px;border:2px dashed var(--gold);width:100%"
+          onclick="afegirFitxersDocumentPersonal(${d.id})"
+          ondragover="event.preventDefault();event.stopPropagation();event.dataTransfer.dropEffect='copy';this.style.background='#fff0b8'"
+          ondragleave="this.style.background=''"
+          ondrop="event.preventDefault();event.stopPropagation();this.style.background='';pujarFitxersDocumentPersonal(${d.id},event.dataTransfer.files)">
+          📎 Arrossega arxius aquí o fes clic per afegir-los
+        </button></td>
       <td class="accions">
         <button class="btn btn-sm btn-outline" title="Afegir arxius sense substituir els existents" onclick="afegirFitxersDocumentPersonal(${d.id})">📎+</button>
         <button class="btn btn-sm btn-outline" style="background:var(--navy);color:white" onclick="editarDocumentPersonal(${d.id})">✏️</button>
@@ -2242,23 +2249,37 @@ function afegirFitxersDocumentPersonal(id) {
   input.type = 'file';
   input.multiple = true;
   input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png,.heic';
-  input.onchange = async () => {
-    const fitxers = Array.from(input.files || []);
-    if (!fitxers.length) return;
-    const fd = new FormData();
-    fitxers.forEach(fitxer => fd.append('documents', fitxer));
-    try {
-      toast('Afegint ' + fitxers.length + (fitxers.length === 1 ? ' arxiu...' : ' arxius...'), 'ok');
-      const r = await fetch('/api/documents-personals/' + id + '/adjunts', {method:'POST', body:fd});
-      const resposta = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(resposta.error || 'No s’han pogut afegir els arxius');
-      toast(fitxers.length === 1 ? 'Arxiu afegit' : fitxers.length + ' arxius afegits', 'ok');
-      await carregarDocumentsPersonals();
-    } catch(e) {
-      toast(e.message || 'Error afegint els arxius', 'error');
-    }
-  };
+  input.onchange = () => pujarFitxersDocumentPersonal(id, input.files);
   input.click();
+}
+
+const documentsPersonalsPujant = new Set();
+async function pujarFitxersDocumentPersonal(id, files) {
+  const fitxers = Array.from(files || []);
+  if (!fitxers.length) return;
+  if (documentsPersonalsPujant.has(id)) {
+    toast('Espera que acabi la càrrega d’aquest registre', 'error');
+    return;
+  }
+  if (fitxers.some(f => !/\.(pdf|doc|docx|jpg|jpeg|png|heic)$/i.test(f.name))) {
+    toast('Formats admesos: PDF, Word, JPG, PNG i HEIC', 'error');
+    return;
+  }
+  documentsPersonalsPujant.add(id);
+  const fd = new FormData();
+  fitxers.forEach(f => fd.append('documents', f));
+  try {
+    toast('Afegint ' + fitxers.length + ' arxiu(s)...', 'ok');
+    const r = await fetch('/api/documents-personals/' + id + '/adjunts', {method:'POST', body:fd});
+    const resposta = await r.json().catch(() => ({}));
+    if (!r.ok || resposta.ok !== true) throw new Error(resposta.error || 'No s’han pogut confirmar els arxius. Revisa la sessió i torna-ho a provar.');
+    await carregarDocumentsPersonals();
+    toast(fitxers.length + ' arxiu(s) afegit(s)', 'ok');
+  } catch(e) {
+    toast(e.message || 'Error afegint els arxius', 'error');
+  } finally {
+    documentsPersonalsPujant.delete(id);
+  }
 }
 
 async function eliminarFitxerDocumentPersonal(documentId, fitxerId, principal) {
