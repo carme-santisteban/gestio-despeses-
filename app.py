@@ -446,11 +446,7 @@ class DocumentPersonal(db.Model):
     adjunts        = db.relationship('DocumentPersonalAdjunt', backref='document_personal', cascade='all,delete-orphan', order_by='DocumentPersonalAdjunt.creat_el')
 
     def to_dict(self):
-        ultima_activitat = self.creat_el
-        for adjunt in self.adjunts:
-            if adjunt.creat_el and (not ultima_activitat or adjunt.creat_el > ultima_activitat):
-                ultima_activitat = adjunt.creat_el
-        recordatori_previst = ultima_activitat + timedelta(days=15) if ultima_activitat else None
+        recordatori_previst = self.creat_el + timedelta(days=RECORDATORI_DIES) if self.creat_el else None
         fitxers = [{
             'id': None,
             'document_url': self.document_url or '',
@@ -498,7 +494,7 @@ class DocumentPersonalAdjunt(db.Model):
         }
 
 
-RECORDATORI_DIES = 15
+RECORDATORI_DIES = 10
 
 
 def _config_correu_recordatoris():
@@ -517,9 +513,7 @@ def _config_correu_recordatoris():
 
 
 def _ultima_documentacio_document_personal(doc):
-    dates = [doc.creat_el] if doc.creat_el else []
-    dates.extend(a.creat_el for a in doc.adjunts if a.creat_el)
-    return max(dates) if dates else None
+    return doc.creat_el
 
 
 def _enviar_recordatori_document_personal(doc, ultima_documentacio):
@@ -527,15 +521,15 @@ def _enviar_recordatori_document_personal(doc, ultima_documentacio):
     if not all((config['usuari'], config['contrasenya'], config['destinatari'], config['remitent'])):
         raise RuntimeError('Falta configurar el correu dels recordatoris')
     missatge = EmailMessage()
-    missatge['Subject'] = f'Recordatori: 15 dies sense resposta — {doc.nom}'
+    missatge['Subject'] = f'Recordatori: 10 dies pendent — {doc.nom}'
     missatge['From'] = config['remitent']
     missatge['To'] = config['destinatari']
     missatge.set_content(
-        "Han passat 15 dies des de l'últim document afegit i aquest assumpte "
+        "Han passat almenys 10 dies des de l’alta i aquest assumpte "
         "encara consta com a pendent a GestióDespeses.\n\n"
         f"Assumpte: {doc.nom}\n"
         f"Entitat: {doc.entitat or '—'}\n"
-        f"Última documentació: {ultima_documentacio.strftime('%d/%m/%Y')}\n\n"
+        f"Data d’alta: {ultima_documentacio.strftime('%d/%m/%Y')}\n\n"
         "Quan rebis resposta, marca'l com a Solucionat i no se n'enviaran més avisos."
     )
     context_ssl = ssl.create_default_context()
@@ -1760,8 +1754,6 @@ def update_document_personal(id):
         doc.notes = request.form.get('notes') or None
         doc.solucionat = request.form.get('solucionat') == 'true'
         doc.data_solucio = datetime.strptime(request.form.get('data_solucio', ''), '%Y-%m-%d').date() if request.form.get('data_solucio') else None
-        if fitxers_nous or (estava_solucionat and not doc.solucionat):
-            doc.recordatori_enviat_el = None
         for fitxer in fitxers_nous:
             result = pujar_arxiu_cloudinary(fitxer, 'gestiodespeses/documents-personals')
             db.session.add(DocumentPersonalAdjunt(
@@ -1794,7 +1786,6 @@ def add_document_personal_adjunts(id):
             )
             db.session.add(adjunt)
             afegits.append(adjunt)
-        doc.recordatori_enviat_el = None
         db.session.commit()
         return jsonify({'ok': True, 'afegits': len(afegits), 'document': doc.to_dict()}), 201
     except Exception as e:
