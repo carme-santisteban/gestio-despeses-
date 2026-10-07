@@ -3664,16 +3664,44 @@ function toast(msg, tipus='ok') {
   resetTimer();
 })();
 
-function copiaSeguреtat() {
-  const link = document.createElement('a');
-  link.href = '/api/backup-complet-download';
-  link.download = '';
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  setTimeout(() => link.remove(), 1000);
-  setTimeout(() => alert('S’està descarregant una còpia completa en format .tar.gz. Quan acabi, guarda-la en un lloc segur.'), 200);
+let backupEnCurs = false;
+async function copiaSeguреtat() {
+  if (backupEnCurs) return;
+  backupEnCurs = true;
+  const panel = document.createElement('div');
+  panel.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;background:#14213d;color:white;padding:20px;max-width:420px;border-radius:12px';
+  panel.textContent = 'Preparant la còpia amb els adjunts. Mantén aquesta pàgina oberta…';
+  document.body.appendChild(panel);
+  try {
+    const start = await fetch('/api/backup-complet', {method:'POST'});
+    const job = await start.json();
+    if (!start.ok) throw new Error(job.error || 'No s’ha pogut iniciar la còpia');
+    for (;;) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch('/api/backup-complet/' + job.token);
+      const state = await response.json();
+      if (!response.ok || state.status === 'error') throw new Error(state.error || 'Error preparant la còpia');
+      if (state.status !== 'ready') {
+        panel.textContent = `Preparant la còpia: ${state.done} de ${state.total} adjunts processats…`;
+        continue;
+      }
+      panel.textContent = state.complete
+        ? `Còpia preparada amb ${state.included} adjunts. Comprova que la descàrrega acabi.`
+        : `ATENCIÓ: còpia incompleta. ${state.included} adjunts inclosos i ${state.missing} no descarregats. Consulta LLEGEIX-ME_BACKUP.txt dins la còpia.`;
+      const link = document.createElement('a');
+      link.href = '/api/backup-complet-download?token=' + job.token;
+      link.textContent = ' Descarregar còpia'; link.style.color = '#ffd56a';
+      panel.appendChild(link); link.click();
+      break;
+    }
+  } catch (error) { panel.textContent = error.message; }
+  finally {
+    backupEnCurs = false;
+    const close = document.createElement('button'); close.textContent = 'Tancar';
+    close.style.marginLeft = '12px'; close.onclick = () => panel.remove(); panel.appendChild(close);
+  }
 }
+
 </script>
 <!-- Modal Documents Banc -->
 <div id="modalDocsBancOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">

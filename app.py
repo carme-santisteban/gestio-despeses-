@@ -2149,7 +2149,7 @@ def backup_complet_dades():
     model_names = [
         'Despesa', 'Factura', 'TornOfici', 'TornComunicacio',
         'BancDocument', 'BancConfig', 'DespesaDocument', 'FacturaDocument',
-        'DocumentPersonal', 'FotografiaBanc', 'PrestecXaviPagament', 'ConfigApp', 'Credencial',
+        'DocumentPersonal', 'DocumentPersonalAdjunt', 'AssegurancaDocument', 'FotografiaBanc', 'PrestecXaviPagament', 'ConfigApp', 'Credencial',
         'CompteIban', 'Targeta', 'Asseguranca',
     ]
     taules = {}
@@ -2164,58 +2164,85 @@ def backup_complet_dades():
         "tables": taules,
     }
 
+# Jobs use opaque tokens and disk status so downloads do not hold a request open.
+BACKUP_DIR = os.path.join(tempfile.gettempdir(), 'gestiocss_backups')
+os.makedirs(BACKUP_DIR, mode=0o700, exist_ok=True)
+
+
+def _backup_status(token, state):
+    path = os.path.join(BACKUP_DIR, token + '.json')
+    with open(path + '.tmp', 'w') as file:
+        json.dump(state, file)
+    os.replace(path + '.tmp', path)
+
+
+@app.route('/api/backup-complet', methods=['POST'])
+def backup_complet_start():
+    if not session.get('auth'):
+        return jsonify(error='Cal iniciar sessió'), 401
+    # Expire old archives; reuse an active job to avoid duplicate downloads.
+    now = time.time()
+    for name in os.listdir(BACKUP_DIR):
+        path = os.path.join(BACKUP_DIR, name)
+        try:
+            age = now - os.path.getmtime(path)
+            if age > 86400:
+                os.remove(path)
+            elif name.endswith('.json') and age < 120:
+                with open(path) as file:
+                    existing = json.load(file)
+                if existing.get('status') == 'preparing':
+                    return jsonify(token=name[:-5]), 202
+        except (OSError, ValueError):
+            pass
+    import uuid
+    token = uuid.uuid4().hex
+    dades = backup_complet_dades()
+    _backup_status(token, dict(status='preparing', done=0, total=0))
+    def run():
+        from backup_archive import build_archive
+        try:
+            result = build_archive(dades, os.path.join(BACKUP_DIR, token + '.tar.gz'),
+                                   os.path.dirname(os.path.abspath(__file__)),
+                                   lambda p: _backup_status(token, dict(status='preparing', **p)))
+            _backup_status(token, dict(status='ready', **result))
+        except Exception:
+            app.logger.exception('Error preparant còpia de seguretat')
+            _backup_status(token, dict(status='error', error='No s’ha pogut preparar la còpia. Torna-ho a provar.'))
+    threading.Thread(target=run, daemon=True).start()
+    return jsonify(token=token), 202
+
+
+@app.route('/api/backup-complet/<token>')
+def backup_complet_status(token):
+    if not session.get('auth'):
+        return jsonify(error='Cal iniciar sessió'), 401
+    if not re.fullmatch(r'[a-f0-9]{32}', token):
+        abort(404)
+    try:
+        with open(os.path.join(BACKUP_DIR, token + '.json')) as file:
+            return jsonify(json.load(file))
+    except FileNotFoundError:
+        return jsonify(error='La còpia ha caducat o el servidor s’ha reiniciat. Torna a preparar-la.'), 404
+
+
 @app.route('/api/backup-complet-download')
 def backup_complet_download():
     if not session.get('auth'):
         return redirect(url_for('login', next=request.full_path))
-
-    stamp = datetime.now().strftime('%Y%m%d_%H%M')
-    dades = backup_complet_dades()
-    filename = f'backup_gestiocss_complet_{stamp}.tar.gz'
-    tmp = tempfile.NamedTemporaryFile(prefix='gestiocss_backup_', suffix='.tar.gz', delete=False)
-    tmp.close()
-
-    readme = (
-        'COPIA DE RESCAT COMPLETA - GESTIO CSS / GESTIODESPESES\n'
-        f'Data: {datetime.now().strftime("%d/%m/%Y %H:%M")}\n\n'
-        'Aquest arxiu s ha descarregat des del boto "Copia seguretat" de GestioCSS.\n\n'
-        'Conte:\n'
-        '- Copia JSON completa de les dades\n'
-        '- Fitxers principals del codi disponible al servidor\n\n'
-        'Comptatges:\n' +
-        ''.join(f'- {name}: {count}\n' for name, count in dades["counts"].items()) +
-        '\nAquest arxiu conte dades sensibles. Guarda l en un lloc segur.\n'
-    ).encode('utf-8')
-    data_json = json.dumps(dades, ensure_ascii=False, indent=2).encode('utf-8')
-
-    with tarfile.open(tmp.name, 'w:gz') as tar:
-        info = tarfile.TarInfo('LLEGEIX-ME_BACKUP.txt')
-        info.size = len(readme)
-        tar.addfile(info, io.BytesIO(readme))
-
-        info = tarfile.TarInfo(f'copies_dades/gestiocss_backup_complet_{stamp}.json')
-        info.size = len(data_json)
-        tar.addfile(info, io.BytesIO(data_json))
-
-        base_dir = os.path.abspath(os.path.dirname(__file__))
-        for root, dirs, files in os.walk(base_dir):
-            dirs[:] = [d for d in dirs if d not in {'.git', '__pycache__', 'venv', '.venv'}]
-            for name in files:
-                if name.endswith(('.pyc', '.db')) or name.startswith('.env'):
-                    continue
-                path = os.path.join(root, name)
-                rel = os.path.relpath(path, base_dir)
-                tar.add(path, arcname=os.path.join('codi_gestiocss', rel))
-
-    @after_this_request
-    def cleanup(response):
-        try:
-            os.remove(tmp.name)
-        except OSError:
-            pass
-        return response
-
-    return send_file(tmp.name, mimetype='application/gzip', as_attachment=True, download_name=filename)
+    token = request.args.get('token', '')
+    if not re.fullmatch(r'[a-f0-9]{32}', token):
+        return 'Actualitza la pàgina i torna a prémer Còpia seguretat.', 400
+    try:
+        with open(os.path.join(BACKUP_DIR, token + '.json')) as file:
+            state = json.load(file)
+    except FileNotFoundError:
+        abort(404)
+    if state.get('status') != 'ready':
+        abort(409)
+    label = 'complet' if state['complete'] else 'INCOMPLET'
+    return send_file(os.path.join(BACKUP_DIR, token + '.tar.gz'), mimetype='application/gzip',
+                     as_attachment=True, download_name=f'backup_gestiocss_{label}_{datetime.now():%Y%m%d_%H%M}.tar.gz')
 
 @app.route('/api/exportar-json-antic')
 def exportar_json_antic():
