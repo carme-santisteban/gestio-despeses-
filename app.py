@@ -447,6 +447,10 @@ class DocumentPersonal(db.Model):
 
     def to_dict(self):
         recordatori_previst = self.creat_el + timedelta(days=RECORDATORI_DIES) if self.creat_el else None
+        ultima_activitat = max(
+            [d for d in [self.creat_el] + [a.creat_el for a in self.adjunts] if d],
+            default=None,
+        )
         fitxers = [{
             'id': None,
             'document_url': self.document_url or '',
