@@ -62,4 +62,31 @@ with tempfile.TemporaryDirectory() as tmp:
         m.db.session.add(legacy);m.db.session.commit()
         assert legacy.tipus == 'incidencia'
     assert len(listed('incidencia')) == 1
+    # Upload order must ignore the date embedded in a filename and document date.
+    from datetime import datetime
+    with m.app.app_context():
+        record = m.db.session.get(m.DocumentPersonal, personal['id'])
+        record.creat_el = datetime(2026, 10, 8, 9)
+        record.document_nom = 'Future 2030-01-01.pdf'
+        record.adjunts[0].creat_el = datetime(2026, 10, 8, 10)
+        record.adjunts[0].document_nom = 'Old 08-10-2025.pdf'
+        m.db.session.add(m.DocumentPersonalAdjunt(
+            document_personal_id=record.id, document_url='https://example.invalid/latest.pdf',
+            document_nom='Latest.pdf', creat_el=datetime(2026, 10, 8, 11)))
+        m.db.session.commit()
+    files = next(r for r in listed('personal') if r['id'] == personal['id'])['fitxers']
+    assert [f['document_nom'] for f in files] == ['Latest.pdf', 'Old 08-10-2025.pdf', 'Future 2030-01-01.pdf']
+    # Same timestamps have a stable order; missing timestamps go last.
+    assert [d['id'] for d in m.ordenar_adjunts([
+        {'id': None}, {'id': 1, 'creat_el': '2026-10-08T10:00:00'},
+        {'id': 2, 'creat_el': '2026-10-08T10:00:00'}])] == [2, 1, None]
+    with m.app.app_context():
+        bank = m.BancConfig(nom='Test'); m.db.session.add(bank); m.db.session.flush()
+        for hour, docdate in [(9, '2030-01-01'), (11, '2020-01-01'), (10, '2025-01-01')]:
+            m.db.session.add(m.BancDocument(banc_id=bank.id, document_url='https://example.invalid/bank.pdf',
+                document_nom=str(hour), document_data=docdate, creat_el=datetime(2026, 10, 8, hour)))
+        m.db.session.commit()
+        bank_id = bank.id
+    assert [d['document_nom'] for d in client.get('/api/bancs/' + str(bank_id) + '/documents').get_json()] == ['11', '10', '9']
+    print('PASS: inclusion order, same-day uploads, misleading filenames, bank document dates')
     print('PASS: separate lists, create, move preserving attachments, validation, PIN, legacy default')

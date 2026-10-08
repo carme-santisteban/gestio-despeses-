@@ -159,6 +159,11 @@ def uploaded_documents():
                 seen.add(id(file))
     return files
 
+def ordenar_adjunts(documents):
+    # Inclusion timestamps, never dates inferred from filenames or accounting dates.
+    return sorted(documents, key=lambda d: (d.get('creat_el') or '', d.get('id') if isinstance(d.get('id'), int) else 0), reverse=True)
+
+
 # ─── Models ───────────────────────────────────────────────────────────────────
 
 class Despesa(db.Model):
@@ -189,8 +194,9 @@ class Despesa(db.Model):
                 'document_url': self.document_url,
                 'document_nom': self.document_nom or 'Document',
                 'principal': True,
+                'creat_el': self.creat_el.isoformat() if self.creat_el else '',
             })
-        for doc in DespesaDocument.query.filter_by(despesa_id=self.id).order_by(DespesaDocument.creat_el.asc()).all():
+        for doc in DespesaDocument.query.filter_by(despesa_id=self.id).order_by(DespesaDocument.creat_el.desc(), DespesaDocument.id.desc()).all():
             doc_dict = doc.to_dict()
             doc_dict['principal'] = False
             documents.append(doc_dict)
@@ -206,7 +212,7 @@ class Despesa(db.Model):
             'notes':        self.notes or '',
             'document_url': self.document_url or '',
             'document_nom': self.document_nom or '',
-            'documents':     documents,
+            'documents':     ordenar_adjunts(documents),
             'incloure_renda': bool(self.incloure_renda),
             'renda_exercici': self.renda_exercici,
             'excloure_renda': bool(self.excloure_renda),
@@ -370,6 +376,7 @@ class BancDocument(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'creat_el': self.creat_el.isoformat() if self.creat_el else '',
             'banc_id': self.banc_id,
             'document_url': self.document_url,
             'document_nom': self.document_nom or '',
@@ -400,6 +407,7 @@ class DespesaDocument(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'creat_el': self.creat_el.isoformat() if self.creat_el else '',
             'despesa_id': self.despesa_id,
             'document_url': self.document_url,
             'document_nom': self.document_nom or '',
@@ -419,6 +427,7 @@ class FacturaDocument(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'creat_el': self.creat_el.isoformat() if self.creat_el else '',
             'factura_id': self.factura_id,
             'document_url': self.document_url,
             'document_nom': self.document_nom or '',
@@ -469,7 +478,7 @@ class DocumentPersonal(db.Model):
             'notes': self.notes or '',
             'document_url': self.document_url or '',
             'document_nom': self.document_nom or '',
-            'fitxers': fitxers,
+            'fitxers': ordenar_adjunts(fitxers),
             'solucionat': bool(self.solucionat),
             'data_solucio': self.data_solucio.isoformat() if self.data_solucio else '',
             'creat_el': self.creat_el.isoformat() if self.creat_el else '',
@@ -1532,7 +1541,7 @@ def delete_banc_config(id):
 
 @app.route('/api/bancs/<int:banc_id>/documents', methods=['GET'])
 def get_banc_documents(banc_id):
-    docs = BancDocument.query.filter_by(banc_id=banc_id).order_by(BancDocument.document_data.asc(), BancDocument.creat_el.asc()).all()
+    docs = BancDocument.query.filter_by(banc_id=banc_id).order_by(BancDocument.creat_el.desc(), BancDocument.id.desc()).all()
     return jsonify([d.to_dict() for d in docs])
 
 @app.route('/api/bancs/<int:banc_id>/documents', methods=['POST'])
@@ -1566,7 +1575,7 @@ def delete_banc_document(doc_id):
 
 @app.route('/api/despeses/<int:despesa_id>/documents', methods=['GET'])
 def get_despesa_documents(despesa_id):
-    docs = DespesaDocument.query.filter_by(despesa_id=despesa_id).order_by(DespesaDocument.creat_el.asc()).all()
+    docs = DespesaDocument.query.filter_by(despesa_id=despesa_id).order_by(DespesaDocument.creat_el.desc(), DespesaDocument.id.desc()).all()
     return jsonify([d.to_dict() for d in docs])
 
 @app.route('/api/despeses/<int:despesa_id>/documents', methods=['POST'])
@@ -1617,7 +1626,7 @@ def preview_despesa_document(doc_id):
 
 @app.route('/api/factures/<int:factura_id>/documents', methods=['GET'])
 def get_factura_documents(factura_id):
-    docs = FacturaDocument.query.filter_by(factura_id=factura_id).order_by(FacturaDocument.creat_el.asc()).all()
+    docs = FacturaDocument.query.filter_by(factura_id=factura_id).order_by(FacturaDocument.creat_el.desc(), FacturaDocument.id.desc()).all()
     return jsonify([d.to_dict() for d in docs])
 
 @app.route('/api/factures/<int:factura_id>/documents', methods=['POST'])
@@ -2657,8 +2666,9 @@ class Asseguranca(db.Model):
                 'document_url': self.document_url,
                 'document_nom': self.document_nom or 'Document',
                 'principal': True,
+                'creat_el': self.creat_el.isoformat() if self.creat_el else '',
             })
-        for doc in AssegurancaDocument.query.filter_by(asseguranca_id=self.id).order_by(AssegurancaDocument.creat_el.asc()).all():
+        for doc in AssegurancaDocument.query.filter_by(asseguranca_id=self.id).order_by(AssegurancaDocument.creat_el.desc(), AssegurancaDocument.id.desc()).all():
             doc_dict = doc.to_dict()
             doc_dict['principal'] = False
             documents.append(doc_dict)
@@ -2679,7 +2689,7 @@ class Asseguranca(db.Model):
             'activa':         self.activa if self.activa is not None else True,
             'document_url':   self.document_url or '',
             'document_nom':   self.document_nom or '',
-            'documents':       documents,
+            'documents':       ordenar_adjunts(documents),
             'data_itv':       self.data_itv.isoformat() if self.data_itv else '',
             'notes':          self.notes or '',
         }
@@ -2697,6 +2707,7 @@ class AssegurancaDocument(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'creat_el': self.creat_el.isoformat() if self.creat_el else '',
             'asseguranca_id': self.asseguranca_id,
             'document_url': self.document_url,
             'document_nom': self.document_nom or '',
