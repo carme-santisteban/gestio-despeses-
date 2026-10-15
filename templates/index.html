@@ -304,7 +304,9 @@
       .toast-container { left: .75rem; right: .75rem; top: 76px; }
       .toast { max-width: none; }
     }
-  </style>
+  #rendaDocumentForm label { display:grid; gap:.35rem; }
+#rendaDocumentForm .form-control { width:100%; box-sizing:border-box; }
+</style>
 </head>
 <body>
 
@@ -642,6 +644,21 @@
     </div>
     <div style="background:white;border-radius:10px;padding:1rem 1.25rem;box-shadow:var(--shadow);margin-bottom:1rem;border-left:4px solid var(--gold);font-size:.9rem;color:var(--gray-4)">
       Dossier de justificants per la declaració: factures, torn d'ofici i despeses marcades com a renda.
+    </div>
+    <div class="table-card" style="margin-bottom:1rem;padding:1.25rem;background:white;border-radius:10px;box-shadow:var(--shadow)">
+      <h2 style="font-size:1.15rem;color:var(--navy);margin:0 0 .4rem">Declaració i altres documents</h2>
+      <p style="color:var(--gray-4);font-size:.9rem">Guarda aquí la declaració presentada, els justificants i els documents d’Hisenda o del banc corresponents a l’any seleccionat.</p>
+      <div id="rendaDocumentsLlista" aria-live="polite"></div>
+      <details id="rendaDocumentForm" style="margin-top:1rem">
+        <summary style="cursor:pointer;color:var(--navy);font-weight:600">+ Afegir document</summary>
+        <form onsubmit="guardarDocumentRenda(event)" style="display:grid;gap:.65rem;margin-top:1rem;max-width:680px">
+          <label>Nom del document<input id="rendaDocNom" class="form-control" required maxlength="255" placeholder="Ex.: Declaració de renda presentada"></label>
+          <label>Tipus<select id="rendaDocTipus" class="form-control"><option>Declaració presentada</option><option>Justificant de presentació</option><option>Hisenda</option><option>Banc</option><option>Altres</option></select></label>
+          <label>Fitxer (màxim 15 MB)<input id="rendaDocFitxer" class="form-control" type="file" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx" required></label>
+          <label>Notes (opcional)<textarea id="rendaDocNotes" class="form-control" rows="2" placeholder="Ex.: Presentada el 30/05/2026"></textarea></label>
+          <div><button id="rendaDocGuardar" type="submit" class="btn btn-primary">Guardar document</button></div>
+        </form>
+      </details>
     </div>
     <div class="kpi-grid">
       <div class="kpi-card total"><div class="kpi-label">Ingressos base factures</div><div class="kpi-value" id="rendaFacturesBase">—</div></div>
@@ -1872,6 +1889,7 @@ function prepararAnysRenda() {
 async function carregarRenda() {
   const any_ = document.getElementById('filtreAnyRenda').value || (new Date().getFullYear() - 1);
   document.getElementById('anyRendaActual').textContent = any_;
+  carregarDocumentsRenda(any_);
   try {
     const r = await fetch('/api/renda?any=' + encodeURIComponent(any_));
     if (!r.ok) throw new Error();
@@ -1884,6 +1902,49 @@ async function carregarRenda() {
   } catch(e) {
     toast('Error carregant el dossier de renda', 'error');
   }
+}
+
+let rendaDocumentsRequest = 0;
+async function carregarDocumentsRenda(exercici) {
+  const sequence = ++rendaDocumentsRequest;
+  const list = document.getElementById('rendaDocumentsLlista');
+  list.textContent = 'Carregant documents…';
+  try {
+    const r = await fetch('/api/renda/documents?exercici=' + encodeURIComponent(exercici));
+    if (!r.ok) throw new Error(r.status === 401 ? 'Cal tornar a iniciar sessió' : 'No s’han pogut carregar els documents');
+    const docs = await r.json();
+    if (sequence !== rendaDocumentsRequest) return;
+    list.innerHTML = docs.length ? docs.map(d => `<div style="padding:.85rem 0;border-bottom:1px solid var(--gray-1);display:flex;gap:1rem;justify-content:space-between;flex-wrap:wrap">
+      <div><strong>${esc(d.nom)}</strong><div style="font-size:.85rem;color:var(--gray-4)">${esc(d.tipus)} · ${esc(d.document_nom)}</div>${d.notes ? `<div style="font-size:.85rem;white-space:pre-wrap">${esc(d.notes)}</div>` : ''}</div>
+      <div style="display:flex;gap:.5rem;align-items:center"><a class="btn btn-sm btn-outline" target="_blank" rel="noopener" href="${esc(d.veure_url)}">Obrir</a><a class="btn btn-sm btn-primary" href="${esc(d.descarregar_url)}">Descarregar</a></div>
+    </div>`).join('') : '<p style="color:var(--gray-3)">Encara no hi ha documents guardats per a aquest exercici.</p>';
+  } catch(e) {
+    if (sequence === rendaDocumentsRequest) list.textContent = e.message;
+  }
+}
+async function guardarDocumentRenda(event) {
+  event.preventDefault();
+  const exercici = document.getElementById('filtreAnyRenda').value;
+  const file = document.getElementById('rendaDocFitxer').files[0];
+  if (!file || file.size > 15 * 1024 * 1024) { toast('Adjunta un document de fins a 15 MB', 'error'); return; }
+  const fd = new FormData();
+  fd.append('exercici', exercici);
+  fd.append('nom', document.getElementById('rendaDocNom').value.trim());
+  fd.append('tipus', document.getElementById('rendaDocTipus').value);
+  fd.append('notes', document.getElementById('rendaDocNotes').value);
+  fd.append('document', file);
+  const button = document.getElementById('rendaDocGuardar');
+  button.disabled = true; button.textContent = 'Guardant…';
+  try {
+    const r = await fetch('/api/renda/documents', {method:'POST', body:fd});
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'No s’ha pogut guardar el document');
+    event.target.reset();
+    document.getElementById('rendaDocumentForm').open = false;
+    toast('Document guardat a Renda ' + exercici, 'ok');
+    carregarDocumentsRenda(document.getElementById('filtreAnyRenda').value);
+  } catch(e) { toast(e.message, 'error'); }
+  finally { button.disabled = false; button.textContent = 'Guardar document'; }
 }
 
 function renderRendaBlocs(data) {

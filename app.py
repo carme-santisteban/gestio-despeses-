@@ -650,6 +650,27 @@ class PrestecXaviPagament(db.Model):
         }
 
 
+class RendaDocument(db.Model):
+    __tablename__ = 'renda_documents'
+    id = db.Column(db.Integer, primary_key=True)
+    exercici = db.Column(db.Integer, nullable=False, index=True)
+    nom = db.Column(db.String(255), nullable=False)
+    tipus = db.Column(db.String(50), nullable=False)
+    notes = db.Column(db.Text)
+    document_nom = db.Column(db.String(255), nullable=False)
+    document_data = db.Column(db.Text, nullable=False)
+    document_mimetype = db.Column(db.String(100), nullable=False)
+    creat_el = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {'id': self.id, 'exercici': self.exercici, 'nom': self.nom,
+                'tipus': self.tipus, 'notes': self.notes or '',
+                'document_nom': self.document_nom,
+                'creat_el': self.creat_el.isoformat(),
+                'veure_url': url_for('veure_renda_document', id=self.id),
+                'descarregar_url': url_for('veure_renda_document', id=self.id, descarregar=1)}
+
+
 class ConfigApp(db.Model):
     """Configuració general de l'app (clau-valor)"""
     __tablename__ = 'config_app'
@@ -1431,6 +1452,67 @@ def resum_smi():
         'restant':        round(smi - total_general, 2) if smi else None,
     })
 
+# Documents de renda: stored in the database, served only to signed-in users.
+RENDA_DOCUMENT_TIPUS = ('Declaració presentada', 'Justificant de presentació',
+                       'Hisenda', 'Banc', 'Altres')
+
+@app.route('/api/renda/documents', methods=['GET', 'POST'])
+def renda_documents():
+    if not session.get('auth'):
+        return jsonify({'error': 'Cal iniciar sessió'}), 401
+    source = request.args if request.method == 'GET' else request.form
+    try:
+        exercici = int(source.get('exercici', ''))
+        if not 1900 <= exercici <= date.today().year + 1:
+            raise ValueError()
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Cal indicar un exercici vàlid'}), 400
+    if request.method == 'GET':
+        docs = RendaDocument.query.filter_by(exercici=exercici).order_by(RendaDocument.creat_el.desc(), RendaDocument.id.desc()).all()
+        return jsonify([d.to_dict() for d in docs])
+    nom = (request.form.get('nom') or '').strip()
+    tipus = request.form.get('tipus', 'Altres')
+    fitxer = request.files.get('document')
+    if not nom or len(nom) > 255 or tipus not in RENDA_DOCUMENT_TIPUS:
+        return jsonify({'error': 'Revisa el nom i el tipus de document'}), 400
+    if not fitxer or not fitxer.filename:
+        return jsonify({'error': 'Cal adjuntar un document'}), 400
+    nom_fitxer = fitxer.filename.replace('\\', '/').rsplit('/', 1)[-1]
+    allowed = {'.pdf': 'application/pdf', '.png': 'image/png', '.jpg': 'image/jpeg',
+               '.jpeg': 'image/jpeg', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+               '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}
+    ext = os.path.splitext(nom_fitxer)[1].lower()
+    if ext not in allowed or len(nom_fitxer) > 255:
+        return jsonify({'error': 'Adjunta un PDF, una imatge, un Word o un Excel'}), 400
+    data = fitxer.read(15 * 1024 * 1024 + 1)
+    if not data or len(data) > 15 * 1024 * 1024:
+        return jsonify({'error': 'El fitxer ha de tenir contingut i no superar 15 MB'}), 400
+    doc = RendaDocument(exercici=exercici, nom=nom, tipus=tipus,
+                        notes=(request.form.get('notes') or '').strip(),
+                        document_nom=nom_fitxer, document_mimetype=allowed[ext],
+                        document_data=base64.b64encode(data).decode('ascii'))
+    try:
+        db.session.add(doc)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.exception('No s’ha pogut guardar el document de renda')
+        return jsonify({'error': 'No s’ha pogut guardar el document'}), 500
+    return jsonify(doc.to_dict()), 201
+
+@app.route('/api/renda/documents/<int:id>/veure')
+def veure_renda_document(id):
+    if not session.get('auth'):
+        return redirect(url_for('login', next=request.full_path))
+    doc = RendaDocument.query.get_or_404(id)
+    download = request.args.get('descarregar') == '1' or doc.document_mimetype not in ('application/pdf', 'image/png', 'image/jpeg')
+    response = send_file(io.BytesIO(base64.b64decode(doc.document_data)),
+                         mimetype=doc.document_mimetype, download_name=doc.document_nom,
+                         as_attachment=download, max_age=0)
+    response.headers['Cache-Control'] = 'private, no-store'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
 @app.route('/api/renda')
 def api_renda():
     any_ = request.args.get('any', type=int, default=date.today().year - 1)
@@ -2159,7 +2241,7 @@ def backup_complet_dades():
         'Despesa', 'Factura', 'TornOfici', 'TornComunicacio',
         'BancDocument', 'BancConfig', 'DespesaDocument', 'FacturaDocument',
         'DocumentPersonal', 'DocumentPersonalAdjunt', 'AssegurancaDocument', 'FotografiaBanc', 'PrestecXaviPagament', 'ConfigApp', 'Credencial',
-        'CompteIban', 'Targeta', 'Asseguranca',
+        'CompteIban', 'Targeta', 'Asseguranca', 'RendaDocument',
     ]
     taules = {}
     for name in model_names:
