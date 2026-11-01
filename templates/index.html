@@ -4322,7 +4322,22 @@ const COLORS_ENTITAT = {
   'Santander':'#cc0000', 'ING': '#ff6200',
   'N26':      '#1e1e2f', 'Bunq': '#00b0b0',
 };
-function colorEntitat(e) { return COLORS_ENTITAT[e] || '#2c3e50'; }
+function colorEntitat(e) {
+  const nom = normalitzarEntitat(e);
+  const colors = {
+    B100: '#506b18', CETELEM: '#176447',
+    RENAULTBANK: '#786000', MONZO: '#b43d4b',
+    CAIXABANK: '#006b91', OPENBANK: '#a62667',
+    SABADELL: '#075985', BANKINTER: '#a74310',
+    MYINVESTOR: '#683f9c', WIZINK: '#8c286b'
+  };
+  if (colors[nom]) return colors[nom];
+  const coneguda = Object.keys(COLORS_ENTITAT).find(k => normalitzarEntitat(k) === nom);
+  if (coneguda) return COLORS_ENTITAT[coneguda];
+  let hash = 0;
+  for (const c of nom) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
+  return 'hsl(' + (hash % 360) + ', 55%, 30%)';
+}
 function fmtIban(iban) { return iban.replace(/(.{4})/g, '$1 ').trim(); }
 function fmtNumero(n) {
   return n.replace(/\s/g,'').replace(/(.{4})/g,'$1 ').trim();
