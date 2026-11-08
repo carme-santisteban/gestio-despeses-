@@ -476,7 +476,22 @@
     </div>
 
     <div style="background:var(--white);border-radius:var(--radius);padding:1rem 1.5rem;margin-bottom:1.5rem;box-shadow:var(--shadow);font-size:.85rem;color:var(--gray-4);border-left:4px solid var(--gold)">
-      <strong>Com funciona:</strong> Introdueix el saldo real de cada banc. Si una part està destinada a un pagament futur, marca-la com a <strong>reservada</strong>: continuaràs veient el saldo real, però els totals mostraran només els diners disponibles.
+      <strong>Com funciona:</strong> Introdueix el saldo de cada banc i marca com a reservada la part que hi està inclosa. Afegeix a la fila de reserves externes només els imports que no apareguin en cap saldo. Registra la transferència quan ja consti carregada i confirma la data efectiva d’abonament quan aparegui al compte de destinació.
+    </div>
+
+    <div class="taula-wrapper" style="margin-bottom:1.5rem">
+      <div class="taula-cap"><h2>Transferències entre comptes propis</h2></div>
+      <form id="formTransferenciaBancs" onsubmit="desarTransferenciaBancs(event)" style="display:flex;gap:12px;flex-wrap:wrap;padding:1rem;align-items:end">
+        <label>Data del càrrec <input name="data" type="date" required></label>
+        <label>Compte d’origen <input name="origen" placeholder="Nom o referència" required></label>
+        <label>Compte de destinació <input name="destinacio" placeholder="Nom o referència" required></label>
+        <label>Import (€) <input name="import" type="number" step="0.01" min="0.01" required></label>
+        <button class="btn btn-primary" type="submit">Registrar com a pendent</button>
+      </form>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Data del càrrec</th><th>Origen</th><th>Destinació</th><th>Import</th><th>Estat</th><th>Abonament</th></tr></thead>
+        <tbody id="transferenciesBancsCos"></tbody>
+      </table></div>
     </div>
 
     <!-- Taula dinàmica -->
@@ -2889,7 +2904,7 @@ async function carregarBancs() {
     const r = await fetch('/api/bancs/config');
     bancsCfg = await r.json();
     omplirSelectsBancs();
-    await carregarTaulaBancs();
+    await Promise.all([carregarTaulaBancs(), carregarTransferenciesBancs()]);
   } catch(e) { toast('Error carregant bancs', 'error'); }
 }
 
@@ -2907,8 +2922,8 @@ function valorDisponibleBanc(t, banc, idx) {
   return (v !== null && v !== undefined) ? v : ((t.files[banc] || [])[idx]);
 }
 
-function totalDisponibleBancs(t, idx) {
-  const totals = t.totals_disponibles || t.totals || [];
+function totalAjustatBancs(t, idx) {
+  const totals = t.totals_ajustats || t.totals_disponibles || t.totals || [];
   return totals[idx];
 }
 
@@ -3042,19 +3057,19 @@ function renderTaulaDinamica(t) {
     return cellSep + `<td style="text-align:right;font-weight:700;font-family:var(--font-head)">${fmtN(t.totals[idx])}${detall}</td>`;
   }).join('');
   const totVar = mostrantSeleccio && idxsVisibles.length >= 2
-    ? totalDisponibleBancs(t, idxsVisibles[idxsVisibles.length - 1]) - totalDisponibleBancs(t, idxsVisibles[0])
+    ? totalAjustatBancs(t, idxsVisibles[idxsVisibles.length - 1]) - totalAjustatBancs(t, idxsVisibles[0])
     : (t.total_variacio['__total__'] || 0);
   const totVarCls = totVar > 0 ? 'color:var(--green)' : totVar < 0 ? 'color:var(--red)' : '';
   const totVarTxt = totVar > 0 ? '+' + fmtN(totVar) : fmtN(totVar);
   const filaTotals = `<tr style="border-top:2px solid var(--gray-2)">
-    <td style="font-weight:700">TOTAL DISPONIBLE</td>${tdTotals}
-    <td style="text-align:right;font-weight:700;font-family:var(--font-head);${totVarCls}">${totVarTxt}</td>
+    <td style="font-weight:700">DISPONIBLE REAL</td>${tdTotals}
+    <td></td>
   </tr>`;
 
   // Fila VARIACIÓ groga
   const tdVars = idxsVisibles.map((idx, posVis) => {
     const v = mostrantSeleccio
-      ? (posVis === 0 ? null : totalDisponibleBancs(t, idx) - totalDisponibleBancs(t, idxsVisibles[posVis - 1]))
+      ? (posVis === 0 ? null : totalAjustatBancs(t, idx) - totalAjustatBancs(t, idxsVisibles[posVis - 1]))
       : t.variacions[idx];
     const cellSep = (hiHaSeparador && posVis === 1)
       ? '<td style="background:#f5e6b0;text-align:center;color:var(--gray-3)">…</td>'
@@ -3064,16 +3079,108 @@ function renderTaulaDinamica(t) {
     return cellSep + `<td style="background:#f5e6b0;text-align:right;font-weight:600;font-size:.85rem;${cls}">${v > 0 ? '+' : ''}${fmtN(v)}</td>`;
   }).join('');
   const filaVar = `<tr>
-    <td style="background:#f5e6b0;font-size:.78rem;font-weight:600;color:#7a6010;letter-spacing:.04em">VARIACIÓ DISP.</td>
+    <td style="background:#f5e6b0;font-size:.78rem;font-weight:600;color:#7a6010;letter-spacing:.04em">VARIACIÓ PATRIMONIAL REAL</td>
     ${tdVars}<td style="background:#f5e6b0"></td>
   </tr>`;
 
-  cos.innerHTML = filesBancs + filaTotals + filaVar;
+  const cellSepTransit = '<td style="text-align:center;color:var(--gray-2)">…</td>';
+  const filesTransit = idxsVisibles.map((idx, pos) => {
+    const v = t.transferencies_transit?.[idx] || 0;
+    const sep = hiHaSeparador && pos === 1 ? cellSepTransit : '';
+    return sep + `<td style="text-align:right">${v ? fmtN(v) : '—'}</td>`;
+  }).join('');
+  const filaTransit = `<tr><td style="font-weight:600">Transferències entre comptes pendents d’abonament</td>${filesTransit}<td></td></tr>`;
+  const filaAjustada = `<tr><td style="font-weight:700">PATRIMONI TOTAL AJUSTAT</td>${idxsVisibles.map((idx, pos) => (hiHaSeparador && pos === 1 ? cellSepTransit : '') + `<td style="text-align:right;font-weight:700">${fmtN(totalAjustatBancs(t, idx))}</td>`).join('')}<td style="text-align:right;font-weight:700;${totVarCls}">${totVarTxt}</td></tr>`;
+
+  const filesReservaExterna = idxsVisibles.map((idx, pos) => {
+    const data = t.dates[idx];
+    const valor = t.reserves_externes?.[idx] || 0;
+    const sep = hiHaSeparador && pos === 1 ? cellSepTransit : '';
+    return sep + `<td style="text-align:right"><button type="button" class="btn btn-sm" onclick="editarReservaExterna('${data}', ${valor})" aria-label="Editar reserves fora dels saldos del dia ${data}">${valor ? fmtN(valor) : '—'}</button></td>`;
+  }).join('');
+  const filaReservaExterna = `<tr><td>Reserves fora dels saldos bancaris</td>${filesReservaExterna}<td></td></tr>`;
+  cos.innerHTML = filesBancs + filaTotals + filaReservaExterna + filaTransit + filaAjustada + filaVar;
 
   // Guardem les dades per al comparador i poblem els desplegables
   window._taulaBancs = t;
   poblarComparador(t);
   filtrarTaulaBancs();
+}
+
+async function editarReservaExterna(data, actual) {
+  const entrada = window.prompt(
+    'Import reservat fora de tots els saldos bancaris en aquesta data. Indica 0 si no n’hi ha.',
+    actual ? String(actual).replace('.', ',') : '0'
+  );
+  if (entrada === null) return;
+  const valor = entrada.trim().replace(',', '.');
+  if (!/^\d+(\.\d{1,2})?$/.test(valor)) {
+    toast('Introdueix un import positiu o zero, amb un màxim de dos decimals.', 'error');
+    return;
+  }
+  try {
+    const r = await fetch('/api/bancs/reserves-externes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data, import: valor })
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'No s’ha pogut desar');
+    toast('Reserva externa actualitzada', 'ok');
+    await carregarTaulaBancs();
+  } catch (e) {
+    toast('Error desant l’import: ' + e.message, 'error');
+  }
+}
+
+async function carregarTransferenciesBancs() {
+  const cos = document.getElementById('transferenciesBancsCos');
+  try {
+    const r = await fetch('/api/bancs/transferencies');
+    if (!r.ok) throw new Error('No s’han pogut carregar les transferències');
+    const files = await r.json();
+    cos.innerHTML = files.map(f => `<tr><td>${esc(f.data)}</td><td>${esc(f.origen)}</td>
+      <td>${esc(f.destinacio)}</td><td>${fmtN(f.import)} €</td>
+      <td>${f.abonada_el ? 'Abonada' : 'Pendent d’abonament'}</td>
+      <td>${f.abonada_el ? esc(f.abonada_el) : `<form onsubmit="desarAbonamentBancs(event, ${f.id})">
+        <input type="date" name="data" min="${esc(f.data)}" aria-label="Data efectiva d’abonament" required>
+        <button class="btn btn-sm" type="submit">Confirmar abonament</button>
+      </form>`}</td></tr>`).join('') || '<tr><td colspan="6">Encara no hi ha transferències registrades.</td></tr>';
+  } catch (e) {
+    cos.textContent = e.message;
+  }
+}
+
+async function desarTransferenciaBancs(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    const r = await fetch('/api/bancs/transferencies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.fromEntries(new FormData(form)))
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'No s’ha pogut registrar');
+    form.reset();
+    await Promise.all([carregarTransferenciesBancs(), carregarTaulaBancs()]);
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function desarAbonamentBancs(event, id) {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget).get('data');
+  try {
+    const r = await fetch(`/api/bancs/transferencies/${id}/abonament`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({data})
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'No s’ha pogut confirmar');
+    await Promise.all([carregarTransferenciesBancs(), carregarTaulaBancs()]);
+  } catch (e) {
+    toast(e.message, 'error');
+  }
 }
 
 function filtrarTaulaBancs() {
@@ -3192,9 +3299,9 @@ function calcularComparacio() {
   let registresBanc = [];
   let detallTotalBancs = '';
   if (banc === '__total__') {
-    saldoA = totalDisponibleBancs(t, iA);
-    saldoB = totalDisponibleBancs(t, iB);
-    etiqueta = 'Tots els bancs';
+    saldoA = totalAjustatBancs(t, iA);
+    saldoB = totalAjustatBancs(t, iB);
+    etiqueta = 'Patrimoni total ajustat';
     const filesDetall = t.bancs.map(nomBanc => {
       const fila = t.files[nomBanc] || [];
       const idxAmbSaldo = [];

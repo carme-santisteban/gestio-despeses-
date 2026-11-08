@@ -1,4 +1,7 @@
 import os
+from zoneinfo import ZoneInfo
+from decimal import Decimal, InvalidOperation
+from sqlalchemy.exc import IntegrityError
 import csv
 import io
 import base64
@@ -597,6 +600,25 @@ def iniciar_recordatoris_documents_personals():
         name='recordatoris-documents-personals',
         daemon=True,
     ).start()
+
+
+class TransferenciaInterna(db.Model):
+    __tablename__ = 'transferencies_internes'
+    id = db.Column(db.Integer, primary_key=True)
+    data = db.Column(db.Date, nullable=False)
+    origen = db.Column(db.Text, nullable=False)
+    destinacio = db.Column(db.Text, nullable=False)
+    import_eur = db.Column(db.Numeric(12, 2), nullable=False)
+    abonada_el = db.Column(db.Date)
+    __table_args__ = (db.UniqueConstraint('data', 'origen', 'destinacio', 'import_eur'),)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'data': self.data.isoformat(), 'origen': self.origen,
+            'destinacio': self.destinacio, 'import': float(self.import_eur),
+            'abonada_el': self.abonada_el.isoformat() if self.abonada_el else None,
+            'estat': 'abonada' if self.abonada_el else 'pendent',
+        }
 
 
 class FotografiaBanc(db.Model):
@@ -1973,7 +1995,7 @@ def preview_document_personal_adjunt(adjunt_id):
 @app.route('/api/bancs/fotografies', methods=['GET'])
 def get_fotografies():
     banc = request.args.get('banc')
-    q = FotografiaBanc.query
+    q = FotografiaBanc.query.filter(FotografiaBanc.banc != CLAU_RESERVA_EXTERNA)
     if banc:
         q = q.filter_by(banc=banc)
     return jsonify([f.to_dict() for f in q.order_by(FotografiaBanc.data, FotografiaBanc.id).all()])
@@ -2043,6 +2065,90 @@ def delete_fotografia(id):
     db.session.commit()
     return jsonify({'ok': True})
 
+CLAU_RESERVA_EXTERNA = '__reserva_fora_de_saldo__'
+
+
+@app.route('/api/bancs/reserves-externes', methods=['PUT'])
+def guardar_reserva_externa():
+    if not session.get('auth'):
+        return jsonify({'error': 'Torna a iniciar sessió.'}), 401
+    payload = request.get_json(silent=True) or {}
+    try:
+        data = datetime.strptime(payload['data'], '%Y-%m-%d').date()
+        import_reserva = Decimal(str(payload['import']))
+        if not import_reserva.is_finite() or not 0 <= import_reserva <= Decimal('9999999999.99'):
+            raise ValueError()
+        import_reserva = import_reserva.quantize(Decimal('0.01'))
+    except (KeyError, TypeError, ValueError, InvalidOperation):
+        return jsonify({'error': 'Indica una data i un import vàlids (zero o més).'}), 400
+    if not FotografiaBanc.query.filter(
+        FotografiaBanc.data == data, FotografiaBanc.banc != CLAU_RESERVA_EXTERNA
+    ).first():
+        return jsonify({'error': 'Aquesta data no té cap fotografia bancària.'}), 404
+    fila = FotografiaBanc.query.filter_by(data=data, banc=CLAU_RESERVA_EXTERNA).first()
+    if fila is None and import_reserva:
+        fila = FotografiaBanc(data=data, banc=CLAU_RESERVA_EXTERNA, saldo=import_reserva)
+        db.session.add(fila)
+    elif fila is not None:
+        if import_reserva:
+            fila.saldo = import_reserva
+        else:
+            db.session.delete(fila)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/bancs/transferencies', methods=['GET', 'POST'])
+def transferencies_internes():
+    if not session.get('auth'):
+        return jsonify({'error': 'Torna a iniciar sessió.'}), 401
+    if request.method == 'GET':
+        files = TransferenciaInterna.query.order_by(TransferenciaInterna.data.desc(), TransferenciaInterna.id.desc()).all()
+        return jsonify([fila.to_dict() for fila in files])
+
+    d = request.get_json(silent=True) or {}
+    try:
+        data = datetime.strptime(d['data'], '%Y-%m-%d').date()
+        origen = d['origen'].strip()
+        destinacio = d['destinacio'].strip()
+        import_eur = Decimal(str(d['import']))
+        if not origen or not destinacio or origen.casefold() == destinacio.casefold():
+            raise ValueError()
+        if not import_eur.is_finite() or not 0 < import_eur <= Decimal('9999999999.99'):
+            raise ValueError()
+        if import_eur != import_eur.quantize(Decimal('0.01')):
+            raise ValueError()
+    except (AttributeError, KeyError, TypeError, ValueError, InvalidOperation):
+        return jsonify({'error': 'Revisa la data, els dos comptes i l’import.'}), 400
+    fila = TransferenciaInterna(data=data, origen=origen, destinacio=destinacio, import_eur=import_eur)
+    db.session.add(fila)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': 'Ja hi ha una transferència amb aquestes dades.'}), 409
+    return jsonify(fila.to_dict()), 201
+
+
+@app.route('/api/bancs/transferencies/<int:id>/abonament', methods=['PUT'])
+def confirmar_abonament(id):
+    if not session.get('auth'):
+        return jsonify({'error': 'Torna a iniciar sessió.'}), 401
+    fila = TransferenciaInterna.query.filter_by(id=id).with_for_update().first_or_404()
+    try:
+        d = request.get_json(silent=True) or {}
+        data = datetime.strptime(d['data'], '%Y-%m-%d').date()
+        if not fila.data <= data <= datetime.now(ZoneInfo('Europe/Madrid')).date():
+            raise ValueError()
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'error': 'Indica la data efectiva de l’abonament.'}), 400
+    if fila.abonada_el and fila.abonada_el != data:
+        return jsonify({'error': 'Aquesta transferència ja consta abonada.'}), 409
+    fila.abonada_el = data
+    db.session.commit()
+    return jsonify(fila.to_dict())
+
+
 @app.route('/api/bancs/taula', methods=['GET'])
 def get_bancs_taula():
     """
@@ -2052,7 +2158,7 @@ def get_bancs_taula():
     Columna TOTAL VARIACIÓ = última - primera fotografia.
     """
     # Dates úniques, ordenades
-    dates_q = db.session.query(FotografiaBanc.data).distinct().order_by(FotografiaBanc.data).all()
+    dates_q = db.session.query(FotografiaBanc.data).filter(FotografiaBanc.banc != CLAU_RESERVA_EXTERNA).distinct().order_by(FotografiaBanc.data).all()
     dates = [r.data for r in dates_q]
 
     bancs_cfg = BancConfig.query.order_by(BancConfig.ordre, BancConfig.id).all()
@@ -2103,14 +2209,24 @@ def get_bancs_taula():
         totals.append(round(total_real - total_reservat, 2))
         totals_disponibles.append(round(total_real - total_reservat, 2))
 
-    # La variació mesura el canvi del saldo disponible. Si uns diners ja estaven
-    # reservats, pagar-los no ha d'aparèixer com una nova pèrdua.
+    transferencies = TransferenciaInterna.query.all()
+    transit = [
+        float(sum(f.import_eur for f in transferencies if f.data <= d and
+                  (f.abonada_el is None or d < f.abonada_el)))
+        for d in dates
+    ]
+    reserves_externes = [index.get(CLAU_RESERVA_EXTERNA, {}).get(d.isoformat(), 0) for d in dates]
+    totals_ajustats = [
+        round(saldo + reserva + pendent, 2)
+        for saldo, reserva, pendent in zip(totals_reals, reserves_externes, transit)
+    ]
+
     variacions = []
     for i in range(len(dates)):
         if i == 0:
             variacions.append(None)
         else:
-            variacions.append(round(totals[i] - totals[i-1], 2))
+            variacions.append(round(totals_ajustats[i] - totals_ajustats[i-1], 2))
 
     # Variació per banc entre les dues dates globals més recents, calculada amb
     # el saldo disponible. Si falta una data, la interfície mostrarà un guió.
@@ -2120,7 +2236,7 @@ def get_bancs_taula():
             total_variacio[b] = round(disponibles[b][-1] - disponibles[b][-2], 2)
         else:
             total_variacio[b] = None
-    total_variacio['__total__'] = round(totals[-1] - totals[-2], 2) if len(totals) >= 2 else 0.0
+    total_variacio['__total__'] = round(totals_ajustats[-1] - totals_ajustats[-2], 2) if len(totals) >= 2 else 0.0
 
     return jsonify({
         'bancs':          banc_noms,
@@ -2132,6 +2248,9 @@ def get_bancs_taula():
         'totals_reals':   totals_reals,
         'totals_reservats': totals_reservats,
         'totals_disponibles': totals_disponibles,
+        'transferencies_transit': transit,
+        'reserves_externes': reserves_externes,
+        'totals_ajustats': totals_ajustats,
         'variacions':     variacions,
         'total_variacio': total_variacio,
     })
@@ -2240,7 +2359,7 @@ def backup_complet_dades():
     model_names = [
         'Despesa', 'Factura', 'TornOfici', 'TornComunicacio',
         'BancDocument', 'BancConfig', 'DespesaDocument', 'FacturaDocument',
-        'DocumentPersonal', 'DocumentPersonalAdjunt', 'AssegurancaDocument', 'FotografiaBanc', 'PrestecXaviPagament', 'ConfigApp', 'Credencial',
+        'DocumentPersonal', 'DocumentPersonalAdjunt', 'AssegurancaDocument', 'FotografiaBanc', 'TransferenciaInterna', 'PrestecXaviPagament', 'ConfigApp', 'Credencial',
         'CompteIban', 'Targeta', 'Asseguranca', 'RendaDocument',
     ]
     taules = {}
