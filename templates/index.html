@@ -487,9 +487,10 @@
         <label>Compte de destinació <input name="destinacio" placeholder="Nom o referència" required></label>
         <label>Import (€) <input name="import" type="number" step="0.01" min="0.01" required></label>
         <button class="btn btn-primary" type="submit">Registrar com a pendent</button>
+        <button class="btn btn-sm" type="button" hidden onclick="cancelarEdicioTransferencia()">Cancel·lar edició</button>
       </form>
       <div style="overflow-x:auto"><table>
-        <thead><tr><th>Data del càrrec</th><th>Origen</th><th>Destinació</th><th>Import</th><th>Estat</th><th>Abonament</th></tr></thead>
+        <thead><tr><th>Data del càrrec</th><th>Origen</th><th>Destinació</th><th>Import</th><th>Estat</th><th>Abonament</th><th>Accions</th></tr></thead>
         <tbody id="transferenciesBancsCos"></tbody>
       </table></div>
     </div>
@@ -3132,21 +3133,58 @@ async function editarReservaExterna(data, actual) {
   }
 }
 
+let transferenciesBancs = [];
+
 async function carregarTransferenciesBancs() {
   const cos = document.getElementById('transferenciesBancsCos');
   try {
     const r = await fetch('/api/bancs/transferencies');
     if (!r.ok) throw new Error('No s’han pogut carregar les transferències');
     const files = await r.json();
+    transferenciesBancs = files;
     cos.innerHTML = files.map(f => `<tr><td>${esc(f.data)}</td><td>${esc(f.origen)}</td>
       <td>${esc(f.destinacio)}</td><td>${fmtN(f.import)} €</td>
       <td>${f.abonada_el ? 'Abonada' : 'Pendent d’abonament'}</td>
       <td>${f.abonada_el ? esc(f.abonada_el) : `<form onsubmit="desarAbonamentBancs(event, ${f.id})">
         <input type="date" name="data" min="${esc(f.data)}" aria-label="Data efectiva d’abonament" required>
         <button class="btn btn-sm" type="submit">Confirmar abonament</button>
-      </form>`}</td></tr>`).join('') || '<tr><td colspan="6">Encara no hi ha transferències registrades.</td></tr>';
+      </form>`}</td>
+      <td><button type="button" class="btn btn-sm" onclick="editarTransferenciaBancs(${f.id})">Editar</button>
+      <button type="button" class="btn btn-sm" onclick="esborrarTransferenciaBancs(${f.id})">Esborrar</button></td></tr>`).join('') || '<tr><td colspan="7">Encara no hi ha transferències registrades.</td></tr>';
   } catch (e) {
     cos.textContent = e.message;
+  }
+}
+
+function editarTransferenciaBancs(id) {
+  const fila = transferenciesBancs.find(f => f.id === id);
+  if (!fila) return;
+  const form = document.getElementById('formTransferenciaBancs');
+  form.dataset.id = id;
+  for (const camp of ['data', 'origen', 'destinacio', 'import']) form.elements[camp].value = fila[camp];
+  form.querySelector('[type="submit"]').textContent = 'Desar canvis';
+  form.querySelector('[type="button"]').hidden = false;
+  form.elements.data.focus();
+}
+
+function cancelarEdicioTransferencia() {
+  const form = document.getElementById('formTransferenciaBancs');
+  delete form.dataset.id;
+  form.reset();
+  form.querySelector('[type="submit"]').textContent = 'Registrar com a pendent';
+  form.querySelector('[type="button"]').hidden = true;
+}
+
+async function esborrarTransferenciaBancs(id) {
+  const fila = transferenciesBancs.find(f => f.id === id);
+  if (!fila || !window.confirm(`Vols esborrar la transferència de ${fmtN(fila.import)} € del ${fila.data}, de ${fila.origen} a ${fila.destinacio}?`)) return;
+  try {
+    const r = await fetch(`/api/bancs/transferencies/${id}`, {method: 'DELETE'});
+    if (!r.ok) throw new Error('No s’ha pogut esborrar la transferència');
+    if (document.getElementById('formTransferenciaBancs').dataset.id === String(id)) cancelarEdicioTransferencia();
+    await Promise.all([carregarTransferenciesBancs(), carregarTaulaBancs()]);
+  } catch (e) {
+    toast(e.message, 'error');
   }
 }
 
@@ -3154,13 +3192,15 @@ async function desarTransferenciaBancs(event) {
   event.preventDefault();
   const form = event.currentTarget;
   try {
-    const r = await fetch('/api/bancs/transferencies', {
-      method: 'POST',
+    const id = form.dataset.id;
+    const url = id ? `/api/bancs/transferencies/${id}` : '/api/bancs/transferencies';
+    const r = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(Object.fromEntries(new FormData(form)))
     });
     if (!r.ok) throw new Error((await r.json()).error || 'No s’ha pogut registrar');
-    form.reset();
+    cancelarEdicioTransferencia();
     await Promise.all([carregarTransferenciesBancs(), carregarTaulaBancs()]);
   } catch (e) {
     toast(e.message, 'error');

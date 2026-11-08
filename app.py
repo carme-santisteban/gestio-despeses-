@@ -2099,12 +2099,19 @@ def guardar_reserva_externa():
 
 
 @app.route('/api/bancs/transferencies', methods=['GET', 'POST'])
-def transferencies_internes():
+@app.route('/api/bancs/transferencies/<int:id>', methods=['PUT', 'DELETE'])
+def transferencies_internes(id=None):
     if not session.get('auth'):
         return jsonify({'error': 'Torna a iniciar sessió.'}), 401
     if request.method == 'GET':
         files = TransferenciaInterna.query.order_by(TransferenciaInterna.data.desc(), TransferenciaInterna.id.desc()).all()
         return jsonify([fila.to_dict() for fila in files])
+
+    fila = TransferenciaInterna.query.filter_by(id=id).with_for_update().first_or_404() if id is not None else None
+    if request.method == 'DELETE':
+        db.session.delete(fila)
+        db.session.commit()
+        return jsonify({'ok': True})
 
     d = request.get_json(silent=True) or {}
     try:
@@ -2120,14 +2127,18 @@ def transferencies_internes():
             raise ValueError()
     except (AttributeError, KeyError, TypeError, ValueError, InvalidOperation):
         return jsonify({'error': 'Revisa la data, els dos comptes i l’import.'}), 400
-    fila = TransferenciaInterna(data=data, origen=origen, destinacio=destinacio, import_eur=import_eur)
-    db.session.add(fila)
+    if fila is None:
+        fila = TransferenciaInterna()
+        db.session.add(fila)
+    if fila.abonada_el and data > fila.abonada_el:
+        return jsonify({'error': 'La data del càrrec ha de ser anterior o igual a la de l’abonament.'}), 400
+    fila.data, fila.origen, fila.destinacio, fila.import_eur = data, origen, destinacio, import_eur
     try:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
         return jsonify({'error': 'Ja hi ha una transferència amb aquestes dades.'}), 409
-    return jsonify(fila.to_dict()), 201
+    return jsonify(fila.to_dict()), 201 if id is None else 200
 
 
 @app.route('/api/bancs/transferencies/<int:id>/abonament', methods=['PUT'])
